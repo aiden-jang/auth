@@ -1,4 +1,4 @@
-# aidenjang-api
+# switchboard
 
 Shared backend API platform. One Fastify server hosts multiple apps' APIs as modules,
 each mounted under its own prefix (configured by `API_PREFIX`), so a single always-on
