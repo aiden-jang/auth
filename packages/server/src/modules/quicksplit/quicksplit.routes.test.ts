@@ -19,7 +19,7 @@ describe('quick-split save', () => {
       url: '/api/auth/register',
       payload: { email, password, displayName: 'Ann' },
     });
-    const c = res.cookies.find((x) => x.name === 'switchboard_session');
+    const c = res.cookies.find((x) => x.name === 'platform_session');
     cookie = `${c?.name}=${c?.value}`;
     userId = (res.json() as { user: { id: string } }).user.id;
   });

@@ -44,7 +44,7 @@ export interface AuthResult {
 // timing roughly constant so attackers cannot enumerate registered emails.
 let dummyHashPromise: Promise<string> | null = null;
 function getDummyHash(): Promise<string> {
-  dummyHashPromise ??= hashPassword('switchboard-timing-equalizer');
+  dummyHashPromise ??= hashPassword('platform-timing-equalizer');
   return dummyHashPromise;
 }
 

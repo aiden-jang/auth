@@ -24,7 +24,7 @@ async function register(
     url: '/api/auth/register',
     payload: { email, password, displayName },
   });
-  const cookie = res.cookies.find((c) => c.name === 'switchboard_session');
+  const cookie = res.cookies.find((c) => c.name === 'platform_session');
   if (!cookie) throw new Error('no session cookie');
   const id = (res.json() as { user: { id: string } }).user.id;
   return { cookie: `${cookie.name}=${cookie.value}`, id };

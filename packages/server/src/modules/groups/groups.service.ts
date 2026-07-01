@@ -266,7 +266,7 @@ export async function addPlaceholderMember(
       role: 'MEMBER',
       user: {
         create: {
-          email: `placeholder.${randomUUID()}@switchboard.local`,
+          email: `placeholder.${randomUUID()}@platform.local`,
           displayName: name,
           passwordHash: '!', // not a valid argon2 hash; login can never succeed
           isPlaceholder: true,

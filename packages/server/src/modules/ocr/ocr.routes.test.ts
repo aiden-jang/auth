@@ -19,14 +19,14 @@ async function register(app: FastifyInstance, email: string, name: string): Prom
     url: '/api/auth/register',
     payload: { email, password, displayName: name },
   });
-  const cookie = res.cookies.find((c) => c.name === 'switchboard_session');
+  const cookie = res.cookies.find((c) => c.name === 'platform_session');
   if (!cookie) throw new Error('no session cookie');
   return { cookie: `${cookie.name}=${cookie.value}`, id: (res.json() as { user: { id: string } }).user.id };
 }
 
 /** Build a minimal multipart/form-data body with one file field. */
 function multipartBody(bytes: Buffer): { body: Buffer; contentType: string } {
-  const boundary = `----switchboardtest${randomUUID()}`;
+  const boundary = `----platformtest${randomUUID()}`;
   const head = Buffer.from(
     `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="receipt.png"\r\n` +
       `Content-Type: image/png\r\n\r\n`,

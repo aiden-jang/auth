@@ -1,4 +1,4 @@
-# switchboard
+# platform
 
 Shared backend API platform. One Fastify server hosts multiple apps' APIs as modules,
 each mounted under its own prefix (configured by `API_PREFIX`), so a single always-on
@@ -36,4 +36,4 @@ pnpm --filter @aidenjang/server dev           # API on :3000
 3. Add the app's frontend origin to `CORS_ORIGINS`.
 
 See `DEPLOY.md` for production (Fly.io) and the split-origin setup.
-# switchboard
+# platform

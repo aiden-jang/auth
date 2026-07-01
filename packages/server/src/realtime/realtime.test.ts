@@ -20,7 +20,7 @@ async function register(app: FastifyInstance, email: string, name: string): Prom
     url: '/api/auth/register',
     payload: { email, password, displayName: name },
   });
-  const cookie = res.cookies.find((c) => c.name === 'switchboard_session');
+  const cookie = res.cookies.find((c) => c.name === 'platform_session');
   if (!cookie) throw new Error('no session cookie');
   return { cookie: `${cookie.name}=${cookie.value}`, id: (res.json() as { user: { id: string } }).user.id };
 }
@@ -119,7 +119,7 @@ describe('realtime group updates', () => {
   });
 
   test('a connection without a valid session is closed', async () => {
-    const socket = new WebSocket(wsUrl, { headers: { cookie: 'switchboard_session=bogus' } });
+    const socket = new WebSocket(wsUrl, { headers: { cookie: 'platform_session=bogus' } });
     const code = await new Promise<number>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('no close')), 4000);
       socket.on('close', (c: number) => {

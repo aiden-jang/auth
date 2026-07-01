@@ -1,4 +1,4 @@
-// Database schema for the switchboard backend.
+// Database schema for the platform backend.
 // Money is never stored here yet; that arrives with expenses in a later phase.
 // All amounts, when they land, will be integer cents.
 
