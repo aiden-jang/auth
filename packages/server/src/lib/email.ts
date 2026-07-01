@@ -50,7 +50,7 @@ export function createEmailTransport(): EmailTransport {
   if (apiKey) {
     return new ResendEmailTransport(
       apiKey,
-      process.env.EMAIL_FROM ?? 'Owe Well <noreply@owewell.aidenjang.com>',
+      process.env.EMAIL_FROM ?? 'owewell <noreply@owewell.aidenjang.com>',
     );
   }
   return new ConsoleEmailTransport();

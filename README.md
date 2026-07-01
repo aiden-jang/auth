@@ -15,16 +15,16 @@ call this API across origins via CORS.
 ## Local development
 
 ```bash
-docker compose up -d db                      # Postgres on host port 5544
+docker compose up -d db                      # Postgres on host port 55432
 pnpm install
 pnpm --filter @aidenjang/server exec prisma migrate dev
-pnpm --filter @aidenjang/server dev           # API on :3000
+pnpm --filter @aidenjang/server dev           # API on :30000
 ```
 
 ## Configuration (env)
 
 - `DATABASE_URL` — Postgres connection string.
-- `API_PREFIX` — route namespace for this deployment (default `/api`; e.g. `/owe-well`).
+- `API_PREFIX` — route namespace for this deployment (default `/api`; e.g. `/owewell`).
 - `CORS_ORIGINS` — comma-separated browser origins allowed to call with credentials.
 - `COOKIE_DOMAIN` — shared parent domain so sessions work across subdomains (e.g. `.aidenjang.com`).
 - `APP_URL` — public base URL used in emails.

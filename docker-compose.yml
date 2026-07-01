@@ -1,15 +1,20 @@
+# Distinct project name so this stack never collides with an unrelated `platform`
+# compose project on the same machine (e.g. a work stack).
+name: aidenjang-platform
+
 services:
   db:
     image: postgres:16-alpine
-    container_name: platform-db
+    container_name: aidenjang-platform-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: platform
       POSTGRES_PASSWORD: platform
       POSTGRES_DB: platform
-    # Host port 5544 (not 5432) to avoid colliding with other local Postgres instances.
+    # Host port 55432 (5-digit, not 5432) to avoid colliding with other local
+    # Postgres instances and with 4-digit work ports.
     ports:
-      - '5544:5432'
+      - '55432:5432'
     volumes:
       - platform-pgdata:/var/lib/postgresql/data
     healthcheck:
