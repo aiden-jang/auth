@@ -38,6 +38,9 @@ services:
       # Inside the compose network the DB is reachable by service name on 5432.
       DATABASE_URL: 'postgresql://platform:platform@db:5432/platform?schema=public'
       PORT: '30000'
+      # Use the real app prefix locally too (matches prod), so multiple apps with
+      # overlapping entity names never collide even in dev.
+      API_PREFIX: '/owewell'
       # File-watching over a bind mount is unreliable on Docker Desktop (macOS);
       # polling makes tsx reliably pick up source edits.
       CHOKIDAR_USEPOLLING: 'true'

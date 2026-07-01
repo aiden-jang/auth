@@ -21,7 +21,7 @@ async function register(
 ): Promise<Registered> {
   const res = await app.inject({
     method: 'POST',
-    url: '/api/auth/register',
+    url: '/auth/register',
     payload: { email, password, displayName },
   });
   const cookie = res.cookies.find((c) => c.name === 'platform_session');

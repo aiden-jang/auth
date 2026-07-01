@@ -16,7 +16,7 @@ describe('quick-split save', () => {
     app = await buildApp(loadEnv({ ...process.env, NODE_ENV: 'test' }));
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/register',
+      url: '/auth/register',
       payload: { email, password, displayName: 'Ann' },
     });
     const c = res.cookies.find((x) => x.name === 'platform_session');
