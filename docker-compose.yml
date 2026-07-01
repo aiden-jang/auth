@@ -1,22 +1,22 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: switchboard-db
+    container_name: platform-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: switchboard
-      POSTGRES_PASSWORD: switchboard
-      POSTGRES_DB: switchboard
+      POSTGRES_USER: platform
+      POSTGRES_PASSWORD: platform
+      POSTGRES_DB: platform
     # Host port 5544 (not 5432) to avoid colliding with other local Postgres instances.
     ports:
       - '5544:5432'
     volumes:
-      - switchboard-pgdata:/var/lib/postgresql/data
+      - platform-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U switchboard -d switchboard']
+      test: ['CMD-SHELL', 'pg_isready -U platform -d platform']
       interval: 5s
       timeout: 5s
       retries: 5
 
 volumes:
-  switchboard-pgdata:
+  platform-pgdata:

@@ -1,4 +1,4 @@
-# Deploying switchboard
+# Deploying platform
 
 One Fastify API, deployed once, serving every app behind its own route prefix. Frontends
 are hosted separately (Cloudflare Pages / Vercel) and call the API across origins. Target

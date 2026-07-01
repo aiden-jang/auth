@@ -10,7 +10,7 @@ const displayName = 'Test User';
 
 /** Pull the session cookie out of a response so we can replay it as a request header. */
 function sessionCookie(res: { cookies: { name: string; value: string }[] }): string {
-  const cookie = res.cookies.find((c) => c.name === 'switchboard_session');
+  const cookie = res.cookies.find((c) => c.name === 'platform_session');
   if (!cookie) throw new Error('expected a session cookie');
   return `${cookie.name}=${cookie.value}`;
 }
@@ -108,7 +108,7 @@ describe('auth routes', () => {
       url: '/api/auth/register',
       payload: { email: e, password: 'correct horse battery', displayName: 'Settings User' },
     });
-    const c = reg.cookies.find((x) => x.name === 'switchboard_session');
+    const c = reg.cookies.find((x) => x.name === 'platform_session');
     const cookie = `${c?.name}=${c?.value}`;
 
     const rename = await app.inject({
