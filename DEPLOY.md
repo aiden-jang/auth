@@ -2,7 +2,7 @@
 
 One Fastify API, deployed once, serving every app behind its own route prefix. Frontends
 are hosted separately (Cloudflare Pages / Vercel) and call the API across origins. Target
-API host: **api.aidenjang.com**. Owe Well is used as the example app below.
+API host: **api.aidenjang.com**. owewell is used as the example app below.
 
 ## 1. Database (Neon, free)
 
@@ -15,7 +15,7 @@ API host: **api.aidenjang.com**. Owe Well is used as the example app below.
 # from the repo root
 fly launch --no-deploy            # detects the Dockerfile + fly.toml; pick the app name
 fly secrets set DATABASE_URL="postgresql://...neon..."
-fly secrets set API_PREFIX="/owe-well"                       # this app's route namespace
+fly secrets set API_PREFIX="/owewell"                       # this app's route namespace
 fly secrets set CORS_ORIGINS="https://owewell.aidenjang.com" # comma-separated frontend origins
 fly secrets set COOKIE_DOMAIN=".aidenjang.com"               # shared parent so sessions cross subdomains
 fly deploy                        # builds the image, runs migrations on boot, starts
@@ -36,12 +36,12 @@ ACME CNAME for the cert). HTTPS is issued automatically.
 
 ## 4. Frontends (Cloudflare Pages, free)
 
-Each app's frontend is its own static deploy. For Owe Well: build `packages/web` (output
+Each app's frontend is its own static deploy. For owewell: build `packages/web` (output
 `dist`) from the `owe-well` repo. `public/_redirects` already routes SPA paths to
 `index.html`. Set build-time env:
 
 ```
-VITE_API_URL=https://api.aidenjang.com/owe-well
+VITE_API_URL=https://api.aidenjang.com/owewell
 VITE_WS_URL=wss://api.aidenjang.com/ws
 ```
 

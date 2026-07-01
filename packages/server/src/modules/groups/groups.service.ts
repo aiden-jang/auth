@@ -234,7 +234,7 @@ export async function addMember(
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
-    throw new GroupError('USER_NOT_FOUND', 'No Owe Well account with that email.');
+    throw new GroupError('USER_NOT_FOUND', 'No owewell account with that email.');
   }
 
   try {

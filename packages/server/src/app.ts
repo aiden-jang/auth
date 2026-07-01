@@ -48,7 +48,7 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
   await app.register(healthRoutes);
 
   // Everything else lives under a configurable prefix (default /api). A shared
-  // multi-app backend gives each app its own prefix (e.g. /owe-well) so routes
+  // multi-app backend gives each app its own prefix (e.g. /owewell) so routes
   // never collide; same-origin single-app deploys keep /api.
   await app.register(
     async (api) => {

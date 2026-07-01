@@ -137,7 +137,7 @@ export async function requestPasswordReset(
   const link = `${appUrl}/reset-password?token=${token}`;
   await transport.send({
     to: user.email,
-    subject: 'Reset your Owe Well password',
+    subject: 'Reset your owewell password',
     text: `Reset your password here: ${link}\n\nThe link expires in an hour. If you didn't ask for this, ignore it.`,
   });
 }
