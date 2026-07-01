@@ -30,7 +30,7 @@ describe('auth routes', () => {
   test('register sets a session and /me returns the user; logout invalidates it', async () => {
     const register = await app.inject({
       method: 'POST',
-      url: '/api/auth/register',
+      url: '/auth/register',
       payload: { email, password, displayName },
     });
     expect(register.statusCode).toBe(201);
@@ -38,26 +38,26 @@ describe('auth routes', () => {
 
     const cookie = sessionCookie(register);
 
-    const me = await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie } });
+    const me = await app.inject({ method: 'GET', url: '/auth/me', headers: { cookie } });
     expect(me.statusCode).toBe(200);
     expect((me.json() as { user: { email: string } }).user.email).toBe(email);
 
-    const logout = await app.inject({ method: 'POST', url: '/api/auth/logout', headers: { cookie } });
+    const logout = await app.inject({ method: 'POST', url: '/auth/logout', headers: { cookie } });
     expect(logout.statusCode).toBe(200);
 
-    const afterLogout = await app.inject({ method: 'GET', url: '/api/auth/me', headers: { cookie } });
+    const afterLogout = await app.inject({ method: 'GET', url: '/auth/me', headers: { cookie } });
     expect(afterLogout.statusCode).toBe(401);
   });
 
   test('/auth/me without a cookie is 401', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/auth/me' });
+    const res = await app.inject({ method: 'GET', url: '/auth/me' });
     expect(res.statusCode).toBe(401);
   });
 
   test('duplicate email is rejected with 409', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/register',
+      url: '/auth/register',
       payload: { email, password, displayName },
     });
     expect(res.statusCode).toBe(409);
@@ -67,7 +67,7 @@ describe('auth routes', () => {
   test('login with the wrong password is 401', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/login',
+      url: '/auth/login',
       payload: { email, password: 'wrong password' },
     });
     expect(res.statusCode).toBe(401);
@@ -77,14 +77,14 @@ describe('auth routes', () => {
   test('login with correct credentials succeeds and sets a usable session', async () => {
     const login = await app.inject({
       method: 'POST',
-      url: '/api/auth/login',
+      url: '/auth/login',
       payload: { email, password },
     });
     expect(login.statusCode).toBe(200);
 
     const me = await app.inject({
       method: 'GET',
-      url: '/api/auth/me',
+      url: '/auth/me',
       headers: { cookie: sessionCookie(login) },
     });
     expect(me.statusCode).toBe(200);
@@ -94,7 +94,7 @@ describe('auth routes', () => {
   test('weak password is rejected with 400', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/register',
+      url: '/auth/register',
       payload: { email: `weak-${randomUUID()}@example.com`, password: 'short', displayName },
     });
     expect(res.statusCode).toBe(400);
@@ -105,7 +105,7 @@ describe('auth routes', () => {
     const e = `settings-${randomUUID()}@example.com`;
     const reg = await app.inject({
       method: 'POST',
-      url: '/api/auth/register',
+      url: '/auth/register',
       payload: { email: e, password: 'correct horse battery', displayName: 'Settings User' },
     });
     const c = reg.cookies.find((x) => x.name === 'platform_session');
@@ -113,7 +113,7 @@ describe('auth routes', () => {
 
     const rename = await app.inject({
       method: 'PATCH',
-      url: '/api/auth/me',
+      url: '/auth/me',
       headers: { cookie },
       payload: { displayName: 'Renamed' },
     });
@@ -122,7 +122,7 @@ describe('auth routes', () => {
 
     const wrong = await app.inject({
       method: 'POST',
-      url: '/api/auth/change-password',
+      url: '/auth/change-password',
       headers: { cookie },
       payload: { currentPassword: 'nope', newPassword: 'brand new password' },
     });
@@ -131,7 +131,7 @@ describe('auth routes', () => {
 
     const change = await app.inject({
       method: 'POST',
-      url: '/api/auth/change-password',
+      url: '/auth/change-password',
       headers: { cookie },
       payload: { currentPassword: 'correct horse battery', newPassword: 'brand new password' },
     });
@@ -139,13 +139,13 @@ describe('auth routes', () => {
 
     const oldLogin = await app.inject({
       method: 'POST',
-      url: '/api/auth/login',
+      url: '/auth/login',
       payload: { email: e, password: 'correct horse battery' },
     });
     expect(oldLogin.statusCode).toBe(401);
     const newLogin = await app.inject({
       method: 'POST',
-      url: '/api/auth/login',
+      url: '/auth/login',
       payload: { email: e, password: 'brand new password' },
     });
     expect(newLogin.statusCode).toBe(200);

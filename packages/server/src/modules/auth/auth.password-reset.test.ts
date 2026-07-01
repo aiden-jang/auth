@@ -23,7 +23,7 @@ describe('password reset', () => {
     app = await buildApp(loadEnv({ ...process.env, NODE_ENV: 'test' }));
     await app.inject({
       method: 'POST',
-      url: '/api/auth/register',
+      url: '/auth/register',
       payload: { email, password, displayName: 'Reset User' },
     });
   });
@@ -65,7 +65,7 @@ describe('password reset', () => {
   test('forgot-password endpoint always returns ok', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/forgot-password',
+      url: '/auth/forgot-password',
       payload: { email: `whoever-${randomUUID()}@example.com` },
     });
     expect(res.statusCode).toBe(200);
@@ -74,7 +74,7 @@ describe('password reset', () => {
   test('reset-password rejects a bogus token', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/auth/reset-password',
+      url: '/auth/reset-password',
       payload: { token: 'not-a-real-token', newPassword: 'a brand new password' },
     });
     expect(res.statusCode).toBe(400);

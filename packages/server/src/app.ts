@@ -44,15 +44,16 @@ export async function buildApp(env: Env): Promise<FastifyInstance> {
   await app.register(authPlugin);
   await app.register(realtimePlugin);
 
-  // Liveness stays at the root for load-balancer health checks.
+  // Platform-level routes live at the root, unprefixed, because they are shared by
+  // every app: liveness for load balancers, and auth (one identity across all apps,
+  // so it must not sit under any single app's prefix).
   await app.register(healthRoutes);
+  await app.register(authRoutes);
 
-  // Everything else lives under a configurable prefix (default /api). A shared
-  // multi-app backend gives each app its own prefix (e.g. /owewell) so routes
-  // never collide; same-origin single-app deploys keep /api.
+  // Each app's own routes live under its configurable prefix (e.g. /owewell) so
+  // multiple apps can share this backend without their routes colliding.
   await app.register(
     async (api) => {
-      await api.register(authRoutes);
       await api.register(groupRoutes);
       await api.register(expenseRoutes);
       await api.register(settlementRoutes);
@@ -79,6 +80,7 @@ async function registerWebApp(app: FastifyInstance, env: Env): Promise<void> {
     if (
       request.method === 'GET' &&
       !request.url.startsWith(env.API_PREFIX) &&
+      !request.url.startsWith('/auth') &&
       !request.url.startsWith('/ws')
     ) {
       return reply.sendFile('index.html');

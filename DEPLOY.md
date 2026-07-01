@@ -41,7 +41,8 @@ Each app's frontend is its own static deploy. For owewell: build `packages/web` 
 `index.html`. Set build-time env:
 
 ```
-VITE_API_URL=https://api.aidenjang.com/owewell
+VITE_API_URL=https://api.aidenjang.com/owewell    # this app's routes, under its prefix
+VITE_AUTH_URL=https://api.aidenjang.com            # shared auth, at the API root (no prefix)
 VITE_WS_URL=wss://api.aidenjang.com/ws
 ```
 

@@ -43,6 +43,8 @@ export interface GroupSummary {
   name: string;
   createdAt: Date;
   memberCount: number;
+  /** The requesting user's net in this group. Positive: owed to them. Negative: they owe. */
+  netCents: number;
 }
 
 interface MemberWithUser {
@@ -203,11 +205,46 @@ export async function listGroups(prisma: PrismaClient, userId: string): Promise<
     include: { _count: { select: { members: true } } },
     orderBy: { createdAt: 'desc' },
   });
+
+  // The user's net per group, computed in two batched queries (not per-group), using the
+  // same math as getBalances: + what they paid, - what they owe, +/- settlements.
+  const groupIds = groups.map((g) => g.id);
+  const net = new Map<string, number>(groupIds.map((id) => [id, 0]));
+  const bump = (groupId: string, delta: number): void => {
+    net.set(groupId, (net.get(groupId) ?? 0) + delta);
+  };
+
+  if (groupIds.length > 0) {
+    const expenses = await prisma.expense.findMany({
+      where: { groupId: { in: groupIds }, deletedAt: null },
+      select: {
+        groupId: true,
+        payerId: true,
+        amountCents: true,
+        splits: { where: { userId }, select: { owedCents: true } },
+      },
+    });
+    for (const expense of expenses) {
+      if (expense.payerId === userId) bump(expense.groupId, expense.amountCents);
+      for (const split of expense.splits) bump(expense.groupId, -split.owedCents);
+    }
+
+    const settlements = await prisma.settlement.findMany({
+      where: { groupId: { in: groupIds }, OR: [{ fromUserId: userId }, { toUserId: userId }] },
+      select: { groupId: true, fromUserId: true, toUserId: true, amountCents: true },
+    });
+    for (const s of settlements) {
+      if (s.fromUserId === userId) bump(s.groupId, s.amountCents);
+      if (s.toUserId === userId) bump(s.groupId, -s.amountCents);
+    }
+  }
+
   return groups.map((group) => ({
     id: group.id,
     name: group.name,
     createdAt: group.createdAt,
     memberCount: group._count.members,
+    netCents: net.get(group.id) ?? 0,
   }));
 }
 
