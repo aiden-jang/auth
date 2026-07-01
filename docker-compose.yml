@@ -23,5 +23,37 @@ services:
       timeout: 5s
       retries: 5
 
+  # The shared API, in dev mode with hot-reload. Frontends (owewell, etc.) run
+  # natively per-repo (`pnpm dev`) and proxy /api + /ws to this on :30000.
+  api:
+    build:
+      context: .
+      target: dev
+    container_name: aidenjang-platform-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Inside the compose network the DB is reachable by service name on 5432.
+      DATABASE_URL: 'postgresql://platform:platform@db:5432/platform?schema=public'
+      PORT: '30000'
+      # File-watching over a bind mount is unreliable on Docker Desktop (macOS);
+      # polling makes tsx reliably pick up source edits.
+      CHOKIDAR_USEPOLLING: 'true'
+    ports:
+      - '30000:30000'
+    volumes:
+      # Live source for hot-reload...
+      - .:/app
+      # ...but keep the container's own (Linux-built) deps, not the host's.
+      # These named volumes are seeded from the image on first `up`.
+      - platform-nm-root:/app/node_modules
+      - platform-nm-server:/app/packages/server/node_modules
+      - platform-nm-shared:/app/packages/shared/node_modules
+
 volumes:
   platform-pgdata:
+  platform-nm-root:
+  platform-nm-server:
+  platform-nm-shared:

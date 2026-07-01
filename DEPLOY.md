@@ -67,5 +67,6 @@ subdomain for this to hold.
   (uses Claude Haiku vision; cheap at hobby volume).
 - **Scaling past one instance** would need the realtime bus moved from in-memory to
   Redis pub/sub (e.g. Upstash). Single instance is fine to start.
-- Local dev: `docker compose up -d db`, then `pnpm --filter @aidenjang/server dev`. Run each
-  frontend from its own repo (e.g. `pnpm --filter @owe-well/web dev` in the owe-well repo).
+- Local dev: `docker compose up` brings up Postgres + the API (hot-reload) together. Run each
+  frontend from its own repo (e.g. `pnpm --filter @owe-well/web dev` in the owe-well repo),
+  proxying `/api` + `/ws` to `http://localhost:30000`. See the platform README for details.
