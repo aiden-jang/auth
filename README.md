@@ -14,12 +14,24 @@ call this API across origins via CORS.
 
 ## Local development
 
+The whole backend (Postgres + the API with hot-reload) comes up with one command:
+
 ```bash
-docker compose up -d db                      # Postgres on host port 55432
-pnpm install
-pnpm --filter @aidenjang/server exec prisma migrate dev
-pnpm --filter @aidenjang/server dev           # API on :30000
+docker compose up                            # Postgres :55432, API :30000 (migrates on boot)
 ```
+
+Source edits under `packages/` reload live (the repo is bind-mounted; tsx watches).
+Frontends are **not** in this stack — run each in its own repo and let it proxy `/api`
+and `/ws` to `http://localhost:30000` (e.g. `pnpm --filter @owe-well/web dev` → `:30001`).
+
+To create a new migration (the container only *applies* existing ones on boot):
+
+```bash
+pnpm --filter @aidenjang/server exec prisma migrate dev --name <name>
+```
+
+Prefer running the API on the host instead of in Docker? Start just the DB with
+`docker compose up -d db`, then `pnpm install && pnpm --filter @aidenjang/server dev`.
 
 ## Configuration (env)
 
