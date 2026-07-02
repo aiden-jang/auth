@@ -6,7 +6,7 @@
   "description": "Shared identity service: register/login/session for every app.",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "pnpm --filter @aidenjang/auth-web build && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "db:generate": "drizzle-kit generate",
