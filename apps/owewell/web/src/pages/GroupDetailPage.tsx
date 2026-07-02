@@ -68,7 +68,7 @@ export function GroupDetailPage(): ReactNode {
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [suggested, setSuggested] = useState<SuggestedPayment[]>([]);
   const [notFound, setNotFound] = useState(false);
-  const [email, setEmail] = useState('');
+  const [memberName, setMemberName] = useState('');
   const [memberError, setMemberError] = useState<string | null>(null);
   const [settling, setSettling] = useState(false);
   const [expenseMode, setExpenseMode] = useState<'simple' | 'itemized'>('simple');
@@ -212,11 +212,11 @@ export function GroupDetailPage(): ReactNode {
 
   async function onAddMember(event: FormEvent): Promise<void> {
     event.preventDefault();
-    if (!email.trim()) return;
+    if (!memberName.trim()) return;
     setMemberError(null);
     try {
-      await groupsApi.addMember(id, email.trim());
-      setEmail('');
+      await groupsApi.addPlaceholder(id, memberName.trim());
+      setMemberName('');
       await load();
       toast.success('Added them to the group.');
     } catch (err) {
@@ -527,10 +527,10 @@ export function GroupDetailPage(): ReactNode {
 
             <form onSubmit={(e) => void onAddMember(e)} className="mt-3 flex gap-2">
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="their@email.com"
+                type="text"
+                value={memberName}
+                onChange={(e) => setMemberName(e.target.value)}
+                placeholder="Add someone by name"
                 className="flex-1 rounded-xl border border-line bg-field px-3.5 py-2.5 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
               />
               <button
@@ -547,7 +547,7 @@ export function GroupDetailPage(): ReactNode {
                 onClick={() => void createInviteLink()}
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-accent transition hover:underline"
               >
-                <Icon name="link" size={15} /> Or create an invite link
+                <Icon name="link" size={15} /> Or invite someone on owewell with a link
               </button>
               {inviteLink && (
                 <input

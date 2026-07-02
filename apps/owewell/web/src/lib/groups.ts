@@ -11,8 +11,10 @@ export const groupsApi = {
     api.post<{ group: GroupDetail }>('/groups', { name }).then((r) => r.group),
   get: (id: string): Promise<GroupDetail> =>
     api.get<{ group: GroupDetail }>(`/groups/${id}`).then((r) => r.group),
-  addMember: (id: string, email: string): Promise<GroupMember> =>
-    api.post<{ member: GroupMember }>(`/groups/${id}/members`, { email }).then((r) => r.member),
+  // Add a name-only placeholder (someone not on owewell yet). Real accounts join via an
+  // invite link instead, since owewell can't look up other people's accounts by email.
+  addPlaceholder: (id: string, name: string): Promise<GroupMember> =>
+    api.post<{ member: GroupMember }>(`/groups/${id}/members`, { name }).then((r) => r.member),
   balances: (id: string): Promise<Balance[]> =>
     api.get<{ balances: Balance[] }>(`/groups/${id}/balances`).then((r) => r.balances),
   rename: (id: string, name: string): Promise<GroupDetail> =>

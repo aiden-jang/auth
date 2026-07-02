@@ -32,6 +32,8 @@ import {
   recordSettlement,
 } from './settlements.js';
 import { extractReceipt } from './ocr.js';
+import { InviteError, acceptInvite, createInvite, getInviteInfo } from './invites.js';
+import { QuickSplitError, createQuickSplit } from './quicksplit.js';
 import { notifyGroupChanged } from './realtime.js';
 
 type Vars = { person: Person };
@@ -50,6 +52,12 @@ app.get('/owewell/me', async (c) => {
     user: { id: user.id, email: user.email, displayName: user.displayName },
     personId: person.id,
   });
+});
+
+// Public invite lookup so the landing page can show the group before the visitor signs in.
+// Registered before the auth guard below.
+app.get('/owewell/invites/:token', async (c) => {
+  return c.json({ invite: await getInviteInfo(createDb(c.env), c.req.param('token')) });
 });
 
 // Everything else under /owewell requires a signed-in user (validated against the shared
@@ -216,6 +224,52 @@ app.post('/owewell/groups/:id/ocr', async (c) => {
   }
 });
 
+const createInviteBody = z.object({ email: z.string().email().optional() });
+app.post('/owewell/groups/:id/invites', async (c) => {
+  const parsed = createInviteBody.safeParse(await c.req.json().catch(() => ({})));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const invite = await createInvite(createDb(c.env), c.get('person').id, c.req.param('id'), parsed.data.email);
+  return c.json({ invite }, 201);
+});
+
+app.post('/owewell/invites/:token/accept', async (c) => {
+  const result = await acceptInvite(createDb(c.env), c.get('person').id, c.req.param('token'));
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, result.groupId));
+  return c.json(result);
+});
+
+const quickSplitBody = z.object({
+  description: z.string().trim().max(140).default(''),
+  amountCents: z.number().int().positive(),
+  splitMethod: z.enum(['EQUAL', 'EXACT', 'PERCENT', 'SHARES']),
+  participants: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(80),
+        value: z.number().int().optional(),
+        isPayer: z.boolean().optional(),
+        isYou: z.boolean().optional(),
+      }),
+    )
+    .min(1),
+});
+app.post('/owewell/quick-splits', async (c) => {
+  const parsed = quickSplitBody.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const result = await createQuickSplit(createDb(c.env), c.get('person').id, {
+    description: parsed.data.description,
+    amountCents: parsed.data.amountCents,
+    splitMethod: parsed.data.splitMethod,
+    participants: parsed.data.participants.map((p) => ({
+      name: p.name,
+      ...(p.value === undefined ? {} : { value: p.value }),
+      isPayer: Boolean(p.isPayer),
+      isYou: Boolean(p.isYou),
+    })),
+  });
+  return c.json(result, 201);
+});
+
 // Live updates: authenticated members upgrade to a WebSocket bound to this group's room.
 // Auth + membership are checked here; the Durable Object only ever sees authorized sockets.
 app.get('/owewell/groups/:id/ws', async (c) => {
@@ -243,6 +297,13 @@ app.onError((err, c) => {
   }
   if (err instanceof SettlementError) {
     return c.json({ error: err.code, message: err.message }, err.code === 'NOT_FOUND' ? 404 : 422);
+  }
+  if (err instanceof InviteError) {
+    const status = err.code === 'NOT_FOUND' ? 404 : err.code === 'EXPIRED' ? 410 : 409;
+    return c.json({ error: err.code, message: err.message }, status);
+  }
+  if (err instanceof QuickSplitError) {
+    return c.json({ error: err.code, message: err.message }, 422);
   }
   console.error('owewell api error', err);
   return c.json({ error: 'INTERNAL' }, 500);
