@@ -2,10 +2,10 @@ import { describe, expect, test } from 'vitest';
 import { hashPassword, verifyPassword } from './password.js';
 import { hashToken } from './session.js';
 
-describe('password hashing (argon2id WASM)', () => {
+describe('password hashing (PBKDF2)', () => {
   test('hash then verify roundtrips, rejects wrong password', async () => {
     const hash = await hashPassword('correct horse battery staple');
-    expect(hash.startsWith('$argon2id$')).toBe(true);
+    expect(hash.startsWith('pbkdf2$')).toBe(true);
     expect(await verifyPassword(hash, 'correct horse battery staple')).toBe(true);
     expect(await verifyPassword(hash, 'wrong password')).toBe(false);
   });
