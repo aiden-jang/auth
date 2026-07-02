@@ -27,3 +27,6 @@ coverage/
 
 # Prisma
 packages/server/prisma/*.db
+
+# Wrangler local state (miniflare D1/DO/KV)
+.wrangler/
