@@ -16,9 +16,9 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # owewell's server still uses Prisma until its Cloudflare port; its types are generated.
-      - run: pnpm --filter @owewell/server exec prisma generate
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm build
-      # test job is added in Phase 2.9 once owewell's suite runs on Workers (no external DB).
+      # Every suite (including owewell's) runs in-process: shared logic under Node, the API
+      # against a real in-memory D1 via the Workers pool. No external database needed.
+      - run: pnpm -r test
