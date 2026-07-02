@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import type { DB } from '../db/client.js';
 import { sessions, users } from '../db/schema.js';
+import { generateToken, hashToken } from './token.js';
 
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -9,23 +10,6 @@ export interface SessionUser {
   email: string;
   displayName: string;
   emailVerified: boolean;
-}
-
-function base64url(bytes: Uint8Array): string {
-  let bin = '';
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-/** Opaque session token handed to the client. The DB only ever stores its hash. */
-function generateToken(): string {
-  return base64url(crypto.getRandomValues(new Uint8Array(32)));
-}
-
-/** SHA-256 hex of the token; this is what's stored as the session id. */
-export async function hashToken(token: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** Create a session, return the raw token (store the hash) and its expiry. */
@@ -71,4 +55,9 @@ export async function validateSession(db: DB, token: string): Promise<SessionUse
 export async function revokeSession(db: DB, token: string): Promise<void> {
   const id = await hashToken(token);
   await db.delete(sessions).where(eq(sessions.id, id));
+}
+
+/** Kill every session for a user (e.g. after a password reset). */
+export async function revokeAllSessions(db: DB, userId: string): Promise<void> {
+  await db.delete(sessions).where(eq(sessions.userId, userId));
 }
