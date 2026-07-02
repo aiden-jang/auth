@@ -159,6 +159,18 @@ importers:
         specifier: ^5.4.8
         version: 5.4.21(@types/node@22.20.0)(lightningcss@1.32.0)
 
+  packages/auth-client:
+    devDependencies:
+      '@aidenjang/config':
+        specifier: workspace:*
+        version: link:../config
+      typescript:
+        specifier: ^5.6.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.0)(lightningcss@1.32.0)
+
   packages/config:
     dependencies:
       '@eslint/js':
