@@ -6,6 +6,7 @@ export default [
       '**/dist/**',
       '**/build/**',
       '**/node_modules/**',
+      '**/.wrangler/**',
       '**/*.config.js',
       // Parked apps, imported but not yet ported. Un-ignored per app in its port phase.
       'apps/bloomnote/**',
