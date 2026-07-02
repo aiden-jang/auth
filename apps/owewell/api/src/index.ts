@@ -39,8 +39,21 @@ const app = new Hono<{ Bindings: Env; Variables: Vars }>();
 
 app.get('/health', (c) => c.json({ status: 'ok', service: 'owewell' }));
 
-// Everything under /owewell requires a signed-in user (validated against the shared auth
-// service), resolved to this app's local person.
+// Who is the caller? Same-origin endpoint the web app polls so the browser never has to
+// talk to the auth service cross-origin. Returns { user: null } when signed out (not 401),
+// since owewell is usable signed-out (quick split). Registered before the auth guard below.
+app.get('/owewell/me', async (c) => {
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
+  if (!user) return c.json({ user: null });
+  const person = await getOrCreatePerson(createDb(c.env), user);
+  return c.json({
+    user: { id: user.id, email: user.email, displayName: user.displayName },
+    personId: person.id,
+  });
+});
+
+// Everything else under /owewell requires a signed-in user (validated against the shared
+// auth service), resolved to this app's local person.
 app.use('/owewell/*', async (c, next) => {
   const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
   if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
