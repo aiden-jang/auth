@@ -7,6 +7,9 @@ export interface Env {
   AUTH_URL: string;
   // Per-group WebSocket fan-out (GroupRoom Durable Object, one instance per group).
   REALTIME: DurableObjectNamespace;
+  // The built web SPA (apps/owewell/web/dist), served from this same Worker so the UI and
+  // the /owewell/* API share one origin.
+  ASSETS: Fetcher;
   // Receipt OCR via Claude vision. Unset = zero-cost mock extractor.
   ANTHROPIC_API_KEY?: string;
 }

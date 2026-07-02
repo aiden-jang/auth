@@ -309,5 +309,9 @@ app.onError((err, c) => {
   return c.json({ error: 'INTERNAL' }, 500);
 });
 
+// Everything that isn't the API (/health, /owewell/*) is the web SPA: real files, or the
+// index.html fallback for client routes. run_worker_first routes it all through here.
+app.all('*', (c) => c.env.ASSETS.fetch(c.req.raw));
+
 export { GroupRoom } from './realtime.js';
 export default app;

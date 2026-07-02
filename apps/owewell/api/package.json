@@ -6,7 +6,7 @@
   "description": "owewell API on Cloudflare Workers (Hono + D1 + Durable Object realtime).",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "pnpm --filter @owewell/web build && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "db:generate": "drizzle-kit generate",
