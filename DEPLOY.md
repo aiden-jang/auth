@@ -1,8 +1,16 @@
 # Deploying platform
 
 One Fastify API, deployed once, serving every app behind its own route prefix. Frontends
-are hosted separately (Cloudflare Pages / Vercel) and call the API across origins. Target
-API host: **api.aidenjang.com**. owewell is used as the example app below.
+are hosted separately (Cloudflare Pages) and call the API across origins. Target API host:
+**api.aidenjang.com**. owewell is used as the example app below.
+
+> **Primary (recommended) deploy: a free always-on VM.** For a setup that is truly $0 with
+> no possibility of being charged (self-hosted Postgres + API + auto-HTTPS via Caddy on an
+> Oracle Cloud Always Free VM, frontend on Cloudflare Pages), follow
+> [`deploy/oracle-vm.md`](deploy/oracle-vm.md) and use `docker-compose.prod.yml`.
+>
+> The Fly.io + Neon notes below are an alternative. Fly is usage-billed and has no hard $0
+> cap, so it does not fit a strict "never charged" requirement.
 
 ## 1. Database (Neon, free)
 
