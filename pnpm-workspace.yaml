@@ -1,4 +1,5 @@
+# Only wired apps are workspace members. Imported-but-not-yet-ported apps live under apps/
+# as parked source and are added here when their port phase restructures them.
 packages:
-  - 'apps/*'
-  - 'apps/*/*'
+  - 'apps/owewell/*'
   - 'packages/*'
