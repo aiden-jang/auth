@@ -92,6 +92,28 @@ importers:
         specifier: ^5.4.8
         version: 5.4.21(@types/node@22.20.0)(lightningcss@1.32.0)
 
+  apps/owewell/api:
+    dependencies:
+      drizzle-orm:
+        specifier: ^0.38.3
+        version: 0.38.4(@cloudflare/workers-types@4.20260702.1)(@prisma/client@5.22.0(prisma@5.22.0))(@types/react@18.3.31)(prisma@5.22.0)(react@18.3.1)
+    devDependencies:
+      '@aidenjang/config':
+        specifier: workspace:*
+        version: link:../../../packages/config
+      '@cloudflare/workers-types':
+        specifier: ^4.20241230.0
+        version: 4.20260702.1
+      drizzle-kit:
+        specifier: ^0.30.1
+        version: 0.30.6
+      typescript:
+        specifier: ^5.6.2
+        version: 5.9.3
+      wrangler:
+        specifier: ^3.99.0
+        version: 3.114.17(@cloudflare/workers-types@4.20260702.1)
+
   apps/owewell/server:
     dependencies:
       '@aidenjang/shared':
