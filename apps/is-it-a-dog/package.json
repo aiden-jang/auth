@@ -1,0 +1,17 @@
+{
+  "name": "drawing-game",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "shared",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev --workspace=game-server",
+    "dev:client": "npm run dev --workspace=client",
+    "redis": "docker compose up redis",
+    "test": "npm test --workspace=game-server",
+    "typecheck": "tsc -p packages/game-server/tsconfig.json --noEmit && tsc -p packages/ai-worker/tsconfig.json --noEmit && tsc -p packages/client/tsconfig.json --noEmit",
+    "build": "npm run build --workspace=client"
+  }
+}
