@@ -11,4 +11,13 @@ database_name = "aidenjang-identity"
 database_id = "local-dev-placeholder"
 migrations_dir = "migrations"
 
+# Fixed-window rate limiter, one Durable Object instance per action:ip.
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RateLimiter"]
+
 # Custom domain (accounts.aidenjang.com) is wired at deploy, step 1.9.
