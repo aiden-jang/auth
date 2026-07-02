@@ -16,7 +16,7 @@ AUTH_URL = "https://accounts.aidenjang.com"
 [[d1_databases]]
 binding = "DB"
 database_name = "owewell"
-database_id = "local-dev-placeholder"
+database_id = "1f212b63-ba43-42a4-8b5c-38d7f5c76efb"
 migrations_dir = "migrations"
 
 # Per-group realtime fan-out. One GroupRoom instance per group, addressed by group id.
@@ -24,11 +24,11 @@ migrations_dir = "migrations"
 name = "REALTIME"
 class_name = "GroupRoom"
 
-# GroupRoom uses the hibernation API and holds no persisted state, so a plain
-# (non-SQLite) class migration is enough.
+# GroupRoom uses the hibernation API and holds no persisted state, but the free plan requires
+# all Durable Objects to be SQLite-backed, so it's registered as a new_sqlite_classes migration.
 [[migrations]]
 tag = "v1"
-new_classes = ["GroupRoom"]
+new_sqlite_classes = ["GroupRoom"]
 
 # Serve the built web SPA (apps/owewell/web) from this same Worker, so the UI and the
 # /owewell/* API share the owewell.aidenjang.com origin (no CORS, one deploy).
