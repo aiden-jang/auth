@@ -20,4 +20,18 @@ class_name = "RateLimiter"
 tag = "v1"
 new_sqlite_classes = ["RateLimiter"]
 
-# Custom domain (accounts.aidenjang.com) is wired at deploy, step 1.9.
+# Serve the built login/account UI (apps/auth/web) from this same Worker, so the UI and
+# API share the accounts.aidenjang.com origin (no CORS between them, one deploy).
+# run_worker_first = true → the Worker routes everything; /auth/* + /health are the API,
+# the catch-all serves assets (real files + SPA fallback to index.html).
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+# Custom domain. Requires the aidenjang.com zone on this Cloudflare account; provisioned on
+# `wrangler deploy`. Ignored by local `wrangler dev`.
+[[routes]]
+pattern = "accounts.aidenjang.com"
+custom_domain = true

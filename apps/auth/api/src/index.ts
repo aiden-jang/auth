@@ -213,4 +213,7 @@ app.post('/auth/resend-verification', async (c) => {
   return c.json({ ok: true });
 });
 
+// Everything that isn't an API route: serve the login/account UI (SPA fallback via assets).
+app.all('*', (c) => c.env.ASSETS.fetch(c.req.raw));
+
 export default app;
