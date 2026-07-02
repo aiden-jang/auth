@@ -2,13 +2,15 @@ name = "aidenjang-auth"
 main = "src/index.ts"
 compatibility_date = "2024-12-30"
 compatibility_flags = ["nodejs_compat"]
+# Served only on the custom domain (accounts.aidenjang.com), not a *.workers.dev route.
+workers_dev = false
 
 # Identity store: users + sessions. database_id is filled in at deploy (step 1.9);
 # local dev uses miniflare's local D1.
 [[d1_databases]]
 binding = "DB"
 database_name = "aidenjang-identity"
-database_id = "local-dev-placeholder"
+database_id = "26bcf1d8-ac6a-421f-bd8d-442115284ede"
 migrations_dir = "migrations"
 
 # Fixed-window rate limiter, one Durable Object instance per action:ip.

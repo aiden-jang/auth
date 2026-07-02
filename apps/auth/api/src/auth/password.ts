@@ -1,7 +1,7 @@
 // PBKDF2-HMAC-SHA256 via Web Crypto. Native to Workers (argon2 WASM libs are out:
-// Workers disallow runtime WebAssembly.compile). Iterations are tunable; 210k balances
-// OWASP guidance against the Workers CPU budget. Encoded as: pbkdf2$<iters>$<salt>$<hash>.
-const ITERATIONS = 210_000;
+// Workers disallow runtime WebAssembly.compile). Cloudflare caps PBKDF2 at 100,000
+// iterations, so that's the ceiling here. Encoded as: pbkdf2$<iters>$<salt>$<hash>.
+const ITERATIONS = 100_000;
 const KEY_LEN = 32;
 const SALT_LEN = 16;
 
