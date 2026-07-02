@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { hashPassword, verifyPassword } from './password.js';
-import { hashToken } from './session.js';
+import { hashToken } from './token.js';
 
 describe('password hashing (PBKDF2)', () => {
   test('hash then verify roundtrips, rejects wrong password', async () => {
