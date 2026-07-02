@@ -5,4 +5,6 @@ export interface Env {
   // Base URL of the shared auth service (e.g. https://accounts.aidenjang.com); the API
   // validates the caller's session against it. Local dev: http://localhost:34100.
   AUTH_URL: string;
+  // Receipt OCR via Claude vision. Unset = zero-cost mock extractor.
+  ANTHROPIC_API_KEY?: string;
 }
