@@ -1,5 +1,5 @@
 {
-  "name": "@aidenjang/server",
+  "name": "@owewell/server",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -33,6 +33,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@aidenjang/config": "workspace:*",
     "@types/node": "^22.7.0",
     "@types/ws": "^8.5.12",
     "pino-pretty": "^11.2.2",

@@ -1,51 +1,33 @@
 # platform
 
-Shared backend API platform. One Fastify server hosts multiple apps' APIs as modules,
-each mounted under its own prefix (configured by `API_PREFIX`), so a single always-on
-deployment serves every app. Frontends are hosted separately (e.g. Cloudflare Pages) and
-call this API across origins via CORS.
+Monorepo for a set of consumer apps and the shared pieces behind them. Each app is
+independently deployed on Cloudflare (Pages + Workers + D1 + Durable Objects); identity is
+shared through one small auth service. Free to run, no cold starts.
+
+> Migration in progress. This repo is converging several previously separate projects into
+> one monorepo and onto Cloudflare. See the plan for the step-by-step. Apps mid-port may not
+> run locally until their port lands.
 
 ## Layout
 
-- `packages/server` — the Fastify app: auth (DB-backed session cookies), Prisma, realtime
-  WebSocket bus, and the per-app route modules under `src/modules/`.
-- `packages/shared` — pure, framework-free logic shared with frontends (money as integer
-  cents, split/settle math, types). Published as `@aidenjang/shared`.
+- `apps/` — one folder per app (e.g. `apps/owewell` with its `web` + `server`). More apps
+  land here as they're imported.
+- `packages/`
+  - `config` (`@aidenjang/config`) — shared tsconfig + eslint used across the monorepo.
+  - `shared` (`@aidenjang/shared`) — owewell's pure money/split logic (becomes `owewell-core`).
 
 ## Local development
 
-The whole backend (Postgres + the API with hot-reload) comes up with one command:
-
 ```bash
-docker compose up                            # Postgres :55432, API :30000 (migrates on boot)
+pnpm install
+pnpm dev:owewell        # run a single app
+pnpm typecheck          # all packages
+pnpm lint
 ```
 
-Source edits under `packages/` reload live (the repo is bind-mounted; tsx watches).
-Frontends are **not** in this stack — run each in its own repo and let it proxy `/api`
-and `/ws` to `http://localhost:30000` (e.g. `pnpm --filter @owe-well/web dev` → `:30001`).
+No Docker: once ported, each app runs on `wrangler dev` (miniflare emulates D1/DO/KV) + `vite`.
 
-To create a new migration (the container only *applies* existing ones on boot):
+## Conventions
 
-```bash
-pnpm --filter @aidenjang/server exec prisma migrate dev --name <name>
-```
-
-Prefer running the API on the host instead of in Docker? Start just the DB with
-`docker compose up -d db`, then `pnpm install && pnpm --filter @aidenjang/server dev`.
-
-## Configuration (env)
-
-- `DATABASE_URL` — Postgres connection string.
-- `API_PREFIX` — route namespace for this deployment (default `/api`; e.g. `/owewell`).
-- `CORS_ORIGINS` — comma-separated browser origins allowed to call with credentials.
-- `COOKIE_DOMAIN` — shared parent domain so sessions work across subdomains (e.g. `.aidenjang.com`).
-- `APP_URL` — public base URL used in emails.
-
-## Adding another app
-
-1. Add a route module under `packages/server/src/modules/<app>/` and register it.
-2. Give it its own `API_PREFIX` deployment (or mount it under a distinct sub-prefix).
-3. Add the app's frontend origin to `CORS_ORIGINS`.
-
-See `DEPLOY.md` for production (Fly.io) and the split-origin setup.
-# platform
+- pnpm workspaces; shared config extended per package from `@aidenjang/config`.
+- Prettier config at the root; run `pnpm format`.
