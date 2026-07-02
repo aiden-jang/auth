@@ -1,13 +1,10 @@
 import { simplifyDebts } from '@aidenjang/shared';
+import type { PaymentMethod } from '@owewell/core';
 import { and, desc, eq } from 'drizzle-orm';
 import type { DB } from './db/client.js';
 import { requireMembership } from './groups.js';
 import { getBalances } from './expenses.js';
 import { groupMembers, settlements } from './db/schema.js';
-
-/** How a payment was actually made. Tag-only (no deep links); shown in the feed. */
-export const PAYMENT_METHODS = ['venmo', 'paypal', 'zelle', 'cash', 'other'] as const;
-export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export type SettlementErrorCode = 'INVALID_PARTICIPANT' | 'SAME_PARTY' | 'NOT_FOUND';
 

@@ -1,20 +1,8 @@
+import type { RecordSettlementPayload, Settlement, SuggestedPayment } from '@owewell/core';
 import { api } from './api';
 
-export interface SuggestedPayment {
-  fromUserId: string;
-  fromName: string;
-  toUserId: string;
-  toName: string;
-  amountCents: number;
-}
-
-export interface Settlement {
-  id: string;
-  fromUserId: string;
-  toUserId: string;
-  amountCents: number;
-  createdAt: string;
-}
+// Re-export the shared contract so components can keep importing settlement types from here.
+export type { RecordSettlementPayload, Settlement, SuggestedPayment } from '@owewell/core';
 
 export const settlementsApi = {
   suggested: (groupId: string): Promise<SuggestedPayment[]> =>
@@ -23,9 +11,6 @@ export const settlementsApi = {
       .then((r) => r.payments),
   list: (groupId: string): Promise<Settlement[]> =>
     api.get<{ settlements: Settlement[] }>(`/groups/${groupId}/settlements`).then((r) => r.settlements),
-  record: (
-    groupId: string,
-    body: { fromUserId: string; toUserId: string; amountCents: number },
-  ): Promise<Settlement> =>
+  record: (groupId: string, body: RecordSettlementPayload): Promise<Settlement> =>
     api.post<{ settlement: Settlement }>(`/groups/${groupId}/settlements`, body).then((r) => r.settlement),
 };

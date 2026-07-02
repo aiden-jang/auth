@@ -1,11 +1,6 @@
 import { z } from 'zod';
+import type { ExtractedReceipt } from '@owewell/core';
 import type { Env } from './env.js';
-
-export interface ExtractedReceipt {
-  items: { name: string; amountCents: number }[];
-  taxCents: number;
-  tipCents: number;
-}
 
 const MOCK: ExtractedReceipt = {
   items: [

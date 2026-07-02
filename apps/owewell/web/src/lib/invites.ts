@@ -1,10 +1,8 @@
+import type { InviteInfo } from '@owewell/core';
 import { api } from './api';
 
-export interface InviteInfo {
-  groupName: string;
-  email: string | null;
-  status: 'pending' | 'accepted' | 'expired';
-}
+// Re-export the shared contract so components can keep importing invite types from here.
+export type { InviteInfo, InviteStatus } from '@owewell/core';
 
 export const invitesApi = {
   create: (groupId: string, email?: string): Promise<{ token: string }> =>
