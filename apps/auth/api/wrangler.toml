@@ -1,0 +1,7 @@
+name = "aidenjang-auth"
+main = "src/index.ts"
+compatibility_date = "2024-12-30"
+compatibility_flags = ["nodejs_compat"]
+
+# Identity D1 (users + sessions) is added in step 1.2.
+# Custom domain (accounts.aidenjang.com) is wired at deploy, step 1.9.
