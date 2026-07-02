@@ -1,0 +1,22 @@
+{
+  "name": "@aidenjang/auth-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared client: validate the platform session against the auth service; build login URLs.",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@aidenjang/config": "workspace:*",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.8"
+  }
+}
