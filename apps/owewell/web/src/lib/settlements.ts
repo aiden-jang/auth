@@ -7,8 +7,8 @@ export type { RecordSettlementPayload, Settlement, SuggestedPayment } from '@owe
 export const settlementsApi = {
   suggested: (groupId: string): Promise<SuggestedPayment[]> =>
     api
-      .get<{ payments: SuggestedPayment[] }>(`/groups/${groupId}/suggested-payments`)
-      .then((r) => r.payments),
+      .get<{ suggested: SuggestedPayment[] }>(`/groups/${groupId}/settlements/suggested`)
+      .then((r) => r.suggested),
   list: (groupId: string): Promise<Settlement[]> =>
     api.get<{ settlements: Settlement[] }>(`/groups/${groupId}/settlements`).then((r) => r.settlements),
   record: (groupId: string, body: RecordSettlementPayload): Promise<Settlement> =>
