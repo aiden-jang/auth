@@ -97,6 +97,9 @@ importers:
       '@aidenjang/auth-client':
         specifier: workspace:*
         version: link:../../../packages/auth-client
+      '@aidenjang/shared':
+        specifier: workspace:*
+        version: link:../../../packages/shared
       drizzle-orm:
         specifier: ^0.38.3
         version: 0.38.4(@cloudflare/workers-types@4.20260702.1)(@prisma/client@5.22.0(prisma@5.22.0))(@types/react@18.3.31)(prisma@5.22.0)(react@18.3.1)
