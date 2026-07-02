@@ -100,6 +100,9 @@ importers:
       '@aidenjang/shared':
         specifier: workspace:*
         version: link:../../../packages/shared
+      '@owewell/core':
+        specifier: workspace:*
+        version: link:../../../packages/owewell-core
       drizzle-orm:
         specifier: ^0.38.3
         version: 0.38.4(@cloudflare/workers-types@4.20260702.1)(@prisma/client@5.22.0(prisma@5.22.0))(@types/react@18.3.31)(prisma@5.22.0)(react@18.3.1)
@@ -204,6 +207,9 @@ importers:
       '@aidenjang/shared':
         specifier: workspace:*
         version: link:../../../packages/shared
+      '@owewell/core':
+        specifier: workspace:*
+        version: link:../../../packages/owewell-core
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -256,6 +262,19 @@ importers:
       typescript-eslint:
         specifier: ^8.8.0
         version: 8.62.0(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
+
+  packages/owewell-core:
+    dependencies:
+      '@aidenjang/shared':
+        specifier: workspace:*
+        version: link:../shared
+    devDependencies:
+      '@aidenjang/config':
+        specifier: workspace:*
+        version: link:../config
+      typescript:
+        specifier: ^5.6.2
+        version: 5.9.3
 
   packages/shared:
     devDependencies:

@@ -1,35 +1,8 @@
+import type { Balance, GroupDetail, GroupMember, GroupSummary } from '@owewell/core';
 import { api } from './api';
 
-export interface GroupSummary {
-  id: string;
-  name: string;
-  createdAt: string;
-  memberCount: number;
-  /** The current user's net in this group. Positive: they're owed. Negative: they owe. */
-  netCents: number;
-}
-
-export interface GroupMember {
-  userId: string;
-  displayName: string;
-  email: string;
-  role: 'OWNER' | 'MEMBER';
-  joinedAt: string;
-}
-
-export interface GroupDetail {
-  id: string;
-  name: string;
-  createdById: string;
-  createdAt: string;
-  members: GroupMember[];
-}
-
-export interface Balance {
-  userId: string;
-  displayName: string;
-  netCents: number;
-}
+// Re-export the shared contract so components can keep importing group types from here.
+export type { Balance, GroupDetail, GroupMember, GroupRole, GroupSummary } from '@owewell/core';
 
 export const groupsApi = {
   list: (): Promise<GroupSummary[]> =>

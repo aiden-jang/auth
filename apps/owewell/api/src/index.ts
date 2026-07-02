@@ -23,8 +23,8 @@ import {
   getBalances,
   listExpenses,
 } from './expenses.js';
+import { PAYMENT_METHODS } from '@owewell/core';
 import {
-  PAYMENT_METHODS,
   SettlementError,
   deleteSettlement,
   getSuggestedPayments,
