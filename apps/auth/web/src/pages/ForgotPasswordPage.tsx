@@ -1,0 +1,42 @@
+import { useState, type FormEvent, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { authApi } from '../lib/api';
+import { AuthCard, buttonClass, inputClass } from '../components/AuthCard';
+
+export function ForgotPasswordPage(): ReactNode {
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  async function onSubmit(e: FormEvent): Promise<void> {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await authApi.forgot(email);
+    } catch {
+      /* always show the same message, no enumeration */
+    }
+    setSent(true);
+  }
+
+  return (
+    <AuthCard title="Reset your password" subtitle="We'll email you a link to choose a new one.">
+      {sent ? (
+        <div className="space-y-4">
+          <p className="text-sm text-muted">
+            If an account exists for <span className="text-ink">{email}</span>, a reset link is on its way. The link expires in an hour.
+          </p>
+          <Link to="/login" className="font-medium text-accent hover:underline">Back to login</Link>
+        </div>
+      ) : (
+        <form onSubmit={(e) => void onSubmit(e)} className="space-y-3.5">
+          <input className={inputClass} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+          <button className={buttonClass} disabled={loading}>{loading ? 'Sending...' : 'Send reset link'}</button>
+          <p className="text-sm text-muted">
+            <Link to="/login" className="text-accent hover:underline">Back to login</Link>
+          </p>
+        </form>
+      )}
+    </AuthCard>
+  );
+}
