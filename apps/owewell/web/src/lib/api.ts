@@ -1,14 +1,10 @@
-// This app's own API lives under its prefix (e.g. https://api.aidenjang.com/owewell).
-// Locally the same prefix is proxied by Vite, so dev matches prod exactly.
+// This app's own API is served from its own origin under the /owewell prefix (callers pass
+// bare paths like "/groups"). Locally the same prefix is proxied by Vite, so dev matches prod.
 export const API_BASE = import.meta.env.VITE_API_URL ?? '/owewell';
-// Auth is platform-level and shared across apps, so it sits at the API root
-// (e.g. https://api.aidenjang.com/auth), not under this app's prefix. In dev both
-// are proxied to the same server, so the auth base is just the origin root ('').
-export const AUTH_BASE = import.meta.env.VITE_AUTH_URL ?? '';
-
-function baseFor(path: string): string {
-  return path.startsWith('/auth/') ? AUTH_BASE : API_BASE;
-}
+// The shared auth service (login/logout/account pages + session). Sign-in and sign-out are
+// full-page redirects here; the browser never fetches it cross-origin (identity comes from
+// the same-origin /owewell/me instead).
+export const AUTH_ORIGIN = import.meta.env.VITE_AUTH_URL ?? 'https://accounts.aidenjang.com';
 
 export class ApiError extends Error {
   constructor(
@@ -29,7 +25,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers.set('Content-Type', 'application/json');
   }
 
-  const res = await fetch(`${baseFor(path)}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     credentials: 'include',
     ...options,
     headers,

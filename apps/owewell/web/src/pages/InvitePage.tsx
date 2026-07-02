@@ -18,7 +18,7 @@ function Card({ children }: { children: ReactNode }): ReactNode {
 
 export function InvitePage(): ReactNode {
   const { token = '' } = useParams();
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
   const [info, setInfo] = useState<InviteInfo | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -97,14 +97,15 @@ export function InvitePage(): ReactNode {
         </>
       ) : (
         <>
-          <p className="mt-4 text-sm text-muted">Log in or make an account, then open this link again to join.</p>
-          <div className="mt-4 flex justify-center gap-3">
-            <Link to="/login" className="font-medium text-accent">
-              Log in
-            </Link>
-            <Link to="/signup" className="font-medium text-accent">
-              Sign up
-            </Link>
+          <p className="mt-4 text-sm text-muted">Sign in to join this group.</p>
+          <div className="mt-4 flex justify-center">
+            <button
+              type="button"
+              onClick={() => login(window.location.href)}
+              className="rounded-xl btn-gradient px-4 py-2.5 font-medium transition"
+            >
+              Log in to join
+            </button>
           </div>
         </>
       )}

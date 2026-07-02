@@ -198,6 +198,9 @@ importers:
 
   apps/owewell/web:
     dependencies:
+      '@aidenjang/auth-client':
+        specifier: workspace:*
+        version: link:../../../packages/auth-client
       '@aidenjang/shared':
         specifier: workspace:*
         version: link:../../../packages/shared

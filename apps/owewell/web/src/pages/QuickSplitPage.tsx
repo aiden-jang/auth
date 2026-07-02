@@ -50,6 +50,7 @@ function serverValue(method: SplitMethod, raw: string): number | undefined {
 }
 
 function PublicHeader(): ReactNode {
+  const { login } = useAuth();
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-card/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3.5">
@@ -57,15 +58,20 @@ function PublicHeader(): ReactNode {
           <BrandMark /> owewell
         </Link>
         <div className="flex items-center gap-2 text-sm font-medium">
-          <Link to="/login" className="rounded-full px-3 py-1.5 text-muted transition hover:text-ink">
+          <button
+            type="button"
+            onClick={() => login(window.location.origin)}
+            className="rounded-full px-3 py-1.5 text-muted transition hover:text-ink"
+          >
             Log in
-          </Link>
-          <Link
-            to="/signup"
+          </button>
+          <button
+            type="button"
+            onClick={() => login(window.location.origin)}
             className="btn-gradient rounded-full px-4 py-1.5 font-semibold transition active:scale-[0.98]"
           >
             Sign up
-          </Link>
+          </button>
         </div>
       </div>
     </header>
@@ -73,7 +79,7 @@ function PublicHeader(): ReactNode {
 }
 
 export function QuickSplitPage(): ReactNode {
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -168,8 +174,9 @@ export function QuickSplitPage(): ReactNode {
     stashPendingSplit(split);
 
     if (!user) {
-      // Save it after they make an account.
-      navigate('/signup');
+      // Stash it, sign in on the shared auth service, and land back on the dashboard,
+      // which offers to save the pending split once they're signed in.
+      login(window.location.origin);
       return;
     }
 
