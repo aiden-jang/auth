@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "dev:owewell": "pnpm --filter @owewell/web dev"
   },
   "devDependencies": {
     "@aidenjang/config": "workspace:*",
