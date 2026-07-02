@@ -10,3 +10,14 @@ binding = "DB"
 database_name = "owewell"
 database_id = "local-dev-placeholder"
 migrations_dir = "migrations"
+
+# Per-group realtime fan-out. One GroupRoom instance per group, addressed by group id.
+[[durable_objects.bindings]]
+name = "REALTIME"
+class_name = "GroupRoom"
+
+# GroupRoom uses the hibernation API and holds no persisted state, so a plain
+# (non-SQLite) class migration is enough.
+[[migrations]]
+tag = "v1"
+new_classes = ["GroupRoom"]

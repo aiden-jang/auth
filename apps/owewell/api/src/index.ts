@@ -32,6 +32,7 @@ import {
   recordSettlement,
 } from './settlements.js';
 import { extractReceipt } from './ocr.js';
+import { notifyGroupChanged } from './realtime.js';
 
 type Vars = { person: Person };
 const app = new Hono<{ Bindings: Env; Variables: Vars }>();
@@ -66,6 +67,7 @@ app.patch('/owewell/groups/:id', async (c) => {
   const parsed = z.object({ name: z.string().trim().min(1).max(80) }).safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
   const group = await renameGroup(createDb(c.env), c.get('person').id, c.req.param('id'), parsed.data.name);
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ group });
 });
 
@@ -87,11 +89,13 @@ app.post('/owewell/groups/:id/members', async (c) => {
     return c.json({ error: 'USE_INVITE', message: 'Invite real accounts with a link (coming next).' }, 501);
   }
   const member = await addPlaceholderMember(createDb(c.env), c.get('person').id, c.req.param('id'), parsed.data.name);
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ member }, 201);
 });
 
 app.delete('/owewell/groups/:id/members/:personId', async (c) => {
   await removeMember(createDb(c.env), c.get('person').id, c.req.param('id'), c.req.param('personId'));
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ ok: true });
 });
 
@@ -119,6 +123,7 @@ app.post('/owewell/groups/:id/expenses', async (c) => {
       p.value === undefined ? { userId: p.userId } : { userId: p.userId, value: p.value },
     ),
   });
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ expense }, 201);
 });
 
@@ -141,11 +146,13 @@ app.post('/owewell/groups/:id/expenses/itemized', async (c) => {
   const parsed = itemizedBody.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
   const expense = await createItemizedExpense(createDb(c.env), c.get('person').id, c.req.param('id'), parsed.data);
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ expense }, 201);
 });
 
 app.delete('/owewell/groups/:id/expenses/:expenseId', async (c) => {
   await deleteExpense(createDb(c.env), c.get('person').id, c.req.param('id'), c.req.param('expenseId'));
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ ok: true });
 });
 
@@ -172,11 +179,13 @@ app.post('/owewell/groups/:id/settlements', async (c) => {
     amountCents: parsed.data.amountCents,
     ...(parsed.data.method ? { method: parsed.data.method } : {}),
   });
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ settlement }, 201);
 });
 
 app.delete('/owewell/groups/:id/settlements/:settlementId', async (c) => {
   await deleteSettlement(createDb(c.env), c.get('person').id, c.req.param('id'), c.req.param('settlementId'));
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ ok: true });
 });
 
@@ -192,6 +201,18 @@ app.post('/owewell/groups/:id/ocr', async (c) => {
     console.error('receipt OCR failed', err);
     return c.json({ error: 'OcrFailed', message: 'Could not read that receipt.' }, 502);
   }
+});
+
+// Live updates: authenticated members upgrade to a WebSocket bound to this group's room.
+// Auth + membership are checked here; the Durable Object only ever sees authorized sockets.
+app.get('/owewell/groups/:id/ws', async (c) => {
+  if (c.req.header('Upgrade') !== 'websocket') return c.json({ error: 'ExpectedWebSocket' }, 426);
+  const groupId = c.req.param('id');
+  await requireMembership(createDb(c.env), c.get('person').id, groupId);
+  const url = new URL(c.req.url);
+  url.searchParams.set('groupId', groupId);
+  const stub = c.env.REALTIME.get(c.env.REALTIME.idFromName(groupId));
+  return stub.fetch(new Request(url.toString(), c.req.raw));
 });
 
 app.onError((err, c) => {
@@ -214,4 +235,5 @@ app.onError((err, c) => {
   return c.json({ error: 'INTERNAL' }, 500);
 });
 
+export { GroupRoom } from './realtime.js';
 export default app;
