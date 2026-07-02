@@ -23,6 +23,14 @@ import {
   getBalances,
   listExpenses,
 } from './expenses.js';
+import {
+  PAYMENT_METHODS,
+  SettlementError,
+  deleteSettlement,
+  getSuggestedPayments,
+  listSettlements,
+  recordSettlement,
+} from './settlements.js';
 import { extractReceipt } from './ocr.js';
 
 type Vars = { person: Person };
@@ -141,6 +149,37 @@ app.delete('/owewell/groups/:id/expenses/:expenseId', async (c) => {
   return c.json({ ok: true });
 });
 
+app.get('/owewell/groups/:id/settlements', async (c) => {
+  return c.json({ settlements: await listSettlements(createDb(c.env), c.get('person').id, c.req.param('id')) });
+});
+
+app.get('/owewell/groups/:id/settlements/suggested', async (c) => {
+  return c.json({ suggested: await getSuggestedPayments(createDb(c.env), c.get('person').id, c.req.param('id')) });
+});
+
+const recordSettlementBody = z.object({
+  fromUserId: z.string().min(1),
+  toUserId: z.string().min(1),
+  amountCents: z.number().int().positive(),
+  method: z.enum(PAYMENT_METHODS).optional(),
+});
+app.post('/owewell/groups/:id/settlements', async (c) => {
+  const parsed = recordSettlementBody.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const settlement = await recordSettlement(createDb(c.env), c.get('person').id, c.req.param('id'), {
+    fromUserId: parsed.data.fromUserId,
+    toUserId: parsed.data.toUserId,
+    amountCents: parsed.data.amountCents,
+    ...(parsed.data.method ? { method: parsed.data.method } : {}),
+  });
+  return c.json({ settlement }, 201);
+});
+
+app.delete('/owewell/groups/:id/settlements/:settlementId', async (c) => {
+  await deleteSettlement(createDb(c.env), c.get('person').id, c.req.param('id'), c.req.param('settlementId'));
+  return c.json({ ok: true });
+});
+
 app.post('/owewell/groups/:id/ocr', async (c) => {
   await requireMembership(createDb(c.env), c.get('person').id, c.req.param('id'));
   const form = await c.req.formData();
@@ -166,6 +205,9 @@ app.onError((err, c) => {
     return c.json({ error: err.code, message: err.message }, status);
   }
   if (err instanceof ExpenseError) {
+    return c.json({ error: err.code, message: err.message }, err.code === 'NOT_FOUND' ? 404 : 422);
+  }
+  if (err instanceof SettlementError) {
     return c.json({ error: err.code, message: err.message }, err.code === 'NOT_FOUND' ? 404 : 422);
   }
   console.error('owewell api error', err);
