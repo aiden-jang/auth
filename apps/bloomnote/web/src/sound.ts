@@ -120,7 +120,7 @@ function playTone({ freq = 440, type = 'sine', duration = 0.4, gain = 0.15, dela
 export function playBloom(index: number = 0): void {
 	if (muted) return
 	const notes = [523, 659, 784, 880, 1047, 1175]
-	const freq = notes[index % notes.length]
+	const freq = notes[index % notes.length]!
 	playTone({ freq, type: 'sine', duration: 0.6, gain: 0.12 })
 	playTone({ freq: freq * 1.5, type: 'sine', duration: 0.4, gain: 0.05, delay: 0.05 })
 }

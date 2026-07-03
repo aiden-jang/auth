@@ -44,7 +44,7 @@ function parseRoute(): ParsedRoute {
 
   const sharedMatch = path.match(/^\/g\/(.+)$/)
   if (sharedMatch) {
-    const seg = sharedMatch[1]
+    const seg = sharedMatch[1]!
     return isShortId(seg)
       ? { view: 'recipient', short: seg }
       : { view: 'recipient', malformed: true }
@@ -52,7 +52,7 @@ function parseRoute(): ParsedRoute {
 
   const remixMatch = path.match(/^\/r\/(.+)$/)
   if (remixMatch) {
-    const seg = remixMatch[1]
+    const seg = remixMatch[1]!
     // A malformed remix segment isn't fatal — we just drop the seed
     // and show a fresh composer. Less punishing than 404'ing on a
     // mistyped URL.

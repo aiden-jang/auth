@@ -3,4 +3,5 @@
 packages:
   - 'apps/auth/*'
   - 'apps/owewell/*'
+  - 'apps/bloomnote/*'
   - 'packages/*'

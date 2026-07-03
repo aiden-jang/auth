@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import styles from './SealedView.module.css'
 
 interface Props {
-  from?: string
-  to?: string
+  from?: string | undefined
+  to?: string | undefined
   /** ISO 8601 unlock moment. */
   unlockAt: string
   /** Fires when the unlock moment arrives — caller swaps to the real

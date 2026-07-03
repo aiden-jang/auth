@@ -71,9 +71,9 @@ interface Draft {
  */
 function charCountTierClass(len: number, styles: Record<string, string>): string {
   if (len === 0) return ''
-  if (len < 40) return styles.charCountThin
-  if (len < 320) return styles.charCountGood
-  return styles.charCountNear
+  if (len < 40) return styles.charCountThin ?? ''
+  if (len < 320) return styles.charCountGood ?? ''
+  return styles.charCountNear ?? ''
 }
 
 /**
@@ -117,7 +117,7 @@ interface ComposerProps {
   /** Optional remix seed; when present, the composer renders in
    *  reply mode (From/To pre-filled inverse, original shown as
    *  thread context, generated garden carries `previous`). */
-  remixSeed?: GardenData
+  remixSeed?: GardenData | undefined
 }
 
 export default function Composer({ remixSeed }: ComposerProps = {}) {

@@ -24,13 +24,13 @@ export interface MineRecord {
   /** Sender name (may be empty). */
   from: string
   /** Occasion value (mirror of src/lib/occasions.ts). */
-  occasion?: string
+  occasion?: string | undefined
   /** Mood value (mirror of src/lib/moods.ts). */
-  mood?: string
+  mood?: string | undefined
   /** ISO 8601 timestamp this garden was created. */
   createdAt: string
   /** When a time capsule, the ISO 8601 unlock moment. */
-  unlockAt?: string
+  unlockAt?: string | undefined
   /**
    * One representative petal color per flower (capped), used to draw a
    * small swatch row on the archive card. Lets /mine render a

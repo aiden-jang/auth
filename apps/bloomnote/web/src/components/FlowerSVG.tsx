@@ -77,10 +77,14 @@ function buildPetalPath(
   // extra bell points contribute to the silhouette via the rounded
   // ends rather than additional curves, which gives a clean profile
   // without complicating the path data.
+  // We render the first seven control points as two cubics; the sequences above always
+  // supply at least that many, so treat the head as a fixed tuple.
+  type Pt = [number, number]
+  const [p0, p1, p2, p3, p4, p5, p6] = pts as [Pt, Pt, Pt, Pt, Pt, Pt, Pt, ...Pt[]]
   return (
-    `M${pts[0][0]},${pts[0][1]} ` +
-    `C${pts[1][0]},${pts[1][1]} ${pts[2][0]},${pts[2][1]} ${pts[3][0]},${pts[3][1]} ` +
-    `C${pts[4][0]},${pts[4][1]} ${pts[5][0]},${pts[5][1]} ${pts[6][0]},${pts[6][1]}`
+    `M${p0[0]},${p0[1]} ` +
+    `C${p1[0]},${p1[1]} ${p2[0]},${p2[1]} ${p3[0]},${p3[1]} ` +
+    `C${p4[0]},${p4[1]} ${p5[0]},${p5[1]} ${p6[0]},${p6[1]}`
   )
 }
 
@@ -184,7 +188,7 @@ export default function FlowerSVG({ flower, bloomed, swayDelay = 0 }: Props) {
 function darken(hex: string, factor: number): string {
   const m = /^#([0-9a-f]{6})$/i.exec(hex)
   if (!m) return hex
-  const num = parseInt(m[1], 16)
+  const num = parseInt(m[1]!, 16)
   const r = Math.max(0, Math.floor(((num >> 16) & 0xff) * (1 - factor)))
   const g = Math.max(0, Math.floor(((num >> 8) & 0xff) * (1 - factor)))
   const b = Math.max(0, Math.floor((num & 0xff) * (1 - factor)))

@@ -37,13 +37,13 @@ export interface GardenData {
   /** Sender name. */
   from: string
   /** Recipient name. */
-  to?: string
+  to?: string | undefined
   /**
    * ISO 8601 timestamp of when the sender hit "Grow their garden." Optional
    * because pre-existing share URLs (from before this field shipped)
    * decode without it; we just don't show the "Grown on …" line in that case.
    */
-  createdAt?: string
+  createdAt?: string | undefined
   /**
    * ISO 8601 timestamp before which the garden stays sealed (time-capsule
    * mode). The recipient sees a countdown until this moment, then the
@@ -54,7 +54,7 @@ export interface GardenData {
    * which is acceptable for a "moment of joy" product — this is not a
    * security boundary, it's a UX choreography.
    */
-  unlockAt?: string
+  unlockAt?: string | undefined
   /**
    * The occasion (mirror of OCCASIONS values in src/lib/occasions.ts) the
    * sender chose. Stored so the recipient view can reflect the same
@@ -63,21 +63,21 @@ export interface GardenData {
    * pre-existing gardens (from before this field shipped) decode without
    * it; we just fall back to the default gradient.
    */
-  occasion?: string
+  occasion?: string | undefined
   /**
    * The mood (mirror of MOODS values in src/lib/moods.ts) the sender
    * chose. Currently informational only — preserved so we can light up
    * mood-driven UI variations in the future without re-encoding old
    * gardens. Same backwards-compat reasoning as `occasion`.
    */
-  mood?: string
+  mood?: string | undefined
   /**
    * The previous garden in the thread, if this is a reply. Depth-capped
    * to 1: a `previous` never has its own `previous`, so the URL stays
    * bounded even after many back-and-forths. The user sees current +
    * the one it replied to, no further back.
    */
-  previous?: GardenData
+  previous?: GardenData | undefined
 }
 
 // --- Short URLs ---------------------------------------------------------
@@ -124,7 +124,7 @@ export async function createShortGarden(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-      signal,
+      signal: signal ?? null,
     })
     if (!resp.ok) return null
     const json = (await resp.json()) as { id?: string }
@@ -148,7 +148,7 @@ export async function fetchGarden(
 ): Promise<GardenData | null> {
   try {
     const resp = await fetch(`/api/garden?id=${encodeURIComponent(id)}`, {
-      signal,
+      signal: signal ?? null,
     })
     if (!resp.ok) return null
     const json = (await resp.json()) as { garden?: unknown }
