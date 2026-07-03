@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { ServerMessage } from "shared";
+import type { ServerMessage } from "@is-it-a-dog/shared";
 import type { EngineContext, PlayerRef } from "./GameMode.ts";
 import { TeamBattleMode } from "./TeamBattleMode.ts";
 

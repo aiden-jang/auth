@@ -1,4 +1,4 @@
-import type { ServerMessage, DrawOp } from "shared";
+import type { ServerMessage, DrawOp } from "@is-it-a-dog/shared";
 
 // A participant in a game — a human (backed by a socket) or a virtual player
 // such as the AI. The engine treats them uniformly for turn order + scoring.

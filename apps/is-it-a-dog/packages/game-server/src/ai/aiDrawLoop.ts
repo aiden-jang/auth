@@ -1,4 +1,4 @@
-import type { DrawOp } from "shared";
+import type { DrawOp } from "@is-it-a-dog/shared";
 import type { EngineContext, TurnContext } from "../modes/GameMode.ts";
 import { DOODLES } from "../doodles.ts";
 

@@ -1,4 +1,4 @@
-import type { ServerMessage, PublicGameState, GamePhase, DrawOp } from "shared";
+import type { ServerMessage, PublicGameState, GamePhase, DrawOp } from "@is-it-a-dog/shared";
 import type { GameMode, EngineContext, PlayerRef, TurnContext } from "./modes/GameMode.ts";
 
 const TURN_MS = 60_000;

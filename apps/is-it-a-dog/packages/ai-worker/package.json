@@ -1,5 +1,5 @@
 {
-  "name": "ai-worker",
+  "name": "@is-it-a-dog/ai-worker",
   "version": "0.1.0",
   "type": "module",
   "scripts": {
@@ -9,7 +9,7 @@
   "dependencies": {
     "@napi-rs/canvas": "^0.1.65",
     "express": "^4.21.1",
-    "shared": "*"
+    "@is-it-a-dog/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

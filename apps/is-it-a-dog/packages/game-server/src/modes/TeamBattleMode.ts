@@ -1,4 +1,4 @@
-import type { DrawOp } from "shared";
+import type { DrawOp } from "@is-it-a-dog/shared";
 import type { EngineContext, PlayerRef, TurnContext } from "./GameMode.ts";
 import { ClassicMode } from "./ClassicMode.ts";
 import { startGuessLoop } from "../ai/aiGuessLoop.ts";

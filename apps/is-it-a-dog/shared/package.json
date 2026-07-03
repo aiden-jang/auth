@@ -1,5 +1,5 @@
 {
-  "name": "shared",
+  "name": "@is-it-a-dog/shared",
   "version": "0.1.0",
   "type": "module",
   "exports": {

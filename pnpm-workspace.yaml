@@ -4,4 +4,6 @@ packages:
   - 'apps/auth/*'
   - 'apps/owewell/*'
   - 'apps/bloomnote/*'
+  - 'apps/is-it-a-dog/shared'
+  - 'apps/is-it-a-dog/packages/*'
   - 'packages/*'

@@ -1,4 +1,4 @@
-import type { DrawOp } from "shared";
+import type { DrawOp } from "@is-it-a-dog/shared";
 
 const AI_WORKER_URL = process.env.AI_WORKER_URL ?? "http://localhost:8090";
 const TIMEOUT_MS = 8_000;
