@@ -1,11 +1,17 @@
 import { useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { dollarsToCents } from '@aidenjang/shared';
-import { expensesApi, ocrReceipt } from '../lib/expenses';
+import { expensesApi, ocrReceipt, type Expense } from '../lib/expenses';
 import type { GroupMember } from '../lib/groups';
 import { Icon } from './Icon';
 
 function centsToInput(cents: number): string {
   return (cents / 100).toFixed(2);
+}
+
+/** Today as YYYY-MM-DD in the user's local timezone (for the date input default). */
+function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 interface ItemDraft {
@@ -18,17 +24,26 @@ interface Props {
   groupId: string;
   members: GroupMember[];
   onCreated: () => void;
+  /** When set (an ITEMIZED expense), the form edits that receipt in place. */
+  editing?: Expense;
 }
 
-export function AddItemizedExpenseForm({ groupId, members, onCreated }: Props): ReactNode {
+export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }: Props): ReactNode {
   const allMemberIds = (): Set<string> => new Set(members.map((m) => m.userId));
-  const [description, setDescription] = useState('');
-  const [payerId, setPayerId] = useState(members[0]?.userId ?? '');
-  const [tax, setTax] = useState('');
-  const [tip, setTip] = useState('');
-  const [items, setItems] = useState<ItemDraft[]>([
-    { name: '', amount: '', participantIds: allMemberIds() },
-  ]);
+  const initialItems = (): ItemDraft[] =>
+    editing?.items && editing.items.length > 0
+      ? editing.items.map((it) => ({
+          name: it.name,
+          amount: centsToInput(it.amountCents),
+          participantIds: new Set(it.participantIds),
+        }))
+      : [{ name: '', amount: '', participantIds: allMemberIds() }];
+  const [description, setDescription] = useState(editing?.description ?? '');
+  const [payerId, setPayerId] = useState(editing?.payerId ?? members[0]?.userId ?? '');
+  const [tax, setTax] = useState(editing?.taxCents ? centsToInput(editing.taxCents) : '');
+  const [tip, setTip] = useState(editing?.tipCents ? centsToInput(editing.tipCents) : '');
+  const [items, setItems] = useState<ItemDraft[]>(initialItems);
+  const [date, setDate] = useState(editing ? editing.date.slice(0, 10) : todayStr());
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -111,22 +126,21 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated }: Props): 
       return;
     }
 
+    const payload = { description: description.trim(), payerId, taxCents, tipCents, items: payloadItems, date };
     setSubmitting(true);
     try {
-      await expensesApi.createItemized(groupId, {
-        description: description.trim(),
-        payerId,
-        taxCents,
-        tipCents,
-        items: payloadItems,
-      });
-      setDescription('');
-      setTax('');
-      setTip('');
-      setItems([{ name: '', amount: '', participantIds: allMemberIds() }]);
+      if (editing) {
+        await expensesApi.updateItemized(groupId, editing.id, payload);
+      } else {
+        await expensesApi.createItemized(groupId, payload);
+        setDescription('');
+        setTax('');
+        setTip('');
+        setItems([{ name: '', amount: '', participantIds: allMemberIds() }]);
+      }
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add the receipt.');
+      setError(err instanceof Error ? err.message : 'Could not save the receipt.');
     } finally {
       setSubmitting(false);
     }
@@ -164,6 +178,14 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated }: Props): 
           </option>
         ))}
       </select>
+
+      <input
+        type="date"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        aria-label="Date"
+        className={inputClass}
+      />
 
       <div className="space-y-3">
         {items.map((item, index) => (
@@ -247,7 +269,7 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated }: Props): 
         disabled={submitting}
         className="btn-gradient w-full rounded-full px-4 py-3 font-semibold transition active:scale-[0.98] disabled:opacity-60"
       >
-        {submitting ? 'Adding...' : 'Add receipt'}
+        {submitting ? 'Saving...' : editing ? 'Save changes' : 'Add receipt'}
       </button>
     </form>
   );
