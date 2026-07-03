@@ -15,6 +15,9 @@ export const groupsApi = {
   // invite link instead, since owewell can't look up other people's accounts by email.
   addPlaceholder: (id: string, name: string): Promise<GroupMember> =>
     api.post<{ member: GroupMember }>(`/groups/${id}/members`, { name }).then((r) => r.member),
+  // Rename a name-only placeholder member. Real accounts own their name via the auth service.
+  renameMember: (id: string, userId: string, name: string): Promise<GroupMember> =>
+    api.patch<{ member: GroupMember }>(`/groups/${id}/members/${userId}`, { name }).then((r) => r.member),
   balances: (id: string): Promise<Balance[]> =>
     api.get<{ balances: Balance[] }>(`/groups/${id}/balances`).then((r) => r.balances),
   rename: (id: string, name: string): Promise<GroupDetail> =>

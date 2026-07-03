@@ -13,6 +13,7 @@ import {
   listGroups,
   removeMember,
   renameGroup,
+  renameMember,
   requireMembership,
 } from './groups.js';
 import {
@@ -22,6 +23,8 @@ import {
   deleteExpense,
   getBalances,
   listExpenses,
+  updateExpense,
+  updateItemizedExpense,
 } from './expenses.js';
 import { PAYMENT_METHODS } from '@owewell/core';
 import {
@@ -114,6 +117,22 @@ app.post('/owewell/groups/:id/members', async (c) => {
   return c.json({ member }, 201);
 });
 
+app.patch('/owewell/groups/:id/members/:personId', async (c) => {
+  const parsed = z
+    .object({ name: z.string().trim().min(1).max(80) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const member = await renameMember(
+    createDb(c.env),
+    c.get('person').id,
+    c.req.param('id'),
+    c.req.param('personId'),
+    parsed.data.name,
+  );
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
+  return c.json({ member });
+});
+
 app.delete('/owewell/groups/:id/members/:personId', async (c) => {
   await removeMember(createDb(c.env), c.get('person').id, c.req.param('id'), c.req.param('personId'));
   c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
@@ -169,6 +188,33 @@ app.post('/owewell/groups/:id/expenses/itemized', async (c) => {
   const expense = await createItemizedExpense(createDb(c.env), c.get('person').id, c.req.param('id'), parsed.data);
   c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ expense }, 201);
+});
+
+app.put('/owewell/groups/:id/expenses/:expenseId', async (c) => {
+  const parsed = createExpenseBody.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const expense = await updateExpense(createDb(c.env), c.get('person').id, c.req.param('id'), c.req.param('expenseId'), {
+    ...parsed.data,
+    participants: parsed.data.participants.map((p) =>
+      p.value === undefined ? { userId: p.userId } : { userId: p.userId, value: p.value },
+    ),
+  });
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
+  return c.json({ expense });
+});
+
+app.put('/owewell/groups/:id/expenses/:expenseId/itemized', async (c) => {
+  const parsed = itemizedBody.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const expense = await updateItemizedExpense(
+    createDb(c.env),
+    c.get('person').id,
+    c.req.param('id'),
+    c.req.param('expenseId'),
+    parsed.data,
+  );
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
+  return c.json({ expense });
 });
 
 app.delete('/owewell/groups/:id/expenses/:expenseId', async (c) => {

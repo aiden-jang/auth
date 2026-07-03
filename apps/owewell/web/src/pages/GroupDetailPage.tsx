@@ -75,6 +75,9 @@ export function GroupDetailPage(): ReactNode {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editingMemberName, setEditingMemberName] = useState('');
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   async function load(): Promise<void> {
     try {
@@ -207,6 +210,18 @@ export function GroupDetailPage(): ReactNode {
       }
     } catch (err) {
       setMemberError(err instanceof Error ? err.message : 'Could not create a link.');
+    }
+  }
+
+  async function saveMemberName(memberId: string): Promise<void> {
+    const name = editingMemberName.trim();
+    if (!name) return;
+    try {
+      await groupsApi.renameMember(id, memberId, name);
+      setEditingMemberId(null);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not rename them.');
     }
   }
 
@@ -411,6 +426,16 @@ export function GroupDetailPage(): ReactNode {
                     <span className="tnum font-semibold">
                       {Money.fromCents(item.expense.amountCents).format()}
                     </span>
+                    {item.expense.splitMethod !== 'ITEMIZED' && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingExpense(item.expense)}
+                        aria-label={`Edit ${item.expense.description}`}
+                        className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-ink group-hover:opacity-100"
+                      >
+                        <Icon name="pencil" size={15} />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => void deleteExpense(item.expense.id)}
@@ -487,39 +512,80 @@ export function GroupDetailPage(): ReactNode {
                     key={member.userId}
                     className="surface flex items-center justify-between rounded-xl px-4 py-3"
                   >
-                    <span className="flex items-center gap-3 font-medium">
-                      <Avatar name={member.displayName} />
-                      <span>
-                        {member.displayName}
-                        {member.role === 'OWNER' && (
-                          <span className="ml-2 rounded bg-surface2 px-1.5 py-0.5 text-xs text-muted">
-                            owner
-                          </span>
-                        )}
+                    {editingMemberId === member.userId ? (
+                      <span className="flex w-full items-center gap-2">
+                        <input
+                          value={editingMemberName}
+                          onChange={(e) => setEditingMemberName(e.target.value)}
+                          autoFocus
+                          aria-label="Member name"
+                          className="flex-1 rounded-lg border border-line bg-field px-2.5 py-1.5 outline-none focus:border-accent"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void saveMemberName(member.userId)}
+                          className="text-sm font-medium text-accent"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingMemberId(null)}
+                          className="text-sm text-muted"
+                        >
+                          Cancel
+                        </button>
                       </span>
-                    </span>
-                    <span className="flex items-center gap-3">
-                      <span className={`tnum text-sm font-medium ${label.tone}`}>{label.text}</span>
-                      {canLeave && (
-                        <button
-                          type="button"
-                          onClick={() => void removeFromGroup(member.userId, true)}
-                          className="rounded-full border border-line px-2.5 py-1 text-xs font-medium text-muted transition hover:bg-surface2"
-                        >
-                          Leave
-                        </button>
-                      )}
-                      {canRemove && (
-                        <button
-                          type="button"
-                          onClick={() => void removeFromGroup(member.userId, false)}
-                          aria-label={`Remove ${member.displayName}`}
-                          className="grid h-8 w-8 place-items-center rounded-full text-faint transition hover:bg-surface2 hover:text-neg"
-                        >
-                          <Icon name="x" size={16} />
-                        </button>
-                      )}
-                    </span>
+                    ) : (
+                      <>
+                        <span className="flex items-center gap-3 font-medium">
+                          <Avatar name={member.displayName} />
+                          <span className="flex items-center gap-1.5">
+                            {member.displayName}
+                            {member.role === 'OWNER' && (
+                              <span className="rounded bg-surface2 px-1.5 py-0.5 text-xs text-muted">
+                                owner
+                              </span>
+                            )}
+                            {member.isPlaceholder && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingMemberId(member.userId);
+                                  setEditingMemberName(member.displayName);
+                                }}
+                                aria-label={`Rename ${member.displayName}`}
+                                className="grid h-6 w-6 place-items-center rounded-full text-faint transition hover:bg-surface2 hover:text-ink"
+                              >
+                                <Icon name="pencil" size={13} />
+                              </button>
+                            )}
+                          </span>
+                        </span>
+                        <span className="flex items-center gap-3">
+                          <span className={`tnum text-sm font-medium ${label.tone}`}>{label.text}</span>
+                          {canLeave && (
+                            <button
+                              type="button"
+                              onClick={() => void removeFromGroup(member.userId, true)}
+                              className="rounded-full border border-line px-2.5 py-1 text-xs font-medium text-muted transition hover:bg-surface2"
+                            >
+                              Leave
+                            </button>
+                          )}
+                          {canRemove && (
+                            <button
+                              type="button"
+                              onClick={() => void removeFromGroup(member.userId, false)}
+                              aria-label={`Remove ${member.displayName}`}
+                              className="grid h-8 w-8 place-items-center rounded-full text-faint transition hover:bg-surface2 hover:text-neg"
+                            >
+                              <Icon name="x" size={16} />
+                            </button>
+                          )}
+                        </span>
+                      </>
+                    )}
                   </li>
                 );
               })}
@@ -611,6 +677,22 @@ export function GroupDetailPage(): ReactNode {
             onCreated={() => {
               setSheetOpen(false);
               toast.success('Receipt added.');
+              void refreshLedger();
+            }}
+          />
+        )}
+      </Sheet>
+
+      <Sheet open={!!editingExpense} onClose={() => setEditingExpense(null)} title="Edit expense">
+        {editingExpense && (
+          <AddExpenseForm
+            key={`edit-${editingExpense.id}`}
+            groupId={group.id}
+            members={group.members}
+            editing={editingExpense}
+            onCreated={() => {
+              setEditingExpense(null);
+              toast.success('Expense updated.');
               void refreshLedger();
             }}
           />

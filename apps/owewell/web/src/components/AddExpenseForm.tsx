@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { dollarsToCents, type SplitMethod } from '@aidenjang/shared';
-import { expensesApi } from '../lib/expenses';
+import { expensesApi, type Expense } from '../lib/expenses';
 import type { GroupMember } from '../lib/groups';
 
 const METHODS: { value: SplitMethod; label: string }[] = [
@@ -21,15 +21,35 @@ interface Props {
   groupId: string;
   members: GroupMember[];
   onCreated: () => void;
+  /** When set, the form edits this expense in place instead of creating a new one. */
+  editing?: Expense;
 }
 
-export function AddExpenseForm({ groupId, members, onCreated }: Props): ReactNode {
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [payerId, setPayerId] = useState(members[0]?.userId ?? '');
-  const [method, setMethod] = useState<SplitMethod>('EQUAL');
-  const [selected, setSelected] = useState<Set<string>>(new Set(members.map((m) => m.userId)));
-  const [values, setValues] = useState<Record<string, string>>({});
+/** Reverse the form's value encoding so an edited expense prefills what the payer entered. */
+function initialValues(editing: Expense | undefined): Record<string, string> {
+  if (!editing || editing.splitMethod === 'ITEMIZED' || editing.splitMethod === 'EQUAL') return {};
+  const method = editing.splitMethod;
+  const out: Record<string, string> = {};
+  for (const s of editing.splits) {
+    if (s.inputValue == null) continue;
+    if (method === 'EXACT') out[s.userId] = (s.inputValue / 100).toFixed(2);
+    else if (method === 'PERCENT') out[s.userId] = String(s.inputValue / 100);
+    else out[s.userId] = String(s.inputValue); // SHARES
+  }
+  return out;
+}
+
+export function AddExpenseForm({ groupId, members, onCreated, editing }: Props): ReactNode {
+  const [description, setDescription] = useState(editing?.description ?? '');
+  const [amount, setAmount] = useState(editing ? (editing.amountCents / 100).toFixed(2) : '');
+  const [payerId, setPayerId] = useState(editing?.payerId ?? members[0]?.userId ?? '');
+  const [method, setMethod] = useState<SplitMethod>(
+    editing && editing.splitMethod !== 'ITEMIZED' ? editing.splitMethod : 'EQUAL',
+  );
+  const [selected, setSelected] = useState<Set<string>>(
+    editing ? new Set(editing.splits.map((s) => s.userId)) : new Set(members.map((m) => m.userId)),
+  );
+  const [values, setValues] = useState<Record<string, string>>(() => initialValues(editing));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -88,22 +108,21 @@ export function AddExpenseForm({ groupId, members, onCreated }: Props): ReactNod
       return;
     }
 
+    const payload = { description: description.trim(), amountCents, payerId, splitMethod: method, participants };
     setSubmitting(true);
     try {
-      await expensesApi.create(groupId, {
-        description: description.trim(),
-        amountCents,
-        payerId,
-        splitMethod: method,
-        participants,
-      });
-      setDescription('');
-      setAmount('');
-      setValues({});
-      setMethod('EQUAL');
+      if (editing) {
+        await expensesApi.update(groupId, editing.id, payload);
+      } else {
+        await expensesApi.create(groupId, payload);
+        setDescription('');
+        setAmount('');
+        setValues({});
+        setMethod('EQUAL');
+      }
       onCreated();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add the expense.');
+      setError(err instanceof Error ? err.message : 'Could not save the expense.');
     } finally {
       setSubmitting(false);
     }
@@ -185,7 +204,7 @@ export function AddExpenseForm({ groupId, members, onCreated }: Props): ReactNod
         disabled={submitting}
         className="btn-gradient w-full rounded-full px-4 py-3 font-semibold transition active:scale-[0.98] disabled:opacity-60"
       >
-        {submitting ? 'Adding...' : 'Add expense'}
+        {submitting ? 'Saving...' : editing ? 'Save changes' : 'Add expense'}
       </button>
     </form>
   );

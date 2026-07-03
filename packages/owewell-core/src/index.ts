@@ -23,6 +23,8 @@ export interface GroupMember {
   email: string | null;
   role: GroupRole;
   joinedAt: string;
+  /** True for name-only members (no linked account). Only these can be renamed locally. */
+  isPlaceholder: boolean;
 }
 
 export interface GroupSummary {
@@ -56,6 +58,12 @@ export type ExpenseSplitMethod = SplitMethod | 'ITEMIZED';
 export interface ExpenseSplit {
   userId: string;
   owedCents: number;
+  /**
+   * The value the payer originally entered for this participant under the split method
+   * (EXACT: cents, PERCENT: basis points, SHARES: weight; null for EQUAL/ITEMIZED). Lets the
+   * edit form prefill faithfully rather than reverse-engineering it from owedCents.
+   */
+  inputValue?: number | null;
 }
 
 export interface Expense {
