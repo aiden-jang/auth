@@ -27,3 +27,9 @@ binding = "DB"
 database_name = "wherever"
 database_id = "local-dev-placeholder"
 migrations_dir = "migrations"
+
+# Workers Logs — native, free-tier error/log observability. Tail live with `wrangler tail`;
+# browse + query in the dashboard (Workers & Pages → the worker → Logs).
+[observability]
+enabled = true
+head_sampling_rate = 1
