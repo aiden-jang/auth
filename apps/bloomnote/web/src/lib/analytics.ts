@@ -16,23 +16,15 @@
 // Analytics tier is cookie-less and anonymizes IP + UA at the edge,
 // so no cookie consent banner is required.
 
-import { track } from '@vercel/analytics'
-
-// The Vercel SDK accepts these property value types.
+// Event property value types.
 type EventProps = Record<string, string | number | boolean | null>
 
-// All custom events flow through here. Wrapping it gives one place to
-// add (e.g.) sample rates, prod/dev gating, or batched reporting later
-// without touching call sites.
-function emit(name: string, props?: EventProps): void {
-  // No-op outside a browser context — protects against any future SSR
-  // or test environment that imports this module.
-  if (typeof window === 'undefined') return
-  try {
-    track(name, props)
-  } catch {
-    // Analytics failures must never affect the product.
-  }
+// All custom events flow through here. Analytics used to be Vercel's `track()`; that's been
+// removed with the rest of the Vercel coupling, so emit() is a no-op for now. The typed event
+// API below is intact, so wiring a new provider later (Cloudflare Web Analytics, or a POST to
+// a Worker) is a one-function change with zero call-site churn.
+function emit(_name: string, _props?: EventProps): void {
+  // intentionally empty — no analytics provider is wired right now
 }
 
 // --- Composer side -------------------------------------------------------
