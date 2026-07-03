@@ -8,7 +8,7 @@ workers_dev = false
 # The ai-worker's URL (set after `is-it-a-dog-ai` deploys). Empty = AI modes degrade gracefully
 # (no guesses/draws); classic mode is unaffected.
 [vars]
-AI_WORKER_URL = ""
+AI_WORKER_URL = "https://is-it-a-dog-ai.aidenjang.workers.dev"
 
 # One GameRoom instance per room id. SQLite-backed (free-plan requirement); it holds no persisted
 # storage today — room state lives in memory while players are connected (pinned WebSockets), and
