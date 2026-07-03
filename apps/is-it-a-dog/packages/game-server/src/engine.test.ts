@@ -1,6 +1,6 @@
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import type { ServerMessage, PublicGameState } from "shared";
+import type { ServerMessage, PublicGameState } from "@is-it-a-dog/shared";
 import { GameEngine, type EngineDeps } from "./engine.ts";
 import { ClassicMode, WORDS, winnerLine } from "./modes/ClassicMode.ts";
 import { isClose, normalizeGuess } from "./text.ts";

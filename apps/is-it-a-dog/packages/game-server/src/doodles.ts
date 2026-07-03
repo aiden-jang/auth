@@ -1,4 +1,4 @@
-import type { DrawOp, Point } from "shared";
+import type { DrawOp, Point } from "@is-it-a-dog/shared";
 
 // A tiny library of hand-coded vector doodles, one per word. Each doodle is a
 // list of STROKES (so AIDrawerMode can reveal them one at a time, making the

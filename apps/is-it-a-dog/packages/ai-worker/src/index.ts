@@ -1,5 +1,5 @@
 import express from "express";
-import type { DrawOp } from "shared";
+import type { DrawOp } from "@is-it-a-dog/shared";
 import { renderToPng } from "./canvasRenderer.ts";
 import { selectProvider } from "./visionProviders.ts";
 

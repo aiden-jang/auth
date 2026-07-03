@@ -1,5 +1,5 @@
 import { createCanvas } from "@napi-rs/canvas";
-import type { DrawOp, Point } from "shared";
+import type { DrawOp, Point } from "@is-it-a-dog/shared";
 
 const WIDTH = 800;
 const HEIGHT = 600;

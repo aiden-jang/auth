@@ -6,7 +6,7 @@ import type {
   ServerMessage,
   PlayerInfo,
   DrawOp,
-} from "shared";
+} from "@is-it-a-dog/shared";
 import { GameEngine } from "./engine.ts";
 import { ClassicMode } from "./modes/ClassicMode.ts";
 import { AIGuesserMode } from "./modes/AIGuesserMode.ts";

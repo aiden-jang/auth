@@ -5,7 +5,7 @@ import type {
   PlayerInfo,
   DrawOp,
   PublicGameState,
-} from "shared";
+} from "@is-it-a-dog/shared";
 
 // Draw ops bypass React state on purpose: re-rendering a component on every
 // pointer-move would be wasteful. Instead the canvas registers a listener and
