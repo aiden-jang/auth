@@ -67,6 +67,15 @@ export function AccountPage(): ReactNode {
       <button type="button" onClick={() => void logout()} className={`${buttonClass} mt-6`}>
         Log out
       </button>
+
+      <nav className="mt-6 flex justify-center gap-5 text-xs text-muted">
+        <a href="/privacy" className="hover:text-accent hover:underline">
+          Privacy
+        </a>
+        <a href="/terms" className="hover:text-accent hover:underline">
+          Terms
+        </a>
+      </nav>
     </AuthCard>
   );
 }

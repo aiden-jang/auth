@@ -3,6 +3,7 @@ import Composer from './components/Composer'
 import MyGardens from './components/MyGardens'
 import RecipientView from './components/RecipientView'
 import SealedView from './components/SealedView'
+import SiteFooter from './components/SiteFooter'
 import { fetchGarden, isShortId, type GardenData } from './garden'
 
 /**
@@ -103,7 +104,13 @@ export default function App() {
     return () => ctrl.abort()
   }, [parsed])
 
-  if (route.kind === 'mine') return <MyGardens />
+  if (route.kind === 'mine')
+    return (
+      <>
+        <MyGardens />
+        <SiteFooter />
+      </>
+    )
   if (route.kind === 'loading') return <LoadingShell />
   if (route.kind === 'notfound') return <NotFoundShell />
   if (route.kind === 'recipient') {
@@ -114,7 +121,12 @@ export default function App() {
       />
     )
   }
-  return <Composer remixSeed={route.seed} />
+  return (
+    <>
+      <Composer remixSeed={route.seed} />
+      <SiteFooter />
+    </>
+  )
 }
 
 /**
