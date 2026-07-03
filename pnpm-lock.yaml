@@ -94,6 +94,9 @@ importers:
 
   apps/bloomnote/api:
     dependencies:
+      '@aidenjang/auth-client':
+        specifier: workspace:*
+        version: link:../../../packages/auth-client
       hono:
         specifier: ^4.6.14
         version: 4.12.27
@@ -119,6 +122,9 @@ importers:
 
   apps/bloomnote/web:
     dependencies:
+      '@aidenjang/auth-client':
+        specifier: workspace:*
+        version: link:../../../packages/auth-client
       '@vercel/analytics':
         specifier: ^2.0.1
         version: 2.0.1(react@18.3.1)

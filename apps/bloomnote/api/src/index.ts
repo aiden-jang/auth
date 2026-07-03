@@ -1,10 +1,19 @@
 import { Hono } from 'hono';
+import { getSessionUser } from '@aidenjang/auth-client';
 import type { Env } from './env.js';
 import { createGarden, readGarden } from './gardens.js';
 
 const app = new Hono<{ Bindings: Env }>();
 
 app.get('/health', (c) => c.json({ status: 'ok', service: 'bloomnote' }));
+
+// Who is the caller? Same-origin endpoint the web polls so the browser never talks to the
+// auth service cross-origin. Returns { user: null } when signed out — bloomnote is anonymous-
+// first, so accounts are optional and this is never a hard 401.
+app.get('/api/me', async (c) => {
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
+  return c.json({ user: user ? { id: user.id, email: user.email, displayName: user.displayName } : null });
+});
 
 // Read a garden by short id. Immutable once created, so it's aggressively cacheable.
 app.get('/api/garden', async (c) => {

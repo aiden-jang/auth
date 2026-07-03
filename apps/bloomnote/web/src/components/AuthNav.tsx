@@ -1,0 +1,55 @@
+import type { CSSProperties, ReactNode } from 'react';
+import { useAuth } from '../auth/AuthContext';
+
+// A quiet corner entry point. Accounts are optional (anonymous create + links always work),
+// so this stays out of the way: "Sign in" when signed out; name + "My gardens" + sign-out when
+// signed in.
+const wrap: CSSProperties = {
+  position: 'fixed',
+  top: 12,
+  right: 16,
+  zIndex: 50,
+  display: 'flex',
+  gap: 14,
+  alignItems: 'center',
+  fontSize: '0.85rem',
+  letterSpacing: '0.01em',
+};
+const link: CSSProperties = {
+  color: 'var(--color-ink-muted, #6b6963)',
+  textDecoration: 'none',
+  cursor: 'pointer',
+  background: 'none',
+  border: 'none',
+  font: 'inherit',
+  padding: 0,
+};
+
+export function AuthNav(): ReactNode {
+  const { user, loading, login, logout, accountUrl } = useAuth();
+  if (loading) return null;
+
+  if (!user) {
+    return (
+      <div style={wrap}>
+        <button type="button" style={link} onClick={() => login()}>
+          Sign in
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={wrap}>
+      <a style={link} href="/mine">
+        My gardens
+      </a>
+      <a style={link} href={accountUrl}>
+        {user.displayName}
+      </a>
+      <button type="button" style={link} onClick={() => logout()}>
+        Sign out
+      </button>
+    </div>
+  );
+}
