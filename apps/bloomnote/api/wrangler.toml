@@ -1,0 +1,26 @@
+name = "bloomnote-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-30"
+compatibility_flags = ["nodejs_compat"]
+# Served only on the custom domain (bloomnote.aidenjang.com), not a *.workers.dev route.
+workers_dev = false
+
+# Garden store: `g:<shortId>` -> garden JSON. The short code IS the key (no relational schema).
+# id is filled in at deploy from `wrangler kv namespace create GARDENS`.
+[[kv_namespaces]]
+binding = "GARDENS"
+id = "local-dev-placeholder"
+
+# Serve the built web SPA (apps/bloomnote/web) from this same Worker so the UI and the /api/*
+# routes share the bloomnote.aidenjang.com origin. run_worker_first = true → the Worker routes
+# everything; /health + /api/* are the API, the app.all('*') catch-all serves assets + SPA.
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
+# Custom domain. Provisioned on `wrangler deploy`; ignored by local `wrangler dev`.
+[[routes]]
+pattern = "bloomnote.aidenjang.com"
+custom_domain = true
