@@ -48,6 +48,10 @@ export interface ExpenseView {
   splitMethod: string;
   createdAt: Date;
   splits: { userId: string; owedCents: number; inputValue?: number | null }[];
+  // Present only for ITEMIZED expenses, so the edit form can prefill the receipt.
+  taxCents?: number;
+  tipCents?: number;
+  items?: { name: string; amountCents: number; participantIds: string[] }[];
 }
 
 export interface MemberBalance {
@@ -270,6 +274,36 @@ export async function listExpenses(db: DB, personId: string, groupId: string): P
     list.push({ userId: s.userId, owedCents: s.owedCents, inputValue: s.inputValue });
     byExpense.set(s.expenseId, list);
   }
+
+  // For itemized expenses, attach line items + their participants so the edit form can prefill.
+  const itemsByExpense = new Map<string, { name: string; amountCents: number; participantIds: string[] }[]>();
+  const itemizedIds = rows.filter((r) => r.splitMethod === 'ITEMIZED').map((r) => r.id);
+  if (itemizedIds.length > 0) {
+    const itemRows = await db
+      .select({ id: expenseItems.id, expenseId: expenseItems.expenseId, name: expenseItems.name, amountCents: expenseItems.amountCents })
+      .from(expenseItems)
+      .where(inArray(expenseItems.expenseId, itemizedIds))
+      .all();
+    const sharesByItem = new Map<string, string[]>();
+    if (itemRows.length > 0) {
+      const shareRows = await db
+        .select({ itemId: expenseItemShares.itemId, personId: expenseItemShares.personId })
+        .from(expenseItemShares)
+        .where(inArray(expenseItemShares.itemId, itemRows.map((i) => i.id)))
+        .all();
+      for (const s of shareRows) {
+        const l = sharesByItem.get(s.itemId) ?? [];
+        l.push(s.personId);
+        sharesByItem.set(s.itemId, l);
+      }
+    }
+    for (const it of itemRows) {
+      const l = itemsByExpense.get(it.expenseId) ?? [];
+      l.push({ name: it.name, amountCents: it.amountCents, participantIds: sharesByItem.get(it.id) ?? [] });
+      itemsByExpense.set(it.expenseId, l);
+    }
+  }
+
   return rows.map((e) => ({
     id: e.id,
     description: e.description,
@@ -278,6 +312,9 @@ export async function listExpenses(db: DB, personId: string, groupId: string): P
     splitMethod: e.splitMethod,
     createdAt: e.createdAt,
     splits: byExpense.get(e.id) ?? [],
+    ...(e.splitMethod === 'ITEMIZED'
+      ? { taxCents: e.taxCents, tipCents: e.tipCents, items: itemsByExpense.get(e.id) ?? [] }
+      : {}),
   }));
 }
 
