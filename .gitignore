@@ -11,6 +11,9 @@ build/
 .env
 .env.*
 !.env.example
+# Wrangler local secrets (never commit — these hold API keys for `wrangler dev`)
+.dev.vars
+.dev.vars.*
 
 # Logs
 *.log
