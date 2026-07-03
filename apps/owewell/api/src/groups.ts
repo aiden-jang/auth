@@ -18,6 +18,7 @@ export type GroupErrorCode =
   | 'ALREADY_MEMBER'
   | 'NOT_OWNER'
   | 'CANNOT_REMOVE_OWNER'
+  | 'NOT_PLACEHOLDER'
   | 'HAS_ACTIVITY';
 
 export class GroupError extends Error {
@@ -210,6 +211,44 @@ export async function deleteGroup(db: DB, personId: string, groupId: string): Pr
   await db.delete(groupMembers).where(eq(groupMembers.groupId, groupId));
   await db.delete(groups).where(eq(groups.id, groupId));
   await pruneOrphanPlaceholders(db);
+}
+
+/**
+ * Rename a member. Only name-only placeholders can be renamed here; a real account owns its
+ * own display name (synced from the auth service on each sign-in), so renaming it locally
+ * would just be overwritten. Any member may fix a placeholder's name.
+ */
+export async function renameMember(
+  db: DB,
+  actingPersonId: string,
+  groupId: string,
+  targetPersonId: string,
+  name: string,
+): Promise<GroupMemberView> {
+  await requireMembership(db, actingPersonId, groupId);
+  const membership = await db
+    .select({ role: groupMembers.role, joinedAt: groupMembers.joinedAt })
+    .from(groupMembers)
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.personId, targetPersonId)))
+    .get();
+  if (!membership) throw new GroupError('NOT_FOUND', 'They are not in this group.');
+  const person = await db
+    .select({ isPlaceholder: people.isPlaceholder, authUserId: people.authUserId })
+    .from(people)
+    .where(eq(people.id, targetPersonId))
+    .get();
+  if (!person || !person.isPlaceholder || person.authUserId) {
+    throw new GroupError('NOT_PLACEHOLDER', 'Only name-only members can be renamed; real accounts manage their own name.');
+  }
+  await db.update(people).set({ displayName: name }).where(eq(people.id, targetPersonId));
+  return {
+    userId: targetPersonId,
+    displayName: name,
+    email: null,
+    role: membership.role,
+    joinedAt: membership.joinedAt,
+    isPlaceholder: true,
+  };
 }
 
 /** Add a name-only person (no account) to the group, backed by a placeholder people row. */

@@ -212,9 +212,9 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated }: Props): 
         <button
           type="button"
           onClick={addItem}
-          className="text-sm font-medium text-accent transition hover:underline"
+          className="w-full rounded-xl border border-dashed border-line-strong py-2.5 text-sm font-medium text-accent transition hover:bg-surface2"
         >
-          + Add item
+          + Add another item
         </button>
       </div>
 

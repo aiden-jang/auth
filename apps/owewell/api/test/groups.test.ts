@@ -8,6 +8,7 @@ import {
   listGroups,
   removeMember,
   renameGroup,
+  renameMember,
 } from '../src/groups.js';
 import { testDb, seedPerson } from './helpers.js';
 
@@ -75,5 +76,28 @@ describe('groups', () => {
 
   test('unknown group is NOT_FOUND', async () => {
     await expect(getGroup(testDb(), alice, 'nope')).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  test('renameMember renames a placeholder', async () => {
+    const db = testDb();
+    const group = await createGroup(db, alice, 'Trip');
+    const bob = (await addPlaceholderMember(db, alice, group.id, 'Bob')).userId;
+    const renamed = await renameMember(db, alice, group.id, bob, 'Bobby');
+    expect(renamed.displayName).toBe('Bobby');
+    const fetched = await getGroup(db, alice, group.id);
+    expect(fetched.members.find((m) => m.userId === bob)?.displayName).toBe('Bobby');
+  });
+
+  test('renameMember refuses a real account (owner) and a non-member', async () => {
+    const db = testDb();
+    const group = await createGroup(db, alice, 'Trip');
+    // Alice is a real (non-placeholder) account: her name is owned by auth.
+    await expect(renameMember(db, alice, group.id, alice, 'Hacker')).rejects.toMatchObject({
+      code: 'NOT_PLACEHOLDER',
+    });
+    const outsider = await seedPerson(db, 'Nate');
+    await expect(renameMember(db, alice, group.id, outsider, 'Nope')).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
   });
 });

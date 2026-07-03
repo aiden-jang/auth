@@ -47,7 +47,7 @@ export interface ExpenseView {
   payerId: string;
   splitMethod: string;
   createdAt: Date;
-  splits: { userId: string; owedCents: number }[];
+  splits: { userId: string; owedCents: number; inputValue?: number | null }[];
 }
 
 export interface MemberBalance {
@@ -59,6 +59,14 @@ export interface MemberBalance {
 async function memberPersonIds(db: DB, groupId: string): Promise<Set<string>> {
   const rows = await db.select({ personId: groupMembers.personId }).from(groupMembers).where(eq(groupMembers.groupId, groupId)).all();
   return new Set(rows.map((r) => r.personId));
+}
+
+/** Drop an expense's line items + their per-item shares (used when replacing on edit). */
+async function clearItemizedRows(db: DB, expenseId: string): Promise<void> {
+  const itemRows = await db.select({ id: expenseItems.id }).from(expenseItems).where(eq(expenseItems.expenseId, expenseId)).all();
+  if (itemRows.length === 0) return;
+  await db.delete(expenseItemShares).where(inArray(expenseItemShares.itemId, itemRows.map((r) => r.id)));
+  await db.delete(expenseItems).where(eq(expenseItems.expenseId, expenseId));
 }
 
 export async function createExpense(db: DB, personId: string, groupId: string, input: CreateExpenseInput): Promise<ExpenseView> {
@@ -97,6 +105,54 @@ export async function createExpense(db: DB, personId: string, groupId: string, i
     })),
   );
   return { id, description: input.description, amountCents: input.amountCents, payerId: input.payerId, splitMethod: input.splitMethod, createdAt: new Date(), splits: shares.map((s) => ({ userId: s.userId, owedCents: s.owedCents })) };
+}
+
+/** Replace a simple (non-itemized) expense in place, recomputing its splits. Preserves createdAt. */
+export async function updateExpense(db: DB, personId: string, groupId: string, expenseId: string, input: CreateExpenseInput): Promise<ExpenseView> {
+  await requireMembership(db, personId, groupId);
+  const existing = await db
+    .select({ createdAt: expenses.createdAt })
+    .from(expenses)
+    .where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId), isNull(expenses.deletedAt)))
+    .get();
+  if (!existing) throw new ExpenseError('NOT_FOUND', 'That expense no longer exists.');
+  const members = await memberPersonIds(db, groupId);
+  if (!members.has(input.payerId)) throw new ExpenseError('INVALID_PAYER', 'The payer must be a member of the group.');
+  if (input.participants.some((p) => !members.has(p.userId))) {
+    throw new ExpenseError('INVALID_PARTICIPANT', 'Every participant must be a member of the group.');
+  }
+
+  let shares;
+  try {
+    shares = computeSplit(input.splitMethod, input.amountCents, input.participants);
+  } catch (err) {
+    throw new ExpenseError('INVALID_SPLIT', err instanceof Error ? err.message : 'Invalid split.');
+  }
+  const valueByPerson = new Map(input.participants.map((p) => [p.userId, p.value]));
+
+  await db
+    .update(expenses)
+    .set({
+      payerId: input.payerId,
+      description: input.description,
+      amountCents: input.amountCents,
+      splitMethod: input.splitMethod,
+      taxCents: 0,
+      tipCents: 0,
+    })
+    .where(eq(expenses.id, expenseId));
+  await clearItemizedRows(db, expenseId); // in case it used to be itemized
+  await db.delete(expenseSplits).where(eq(expenseSplits.expenseId, expenseId));
+  await db.insert(expenseSplits).values(
+    shares.map((s) => ({
+      id: crypto.randomUUID(),
+      expenseId,
+      personId: s.userId,
+      owedCents: s.owedCents,
+      inputValue: valueByPerson.get(s.userId) ?? null,
+    })),
+  );
+  return { id: expenseId, description: input.description, amountCents: input.amountCents, payerId: input.payerId, splitMethod: input.splitMethod, createdAt: existing.createdAt, splits: shares.map((s) => ({ userId: s.userId, owedCents: s.owedCents })) };
 }
 
 export async function createItemizedExpense(db: DB, personId: string, groupId: string, input: CreateItemizedExpenseInput): Promise<ExpenseView> {
@@ -145,19 +201,73 @@ export async function createItemizedExpense(db: DB, personId: string, groupId: s
   return { id, description: input.description, amountCents, payerId: input.payerId, splitMethod: 'ITEMIZED', createdAt: new Date(), splits: shares.map((s) => ({ userId: s.userId, owedCents: s.owedCents })) };
 }
 
+/** Replace an itemized expense in place: recompute item splits, swap items + shares. Preserves createdAt. */
+export async function updateItemizedExpense(db: DB, personId: string, groupId: string, expenseId: string, input: CreateItemizedExpenseInput): Promise<ExpenseView> {
+  await requireMembership(db, personId, groupId);
+  const existing = await db
+    .select({ createdAt: expenses.createdAt })
+    .from(expenses)
+    .where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId), isNull(expenses.deletedAt)))
+    .get();
+  if (!existing) throw new ExpenseError('NOT_FOUND', 'That expense no longer exists.');
+  const members = await memberPersonIds(db, groupId);
+  if (!members.has(input.payerId)) throw new ExpenseError('INVALID_PAYER', 'The payer must be a member of the group.');
+  const everyone = new Set(input.items.flatMap((i) => i.participantIds));
+  if ([...everyone].some((pid) => !members.has(pid))) {
+    throw new ExpenseError('INVALID_PARTICIPANT', 'Everyone on an item must be a group member.');
+  }
+
+  let shares;
+  try {
+    shares = computeItemizedSplit({
+      items: input.items.map((i) => ({ amountCents: i.amountCents, participantIds: i.participantIds })),
+      taxCents: input.taxCents,
+      tipCents: input.tipCents,
+    });
+  } catch (err) {
+    throw new ExpenseError('INVALID_SPLIT', err instanceof Error ? err.message : 'Invalid split.');
+  }
+  const amountCents = input.items.reduce((sum, i) => sum + i.amountCents, 0) + input.taxCents + input.tipCents;
+
+  await db
+    .update(expenses)
+    .set({
+      payerId: input.payerId,
+      description: input.description,
+      amountCents,
+      splitMethod: 'ITEMIZED',
+      taxCents: input.taxCents,
+      tipCents: input.tipCents,
+    })
+    .where(eq(expenses.id, expenseId));
+  await clearItemizedRows(db, expenseId);
+  await db.delete(expenseSplits).where(eq(expenseSplits.expenseId, expenseId));
+  await db.insert(expenseSplits).values(
+    shares.map((s) => ({ id: crypto.randomUUID(), expenseId, personId: s.userId, owedCents: s.owedCents })),
+  );
+  for (const item of input.items) {
+    const itemId = crypto.randomUUID();
+    await db.insert(expenseItems).values({ id: itemId, expenseId, name: item.name, amountCents: item.amountCents });
+    await db.insert(expenseItemShares).values(
+      item.participantIds.map((pid) => ({ id: crypto.randomUUID(), itemId, personId: pid })),
+    );
+  }
+  return { id: expenseId, description: input.description, amountCents, payerId: input.payerId, splitMethod: 'ITEMIZED', createdAt: existing.createdAt, splits: shares.map((s) => ({ userId: s.userId, owedCents: s.owedCents })) };
+}
+
 export async function listExpenses(db: DB, personId: string, groupId: string): Promise<ExpenseView[]> {
   await requireMembership(db, personId, groupId);
   const rows = await db.select().from(expenses).where(and(eq(expenses.groupId, groupId), isNull(expenses.deletedAt))).orderBy(desc(expenses.createdAt)).all();
   if (rows.length === 0) return [];
   const splitRows = await db
-    .select({ expenseId: expenseSplits.expenseId, userId: expenseSplits.personId, owedCents: expenseSplits.owedCents })
+    .select({ expenseId: expenseSplits.expenseId, userId: expenseSplits.personId, owedCents: expenseSplits.owedCents, inputValue: expenseSplits.inputValue })
     .from(expenseSplits)
     .where(inArray(expenseSplits.expenseId, rows.map((r) => r.id)))
     .all();
-  const byExpense = new Map<string, { userId: string; owedCents: number }[]>();
+  const byExpense = new Map<string, { userId: string; owedCents: number; inputValue: number | null }[]>();
   for (const s of splitRows) {
     const list = byExpense.get(s.expenseId) ?? [];
-    list.push({ userId: s.userId, owedCents: s.owedCents });
+    list.push({ userId: s.userId, owedCents: s.owedCents, inputValue: s.inputValue });
     byExpense.set(s.expenseId, list);
   }
   return rows.map((e) => ({

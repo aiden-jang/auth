@@ -7,6 +7,8 @@ import {
   deleteExpense,
   getBalances,
   listExpenses,
+  updateExpense,
+  updateItemizedExpense,
 } from '../src/expenses.js';
 import { testDb, seedPerson } from './helpers.js';
 
@@ -172,5 +174,66 @@ describe('expenses — itemized, balances, delete', () => {
     await expect(deleteExpense(db, alice, groupId, 'nope')).rejects.toMatchObject({
       code: 'NOT_FOUND',
     });
+  });
+});
+
+describe('expenses — editing', () => {
+  test('updateExpense recomputes splits and rebalances, preserving id', async () => {
+    const e = await createExpense(db, alice, groupId, {
+      description: 'Dinner',
+      amountCents: 3000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }, { userId: carl }],
+    });
+    const updated = await updateExpense(db, alice, groupId, e.id, {
+      description: 'Dinner (fixed)',
+      amountCents: 1500,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }],
+    });
+    expect(updated.id).toBe(e.id);
+    expect(updated.description).toBe('Dinner (fixed)');
+    expect(owed(updated.splits)).toEqual({ [alice]: 750, [bob]: 750 });
+    const list = await listExpenses(db, alice, groupId);
+    expect(list).toHaveLength(1); // still one expense, edited in place
+    expect((await net())[carl]).toBe(0); // Carl dropped from the split
+    expect((await net())[alice]).toBe(750);
+  });
+
+  test('updateItemizedExpense swaps the line items', async () => {
+    const e = await createItemizedExpense(db, alice, groupId, {
+      description: 'Lunch',
+      payerId: bob,
+      taxCents: 0,
+      tipCents: 0,
+      items: [{ name: 'Burger', amountCents: 1000, participantIds: [alice] }],
+    });
+    const updated = await updateItemizedExpense(db, alice, groupId, e.id, {
+      description: 'Lunch',
+      payerId: bob,
+      taxCents: 200,
+      tipCents: 0,
+      items: [
+        { name: 'Burger', amountCents: 1000, participantIds: [alice] },
+        { name: 'Fries', amountCents: 500, participantIds: [alice, bob] },
+      ],
+    });
+    expect(updated.amountCents).toBe(1000 + 500 + 200);
+    expect(updated.splits.reduce((s, x) => s + x.owedCents, 0)).toBe(updated.amountCents);
+    expect(Object.values(await net()).reduce((a, b) => a + b, 0)).toBe(0);
+  });
+
+  test('editing a missing expense is NOT_FOUND', async () => {
+    await expect(
+      updateExpense(db, alice, groupId, 'nope', {
+        description: 'x',
+        amountCents: 100,
+        payerId: alice,
+        splitMethod: 'EQUAL',
+        participants: [{ userId: alice }],
+      }),
+    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 });
