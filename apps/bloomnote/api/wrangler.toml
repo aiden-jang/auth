@@ -14,7 +14,7 @@ AUTH_URL = "https://accounts.aidenjang.com"
 # id is filled in at deploy from `wrangler kv namespace create GARDENS`.
 [[kv_namespaces]]
 binding = "GARDENS"
-id = "local-dev-placeholder"
+id = "17772866b1ae4b468ee00b07e65c9646"
 
 # Serve the built web SPA (apps/bloomnote/web) from this same Worker so the UI and the /api/*
 # routes share the bloomnote.aidenjang.com origin. run_worker_first = true → the Worker routes
