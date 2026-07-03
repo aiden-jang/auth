@@ -53,8 +53,10 @@ let audioCtx: AudioContext | null = null;
 function blip(freqs: number[], muted: boolean) {
   if (muted) return;
   try {
-    audioCtx =
-      audioCtx ?? new (window.AudioContext || (window as any).webkitAudioContext)();
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    audioCtx = audioCtx ?? new Ctor();
     const ctx = audioCtx;
     freqs.forEach((f, i) => {
       const osc = ctx.createOscillator();
@@ -462,7 +464,6 @@ function Room({ name, room, mode }: { name: string; room: string; mode: string }
       const t = setTimeout(() => setToast(null), 2600);
       return () => clearTimeout(t);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canDraw]);
 
   // Celebrate correct guesses: a tick for anyone, a full burst + sting + toast
@@ -482,7 +483,6 @@ function Room({ name, room, mode }: { name: string; room: string; mode: string }
     } else {
       blip([880], muted); // someone else got it
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game?.guessedIds]);
 
   // On game end: figure out if you won, update the streak, and play a sting.
@@ -501,7 +501,6 @@ function Room({ name, room, mode }: { name: string; room: string; mode: string }
     }
     const t = setTimeout(() => setToast(null), 3200);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
   // Word line: the drawer sees the real word; guessers see one tile per
