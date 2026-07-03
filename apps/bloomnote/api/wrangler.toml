@@ -5,6 +5,11 @@ compatibility_flags = ["nodejs_compat"]
 # Served only on the custom domain (bloomnote.aidenjang.com), not a *.workers.dev route.
 workers_dev = false
 
+# Shared auth service, used server-side to validate sessions. Local dev overrides with
+# `--var AUTH_URL:http://localhost:34100`.
+[vars]
+AUTH_URL = "https://accounts.aidenjang.com"
+
 # Garden store: `g:<shortId>` -> garden JSON. The short code IS the key (no relational schema).
 # id is filled in at deploy from `wrangler kv namespace create GARDENS`.
 [[kv_namespaces]]
