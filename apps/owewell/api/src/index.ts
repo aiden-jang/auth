@@ -15,6 +15,7 @@ import {
   renameGroup,
   renameMember,
   requireMembership,
+  setGroupArchived,
 } from './groups.js';
 import {
   ExpenseError,
@@ -91,6 +92,14 @@ app.patch('/owewell/groups/:id', async (c) => {
   const parsed = z.object({ name: z.string().trim().min(1).max(80) }).safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
   const group = await renameGroup(createDb(c.env), c.get('person').id, c.req.param('id'), parsed.data.name);
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
+  return c.json({ group });
+});
+
+app.post('/owewell/groups/:id/archive', async (c) => {
+  const parsed = z.object({ archived: z.boolean() }).safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const group = await setGroupArchived(createDb(c.env), c.get('person').id, c.req.param('id'), parsed.data.archived);
   c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ group });
 });

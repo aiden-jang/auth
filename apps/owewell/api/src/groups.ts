@@ -45,6 +45,7 @@ export interface GroupDetail {
   name: string;
   createdById: string;
   createdAt: Date;
+  archived: boolean;
   viewerId: string; // the caller's person id, so the UI knows which member is "me"
   members: GroupMemberView[];
 }
@@ -53,6 +54,7 @@ export interface GroupSummary {
   id: string;
   name: string;
   createdAt: Date;
+  archived: boolean;
   memberCount: number;
   netCents: number;
 }
@@ -106,9 +108,18 @@ export async function getGroup(db: DB, personId: string, groupId: string): Promi
     name: g.name,
     createdById: g.createdById,
     createdAt: g.createdAt,
+    archived: g.archivedAt !== null,
     viewerId: personId,
     members: await membersOf(db, groupId),
   };
+}
+
+/** Archive (or restore) a group. Owner-only. Archiving hides it from the active list but
+ *  keeps every expense, settlement, and balance intact. */
+export async function setGroupArchived(db: DB, personId: string, groupId: string, archived: boolean): Promise<GroupDetail> {
+  await requireOwner(db, personId, groupId);
+  await db.update(groups).set({ archivedAt: archived ? new Date() : null }).where(eq(groups.id, groupId));
+  return getGroup(db, personId, groupId);
 }
 
 export async function createGroup(db: DB, personId: string, name: string): Promise<GroupDetail> {
@@ -120,7 +131,7 @@ export async function createGroup(db: DB, personId: string, name: string): Promi
 
 export async function listGroups(db: DB, personId: string): Promise<GroupSummary[]> {
   const mine = await db
-    .select({ id: groups.id, name: groups.name, createdAt: groups.createdAt })
+    .select({ id: groups.id, name: groups.name, createdAt: groups.createdAt, archivedAt: groups.archivedAt })
     .from(groups)
     .innerJoin(groupMembers, eq(groupMembers.groupId, groups.id))
     .where(eq(groupMembers.personId, personId))
@@ -182,6 +193,7 @@ export async function listGroups(db: DB, personId: string): Promise<GroupSummary
     id: g.id,
     name: g.name,
     createdAt: g.createdAt,
+    archived: g.archivedAt !== null,
     memberCount: countMap.get(g.id) ?? 0,
     netCents: net.get(g.id) ?? 0,
   }));

@@ -23,6 +23,8 @@ export const groups = sqliteTable('groups', {
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
+  // Set when the owner archives the group: it drops off the active list but keeps its ledger.
+  archivedAt: integer('archived_at', { mode: 'timestamp' }),
 });
 
 export const groupMembers = sqliteTable(

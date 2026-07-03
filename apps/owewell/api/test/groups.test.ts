@@ -9,6 +9,7 @@ import {
   removeMember,
   renameGroup,
   renameMember,
+  setGroupArchived,
 } from '../src/groups.js';
 import { testDb, seedPerson } from './helpers.js';
 
@@ -86,6 +87,29 @@ describe('groups', () => {
     expect(renamed.displayName).toBe('Bobby');
     const fetched = await getGroup(db, alice, group.id);
     expect(fetched.members.find((m) => m.userId === bob)?.displayName).toBe('Bobby');
+  });
+
+  test('archive hides the group from the active flag; unarchive restores it', async () => {
+    const db = testDb();
+    const group = await createGroup(db, alice, 'Trip');
+    expect((await listGroups(db, alice))[0]?.archived).toBe(false);
+
+    const archived = await setGroupArchived(db, alice, group.id, true);
+    expect(archived.archived).toBe(true);
+    expect((await listGroups(db, alice))[0]?.archived).toBe(true);
+    expect((await getGroup(db, alice, group.id)).archived).toBe(true);
+
+    const restored = await setGroupArchived(db, alice, group.id, false);
+    expect(restored.archived).toBe(false);
+  });
+
+  test('only the owner can archive', async () => {
+    const db = testDb();
+    const group = await createGroup(db, alice, 'Trip');
+    const memberId = (await addPlaceholderMember(db, alice, group.id, 'Bob')).userId;
+    await expect(setGroupArchived(db, memberId, group.id, true)).rejects.toMatchObject({
+      code: 'NOT_OWNER',
+    });
   });
 
   test('renameMember refuses a real account (owner) and a non-member', async () => {
