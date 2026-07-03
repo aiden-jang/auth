@@ -44,9 +44,9 @@ export interface DesignCallbacks {
 interface DesignRequest {
   message: string
   recipient: string
-  from?: string
+  from?: string | undefined
   /** One of the keys from src/lib/occasions.ts → OCCASIONS. */
-  occasion?: string
+  occasion?: string | undefined
   /**
    * One of the keys from src/lib/moods.ts → MOODS. 'none' / undefined
    * = no mood guidance to the model. Mood is orthogonal to occasion:
@@ -71,7 +71,7 @@ export async function designGarden(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req),
-      signal: callbacks.signal,
+      signal: callbacks.signal ?? null,
     })
 
     if (!res.ok) {
@@ -142,7 +142,6 @@ export async function designGarden(
     // Everything else gets translated. Keep the original on the
     // console so a curious developer can dig in via DevTools.
     const raw = err instanceof Error ? err.message : String(err)
-    // eslint-disable-next-line no-console
     console.error('[designGarden] underlying error:', err)
     throw new Error(friendlyError(raw))
   }

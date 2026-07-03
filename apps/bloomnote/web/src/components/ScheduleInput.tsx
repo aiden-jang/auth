@@ -41,7 +41,7 @@ function parseLocal(value: string): Date | null {
   if (!value) return null
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value)
   if (!m) return null
-  return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], 0, 0)
+  return new Date(+m[1]!, +m[2]! - 1, +m[3]!, +m[4]!, +m[5]!, 0, 0)
 }
 
 // `<input type="time">` speaks 24h `HH:mm`. These bridge it with the
@@ -54,8 +54,8 @@ function toTimeInputValue(h: number, m: number): string {
 function parseTimeInput(s: string): { h: number; m: number } | null {
   const mm = /^(\d{1,2}):(\d{2})$/.exec(s)
   if (!mm) return null
-  const h = +mm[1]
-  const m = +mm[2]
+  const h = +mm[1]!
+  const m = +mm[2]!
   if (h > 23 || m > 59) return null
   return { h, m }
 }

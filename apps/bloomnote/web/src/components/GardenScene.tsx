@@ -35,8 +35,8 @@ const SKY_GRADIENTS: Record<string, { top: string; bottom: string }> = {
 }
 
 function gradientFor(occasion?: string): { top: string; bottom: string } {
-  if (occasion && occasion in SKY_GRADIENTS) return SKY_GRADIENTS[occasion]
-  return SKY_GRADIENTS['just-because']
+  if (occasion && occasion in SKY_GRADIENTS) return SKY_GRADIENTS[occasion]!
+  return SKY_GRADIENTS['just-because']!
 }
 
 /** Time between consecutive flower blooms. Exported so the legend
@@ -62,7 +62,7 @@ interface Props {
    * or unknown — pre-existing gardens without an `occasion` field
    * fall through to that default.
    */
-  occasion?: string
+  occasion?: string | undefined
 }
 
 function placeFlowers(flowers: FlowerSpec[]): Placement[] {
@@ -182,10 +182,10 @@ export default function GardenScene({ flowers, autoBloom, onAllBloomed, occasion
   // restart from 0 on every new garden.
   const drifters = autoBloom && flowers.length > 0
     ? PETAL_DRIFTERS.map((cfg, i) => {
-        const flower = flowers[i % flowers.length]
+        const flower = flowers[i % flowers.length]!
         return {
           ...cfg,
-          color: flower.petalColors[i % flower.petalColors.length],
+          color: flower.petalColors[i % flower.petalColors.length]!,
           key: `${flowerSig}-drift-${i}`,
         }
       })
