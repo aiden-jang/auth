@@ -26,6 +26,7 @@ export function DashboardPage(): ReactNode {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(() => loadPendingSplit());
   const [savingPending, setSavingPending] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     groupsApi
@@ -34,8 +35,9 @@ export function DashboardPage(): ReactNode {
       .catch(() => setGroups([]));
   }, []);
 
+  // Archived groups drop out of the overall totals and the main list.
   const totals = useMemo(() => {
-    const list = groups ?? [];
+    const list = (groups ?? []).filter((g) => !g.archived);
     const owed = list.filter((g) => g.netCents > 0).reduce((s, g) => s + g.netCents, 0);
     const owe = list.filter((g) => g.netCents < 0).reduce((s, g) => s - g.netCents, 0);
     return { owed, owe, net: owed - owe };
@@ -71,6 +73,7 @@ export function DashboardPage(): ReactNode {
           id: group.id,
           name: group.name,
           createdAt: group.createdAt,
+          archived: false,
           memberCount: group.members.length,
           netCents: 0,
         },
@@ -87,6 +90,32 @@ export function DashboardPage(): ReactNode {
 
   const settled = totals.net === 0;
   const owed = totals.net > 0;
+  const activeGroups = (groups ?? []).filter((g) => !g.archived);
+  const archivedGroups = (groups ?? []).filter((g) => g.archived);
+
+  const groupRow = (group: GroupSummary): ReactNode => {
+    const label = perGroupLabel(group.netCents);
+    return (
+      <li key={group.id}>
+        <Link
+          to={`/groups/${group.id}`}
+          className={`row-interactive surface flex items-center gap-4 rounded-2xl p-4 hover:shadow-lg hover:shadow-black/20 ${
+            group.archived ? 'opacity-60' : ''
+          }`}
+        >
+          <Avatar name={group.name} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-medium">{group.name}</span>
+            <span className="block text-sm text-muted">
+              {group.memberCount} {group.memberCount === 1 ? 'person' : 'people'}
+            </span>
+          </span>
+          <span className={`tnum text-sm font-semibold ${label.className}`}>{label.text}</span>
+          <Icon name="chevron-right" size={18} className="text-faint" />
+        </Link>
+      </li>
+    );
+  };
 
   return (
     <div className="min-h-screen">
@@ -187,7 +216,7 @@ export function DashboardPage(): ReactNode {
         <div className="mt-4">
           {groups === null ? (
             <SkeletonList rows={3} />
-          ) : groups.length === 0 ? (
+          ) : activeGroups.length === 0 && archivedGroups.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-line p-10 text-center">
               <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-surface2 text-muted">
                 <Icon name="users" size={22} />
@@ -202,31 +231,26 @@ export function DashboardPage(): ReactNode {
               </p>
             </div>
           ) : (
-            <ul className="space-y-2.5">
-              {groups.map((group) => {
-                const label = perGroupLabel(group.netCents);
-                return (
-                  <li key={group.id}>
-                    <Link
-                      to={`/groups/${group.id}`}
-                      className="row-interactive surface flex items-center gap-4 rounded-2xl p-4 hover:shadow-lg hover:shadow-black/20"
-                    >
-                      <Avatar name={group.name} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium">{group.name}</span>
-                        <span className="block text-sm text-muted">
-                          {group.memberCount} {group.memberCount === 1 ? 'person' : 'people'}
-                        </span>
-                      </span>
-                      <span className={`tnum text-sm font-semibold ${label.className}`}>
-                        {label.text}
-                      </span>
-                      <Icon name="chevron-right" size={18} className="text-faint" />
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+            <>
+              <ul className="space-y-2.5">{activeGroups.map(groupRow)}</ul>
+              {archivedGroups.length > 0 && (
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowArchived((v) => !v)}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-muted transition hover:text-ink"
+                  >
+                    <Icon name="archive" size={15} /> Archived ({archivedGroups.length})
+                    <Icon
+                      name="chevron-right"
+                      size={15}
+                      className={`transition ${showArchived ? 'rotate-90' : ''}`}
+                    />
+                  </button>
+                  {showArchived && <ul className="mt-2.5 space-y-2.5">{archivedGroups.map(groupRow)}</ul>}
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>

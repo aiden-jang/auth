@@ -29,7 +29,7 @@ export function SignupPage(): ReactNode {
   }
 
   return (
-    <AuthCard title="Create your account" subtitle="One account across every aidenjang app.">
+    <AuthCard title="Create your account" subtitle="One account for all of aidenjang's apps.">
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-3.5">
         <input className={inputClass} placeholder="Your name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required autoFocus />
         <input className={inputClass} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />

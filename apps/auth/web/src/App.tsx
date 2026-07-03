@@ -6,6 +6,7 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { AccountPage } from './pages/AccountPage';
+import { LogoutPage } from './pages/LogoutPage';
 
 export function App(): ReactNode {
   return (
@@ -16,6 +17,7 @@ export function App(): ReactNode {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/account" element={<AccountPage />} />
+      <Route path="/logout" element={<LogoutPage />} />
       <Route path="*" element={<Navigate to="/account" replace />} />
     </Routes>
   );

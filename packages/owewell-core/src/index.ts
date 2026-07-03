@@ -9,8 +9,19 @@ export { SPLIT_METHODS } from '@aidenjang/shared';
 export type { SplitMethod };
 
 /** How a settlement was actually paid. Tag-only (no deep links), surfaced in the activity feed. */
-export const PAYMENT_METHODS = ['venmo', 'paypal', 'zelle', 'cash', 'other'] as const;
+export const PAYMENT_METHODS = ['venmo', 'paypal', 'cashapp', 'apple_cash', 'zelle', 'cash', 'other'] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+/** Human-friendly labels for each payment method (for pickers + the activity feed). */
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  venmo: 'Venmo',
+  paypal: 'PayPal',
+  cashapp: 'Cash App',
+  apple_cash: 'Apple Cash',
+  zelle: 'Zelle',
+  cash: 'Cash',
+  other: 'Other',
+};
 
 // --- Groups -----------------------------------------------------------------
 
@@ -31,6 +42,8 @@ export interface GroupSummary {
   id: string;
   name: string;
   createdAt: string;
+  /** Archived groups stay in the ledger but drop off the active list. */
+  archived: boolean;
   memberCount: number;
   /** The viewer's net in this group. Positive: they're owed. Negative: they owe. */
   netCents: number;
@@ -41,6 +54,7 @@ export interface GroupDetail {
   name: string;
   createdById: string;
   createdAt: string;
+  archived: boolean;
   members: GroupMember[];
 }
 
@@ -73,7 +87,13 @@ export interface Expense {
   payerId: string;
   splitMethod: ExpenseSplitMethod;
   createdAt: string;
+  /** The effective expense date (user-set date, else createdAt). Drives feed order + display. */
+  date: string;
   splits: ExpenseSplit[];
+  /** Present only for ITEMIZED expenses, so the edit form can prefill the receipt. */
+  taxCents?: number;
+  tipCents?: number;
+  items?: ExpenseItemInput[];
 }
 
 export interface SplitParticipantValue {
@@ -87,6 +107,8 @@ export interface CreateExpensePayload {
   payerId: string;
   splitMethod: SplitMethod;
   participants: SplitParticipantValue[];
+  /** The date the expense happened, as YYYY-MM-DD. Omit for "today". */
+  date?: string;
 }
 
 export interface ExpenseItemInput {
@@ -101,6 +123,8 @@ export interface CreateItemizedPayload {
   taxCents: number;
   tipCents: number;
   items: ExpenseItemInput[];
+  /** The date the expense happened, as YYYY-MM-DD. Omit for "today". */
+  date?: string;
 }
 
 /** Receipt OCR result: line items plus tax and tip, all in integer cents. */

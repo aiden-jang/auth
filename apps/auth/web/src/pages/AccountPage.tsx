@@ -32,7 +32,7 @@ export function AccountPage(): ReactNode {
   if (!user) return null;
 
   return (
-    <AuthCard title="Your account" subtitle="One login for every aidenjang app.">
+    <AuthCard title="Your account" subtitle="One login for all of aidenjang's apps.">
       <dl className="space-y-3 text-sm">
         <div className="flex justify-between gap-4">
           <dt className="text-muted">Name</dt>

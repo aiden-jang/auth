@@ -13,4 +13,6 @@ export const settlementsApi = {
     api.get<{ settlements: Settlement[] }>(`/groups/${groupId}/settlements`).then((r) => r.settlements),
   record: (groupId: string, body: RecordSettlementPayload): Promise<Settlement> =>
     api.post<{ settlement: Settlement }>(`/groups/${groupId}/settlements`, body).then((r) => r.settlement),
+  remove: (groupId: string, settlementId: string): Promise<void> =>
+    api.del(`/groups/${groupId}/settlements/${settlementId}`).then(() => undefined),
 };

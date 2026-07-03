@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Money } from '@aidenjang/shared';
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, type PaymentMethod } from '@owewell/core';
 import { useAuth } from '../auth/AuthContext';
 import { AppHeader } from '../components/AppHeader';
 import { Avatar } from '../components/Avatar';
@@ -9,6 +10,7 @@ import { MoneyText } from '../components/MoneyText';
 import { Sheet } from '../components/Sheet';
 import { AddExpenseForm } from '../components/AddExpenseForm';
 import { AddItemizedExpenseForm } from '../components/AddItemizedExpenseForm';
+import { RecordPaymentForm } from '../components/RecordPaymentForm';
 import { Skeleton, SkeletonList } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/Confirm';
@@ -78,6 +80,8 @@ export function GroupDetailPage(): ReactNode {
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingMemberName, setEditingMemberName] = useState('');
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [settleMethod, setSettleMethod] = useState<PaymentMethod>('cash');
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   async function load(): Promise<void> {
     try {
@@ -118,6 +122,7 @@ export function GroupDetailPage(): ReactNode {
         fromUserId: payment.fromUserId,
         toUserId: payment.toUserId,
         amountCents: payment.amountCents,
+        method: settleMethod,
       });
       await refreshLedger();
       toast.success(`Squared up ${payment.fromName} to ${payment.toName}.`);
@@ -150,6 +155,34 @@ export function GroupDetailPage(): ReactNode {
       toast.success('Expense deleted.');
     } catch {
       toast.error('Could not delete that expense.');
+    }
+  }
+
+  async function toggleArchive(): Promise<void> {
+    if (!group) return;
+    try {
+      const updated = await groupsApi.setArchived(id, !group.archived);
+      setGroup(updated);
+      toast.success(updated.archived ? 'Group archived.' : 'Group restored.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not archive.');
+    }
+  }
+
+  async function undoSettlement(settlementId: string): Promise<void> {
+    const ok = await confirm({
+      title: 'Undo this payment?',
+      body: 'It comes off the ledger and the balances go back to what they were.',
+      confirmLabel: 'Undo',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await settlementsApi.remove(id, settlementId);
+      await refreshLedger();
+      toast.success('Payment undone.');
+    } catch {
+      toast.error('Could not undo that payment.');
     }
   }
 
@@ -241,7 +274,7 @@ export function GroupDetailPage(): ReactNode {
 
   const activity = useMemo<Activity[]>(() => {
     const items: Activity[] = [
-      ...expenses.map((e) => ({ kind: 'expense' as const, ts: new Date(e.createdAt).getTime(), expense: e })),
+      ...expenses.map((e) => ({ kind: 'expense' as const, ts: new Date(e.date).getTime(), expense: e })),
       ...settlements.map((s) => ({
         kind: 'settlement' as const,
         ts: new Date(s.createdAt).getTime(),
@@ -318,7 +351,14 @@ export function GroupDetailPage(): ReactNode {
         </div>
       ) : (
         <div className="mt-3 flex items-center justify-between gap-3">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">{group.name}</h1>
+          <h1 className="flex items-center gap-2 font-display text-3xl font-semibold tracking-tight">
+            {group.name}
+            {group.archived && (
+              <span className="rounded-full bg-surface2 px-2 py-0.5 text-xs font-medium text-muted">
+                archived
+              </span>
+            )}
+          </h1>
           {isOwner && (
             <div className="flex shrink-0 items-center gap-1">
               <button
@@ -331,6 +371,14 @@ export function GroupDetailPage(): ReactNode {
                 className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-ink"
               >
                 <Icon name="pencil" size={17} />
+              </button>
+              <button
+                type="button"
+                onClick={() => void toggleArchive()}
+                aria-label={group.archived ? 'Restore group' : 'Archive group'}
+                className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-ink"
+              >
+                <Icon name={group.archived ? 'undo' : 'archive'} size={17} />
               </button>
               <button
                 type="button"
@@ -356,13 +404,37 @@ export function GroupDetailPage(): ReactNode {
         >
           {settled ? 'All settled' : <MoneyText cents={Math.abs(myNet)} />}
         </p>
+        <button
+          type="button"
+          onClick={() => setPaymentOpen(true)}
+          className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition hover:underline"
+        >
+          <Icon name="wallet" size={15} /> Record a payment
+        </button>
       </div>
 
       {suggested.length > 0 && (
         <section className="mt-6 rounded-2xl border border-accent/25 bg-accent-soft p-4">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-accent">
-            <Icon name="wallet" size={16} /> Settle up
-          </h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-accent">
+              <Icon name="wallet" size={16} /> Settle up
+            </h2>
+            <label className="flex items-center gap-1.5 text-xs text-muted">
+              paid via
+              <select
+                value={settleMethod}
+                onChange={(e) => setSettleMethod(e.target.value as PaymentMethod)}
+                aria-label="Payment method"
+                className="rounded-lg border border-line bg-field px-2 py-1 text-xs outline-none focus:border-accent"
+              >
+                {PAYMENT_METHODS.map((m) => (
+                  <option key={m} value={m}>
+                    {PAYMENT_METHOD_LABELS[m]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <ul className="mt-3 space-y-2">
             {suggested.map((payment) => (
               <li
@@ -418,7 +490,7 @@ export function GroupDetailPage(): ReactNode {
                     <div className="min-w-0">
                       <p className="truncate font-medium">{item.expense.description}</p>
                       <p className="text-sm text-muted">
-                        {nameOf(item.expense.payerId)} paid · {timeAgo(item.expense.createdAt)}
+                        {nameOf(item.expense.payerId)} paid · {timeAgo(item.expense.date)}
                       </p>
                     </div>
                   </div>
@@ -426,16 +498,14 @@ export function GroupDetailPage(): ReactNode {
                     <span className="tnum font-semibold">
                       {Money.fromCents(item.expense.amountCents).format()}
                     </span>
-                    {item.expense.splitMethod !== 'ITEMIZED' && (
-                      <button
-                        type="button"
-                        onClick={() => setEditingExpense(item.expense)}
-                        aria-label={`Edit ${item.expense.description}`}
-                        className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-ink group-hover:opacity-100"
-                      >
-                        <Icon name="pencil" size={15} />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setEditingExpense(item.expense)}
+                      aria-label={`Edit ${item.expense.description}`}
+                      className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-ink group-hover:opacity-100"
+                    >
+                      <Icon name="pencil" size={15} />
+                    </button>
                     <button
                       type="button"
                       onClick={() => void deleteExpense(item.expense.id)}
@@ -449,7 +519,7 @@ export function GroupDetailPage(): ReactNode {
               ) : (
                 <li
                   key={`s-${item.settlement.id}`}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-line px-4 py-3"
+                  className="group flex items-center justify-between gap-3 rounded-2xl border border-line px-4 py-3"
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-pos/30 bg-pos/10 text-pos">
@@ -461,12 +531,25 @@ export function GroupDetailPage(): ReactNode {
                         <span className="text-muted"> paid </span>
                         <span className="font-medium">{nameOf(item.settlement.toUserId)}</span>
                       </p>
-                      <p className="text-sm text-muted">{timeAgo(item.settlement.createdAt)}</p>
+                      <p className="text-sm text-muted">
+                        {timeAgo(item.settlement.createdAt)}
+                        {item.settlement.method && ` · via ${PAYMENT_METHOD_LABELS[item.settlement.method]}`}
+                      </p>
                     </div>
                   </div>
-                  <span className="tnum shrink-0 font-medium text-pos">
-                    {Money.fromCents(item.settlement.amountCents).format()}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <span className="tnum font-medium text-pos">
+                      {Money.fromCents(item.settlement.amountCents).format()}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void undoSettlement(item.settlement.id)}
+                      aria-label="Undo payment"
+                      className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-neg group-hover:opacity-100"
+                    >
+                      <Icon name="undo" size={15} />
+                    </button>
+                  </div>
                 </li>
               ),
             )}
@@ -683,20 +766,50 @@ export function GroupDetailPage(): ReactNode {
         )}
       </Sheet>
 
-      <Sheet open={!!editingExpense} onClose={() => setEditingExpense(null)} title="Edit expense">
-        {editingExpense && (
-          <AddExpenseForm
-            key={`edit-${editingExpense.id}`}
-            groupId={group.id}
-            members={group.members}
-            editing={editingExpense}
-            onCreated={() => {
-              setEditingExpense(null);
-              toast.success('Expense updated.');
-              void refreshLedger();
-            }}
-          />
-        )}
+      <Sheet open={paymentOpen} onClose={() => setPaymentOpen(false)} title="Record a payment">
+        <RecordPaymentForm
+          groupId={group.id}
+          members={group.members}
+          defaultFromId={user?.id}
+          onRecorded={() => {
+            setPaymentOpen(false);
+            toast.success('Payment recorded.');
+            void refreshLedger();
+          }}
+        />
+      </Sheet>
+
+      <Sheet
+        open={!!editingExpense}
+        onClose={() => setEditingExpense(null)}
+        title={editingExpense?.splitMethod === 'ITEMIZED' ? 'Edit receipt' : 'Edit expense'}
+      >
+        {editingExpense &&
+          (editingExpense.splitMethod === 'ITEMIZED' ? (
+            <AddItemizedExpenseForm
+              key={`edit-${editingExpense.id}`}
+              groupId={group.id}
+              members={group.members}
+              editing={editingExpense}
+              onCreated={() => {
+                setEditingExpense(null);
+                toast.success('Receipt updated.');
+                void refreshLedger();
+              }}
+            />
+          ) : (
+            <AddExpenseForm
+              key={`edit-${editingExpense.id}`}
+              groupId={group.id}
+              members={group.members}
+              editing={editingExpense}
+              onCreated={() => {
+                setEditingExpense(null);
+                toast.success('Expense updated.');
+                void refreshLedger();
+              }}
+            />
+          ))}
       </Sheet>
     </Shell>
   );

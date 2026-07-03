@@ -17,6 +17,12 @@ const VALUE_HINT: Record<SplitMethod, string> = {
   EXACT: '$',
 };
 
+/** Today as YYYY-MM-DD in the user's local timezone (for the date input default). */
+function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 interface Props {
   groupId: string;
   members: GroupMember[];
@@ -50,6 +56,7 @@ export function AddExpenseForm({ groupId, members, onCreated, editing }: Props):
     editing ? new Set(editing.splits.map((s) => s.userId)) : new Set(members.map((m) => m.userId)),
   );
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(editing));
+  const [date, setDate] = useState(editing ? editing.date.slice(0, 10) : todayStr());
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -108,7 +115,7 @@ export function AddExpenseForm({ groupId, members, onCreated, editing }: Props):
       return;
     }
 
-    const payload = { description: description.trim(), amountCents, payerId, splitMethod: method, participants };
+    const payload = { description: description.trim(), amountCents, payerId, splitMethod: method, participants, date };
     setSubmitting(true);
     try {
       if (editing) {
@@ -157,6 +164,14 @@ export function AddExpenseForm({ groupId, members, onCreated, editing }: Props):
           ))}
         </select>
       </div>
+
+      <input
+        type="date"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        aria-label="Date"
+        className={inputClass}
+      />
 
       <select
         value={method}
