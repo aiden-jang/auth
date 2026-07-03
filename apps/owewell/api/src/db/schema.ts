@@ -70,6 +70,8 @@ export const expenses = sqliteTable(
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
       .default(sql`(unixepoch())`),
+    // The date the expense actually happened (backdatable). Null = use createdAt.
+    date: integer('date', { mode: 'timestamp' }),
     deletedAt: integer('deleted_at', { mode: 'timestamp' }), // soft delete; keeps balances auditable
   },
   (t) => ({ byGroup: index('exp_group').on(t.groupId) }),

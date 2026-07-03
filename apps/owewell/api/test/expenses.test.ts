@@ -257,6 +257,34 @@ describe('expenses — editing', () => {
     expect(listed?.items).toBeUndefined();
   });
 
+  test('a backdated expense keeps its date; an undated one falls back to createdAt', async () => {
+    const backdate = new Date('2020-01-15T00:00:00.000Z');
+    const dated = await createExpense(db, alice, groupId, {
+      description: 'Old dinner',
+      amountCents: 1000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }],
+      date: backdate,
+    });
+    expect(dated.date.getTime()).toBe(backdate.getTime());
+
+    const undated = await createExpense(db, alice, groupId, {
+      description: 'Recent',
+      amountCents: 500,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }],
+    });
+    const listed = await listExpenses(db, alice, groupId);
+    const l1 = listed.find((x) => x.id === dated.id);
+    const l2 = listed.find((x) => x.id === undated.id);
+    expect(l1?.date.getTime()).toBe(backdate.getTime());
+    // undated: effective date equals its createdAt (both "now"), and is far after 2020
+    expect(l2?.date.getTime()).toBe(l2?.createdAt.getTime());
+    expect(l2!.date.getTime()).toBeGreaterThan(backdate.getTime());
+  });
+
   test('editing a missing expense is NOT_FOUND', async () => {
     await expect(
       updateExpense(db, alice, groupId, 'nope', {
