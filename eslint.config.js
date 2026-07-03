@@ -8,11 +8,10 @@ export default [
       '**/node_modules/**',
       '**/.wrangler/**',
       '**/*.config.js',
-      // bloomnote asset scripts aren't linted (the Vercel source is gone as of 3.6).
-      'apps/bloomnote/web/scripts/**',
-      // Parked apps, imported but not yet ported. Un-ignored per app in its port phase.
-      'apps/is-it-a-dog/**',
-      'apps/wherever/**',
+      // Static assets served as-is (service workers, PWA files) — not app source to lint.
+      '**/public/**',
+      // Build-time asset scripts (icon generation, etc.) — run under Node, not app code.
+      '**/web/scripts/**',
     ],
   },
   ...baseConfig,

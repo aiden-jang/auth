@@ -93,7 +93,6 @@ export function DrawingCanvas({
       unsub();
       onCanvas?.(null);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subscribeDraw]);
 
   // ----- Local drawing -----
