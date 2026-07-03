@@ -3,17 +3,17 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@napi-rs/canvas": "^0.1.65",
-    "express": "^4.21.1",
-    "@is-it-a-dog/shared": "workspace:*"
+    "@is-it-a-dog/shared": "workspace:*",
+    "@resvg/resvg-wasm": "^2.6.2"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
-    "tsx": "^4.19.2",
-    "typescript": "^5.6.3"
+    "@cloudflare/workers-types": "^4.20241230.0",
+    "typescript": "^5.6.3",
+    "wrangler": "^3.99.0"
   }
 }
