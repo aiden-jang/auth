@@ -25,7 +25,8 @@ export default {
       return stub.fetch(new Request(url.toString(), request));
     }
 
-    return new Response('Not found', { status: 404 });
+    // Everything else is the client SPA (real files + index.html fallback for client routes).
+    return env.ASSETS.fetch(request);
   },
 };
 

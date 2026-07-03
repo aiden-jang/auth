@@ -12,7 +12,13 @@ import type {
 // paints imperatively. `null` op signals a full reset before a canvas_sync.
 type DrawListener = (op: DrawOp | { kind: "reset" }) => void;
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? "ws://localhost:8080";
+// The game server (the room's Durable Object) is same-origin: the Worker serves this SPA and
+// the /rooms/:id/ws endpoint on one host. In dev, Vite proxies /rooms to the local wrangler dev.
+function socketUrl(room: string, name: string, mode: string, pid: string): string {
+  const proto = window.location.protocol === "https:" ? "wss" : "ws";
+  const q = new URLSearchParams({ name, mode, pid });
+  return `${proto}://${window.location.host}/rooms/${encodeURIComponent(room)}/ws?${q.toString()}`;
+}
 
 export interface ChatLine {
   kind: "chat" | "system";
@@ -50,11 +56,7 @@ export function useGameSocket(room: string, name: string, mode: string) {
       typeof crypto !== "undefined" && crypto.randomUUID
         ? crypto.randomUUID().slice(0, 12)
         : Math.random().toString(36).slice(2, 14);
-    const url = `${SERVER_URL}/?room=${encodeURIComponent(
-      room
-    )}&name=${encodeURIComponent(name)}&mode=${encodeURIComponent(
-      mode
-    )}&pid=${encodeURIComponent(pid)}`;
+    const url = socketUrl(room, name, mode, pid);
 
     // `alive` distinguishes an intentional unmount (no reconnect) from a
     // dropped connection (reconnect with capped backoff). The server replays
