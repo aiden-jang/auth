@@ -4,7 +4,7 @@ import { loginUrl, logoutUrl } from '@aidenjang/auth-client';
 // The shared auth service. Sign-in/out are full-page redirects here; identity itself comes
 // from the same-origin /api/me (no cross-origin fetch). Accounts are optional in bloomnote —
 // anonymous create + public links always work.
-const AUTH_ORIGIN = import.meta.env.VITE_AUTH_URL ?? 'https://accounts.aidenjang.com';
+export const AUTH_ORIGIN = import.meta.env.VITE_AUTH_URL ?? 'https://accounts.aidenjang.com';
 
 export interface AuthUser {
   id: string;

@@ -369,6 +369,10 @@ export function App() {
 pull up →
           </button>
         </div>
+        <p style={styles.privacyNote}>
+          no account, no sign-in. we only hold the live game room while you play, and analytics are
+          cookieless, so there's nothing personal to collect.
+        </p>
       </div>
     );
   }
@@ -911,9 +915,19 @@ const styles: Record<string, React.CSSProperties> = {
   gate: {
     minHeight: "100%",
     display: "flex",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
+    gap: 16,
     padding: 24,
+  },
+  privacyNote: {
+    maxWidth: 440,
+    margin: 0,
+    textAlign: "center",
+    fontSize: 12,
+    lineHeight: 1.5,
+    color: "var(--muted)",
   },
   card: {
     width: "100%",

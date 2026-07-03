@@ -8,6 +8,7 @@ import { InvitePage } from './pages/InvitePage';
 import { QuickSplitPage } from './pages/QuickSplitPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { BrandMark } from './components/BrandMark';
+import { SiteFooter } from './components/SiteFooter';
 
 export function App(): ReactNode {
   const { loading } = useAuth();
@@ -26,14 +27,19 @@ export function App(): ReactNode {
   // Login, signup, and password flows all live on the shared auth service now; owewell
   // only redirects out to them (see AuthContext).
   return (
-    <Routes>
-      <Route path="/invite/:token" element={<InvitePage />} />
-      <Route path="/split" element={<QuickSplitPage />} />
-      <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/groups/:id" element={<GroupDetailPage />} />
-      </Route>
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+    <div className="flex min-h-screen flex-col">
+      <div className="flex-1">
+        <Routes>
+          <Route path="/invite/:token" element={<InvitePage />} />
+          <Route path="/split" element={<QuickSplitPage />} />
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/groups/:id" element={<GroupDetailPage />} />
+          </Route>
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </div>
+      <SiteFooter />
+    </div>
   );
 }

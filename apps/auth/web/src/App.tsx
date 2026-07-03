@@ -7,6 +7,8 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { AccountPage } from './pages/AccountPage';
 import { LogoutPage } from './pages/LogoutPage';
+import { PrivacyPage } from './pages/PrivacyPage';
+import { TermsPage } from './pages/TermsPage';
 
 export function App(): ReactNode {
   return (
@@ -18,6 +20,8 @@ export function App(): ReactNode {
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/account" element={<AccountPage />} />
       <Route path="/logout" element={<LogoutPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
       <Route path="*" element={<Navigate to="/account" replace />} />
     </Routes>
   );
