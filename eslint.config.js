@@ -8,9 +8,9 @@ export default [
       '**/node_modules/**',
       '**/.wrangler/**',
       '**/*.config.js',
-      // bloomnote/web is ported (Phase 3). Its API is still parked Vercel source (ported in
-      // 3.2), and asset scripts aren't linted.
-      'apps/bloomnote/api/**',
+      // bloomnote/web + the bloomnote/api Worker (src/) are ported. The parked Vercel source
+      // (garden shortener → KV done; design-garden/OG pending 3.5+) and asset scripts aren't linted.
+      'apps/bloomnote/api/_legacy/**',
       'apps/bloomnote/middleware.ts',
       'apps/bloomnote/list-messages.mjs',
       'apps/bloomnote/web/scripts/**',
