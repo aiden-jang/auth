@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { harden } from '@aidenjang/http';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Context } from 'hono';
@@ -18,6 +19,11 @@ export { RateLimiter } from './rateLimiter.js';
 type Ctx = Context<{ Bindings: Env }>;
 
 const app = new Hono<{ Bindings: Env }>();
+
+// Security response headers on every route. CSRF is left to the session cookie's SameSite=Lax
+// attribute, Turnstile, and the CORS allowlist below, since auth is intentionally callable
+// cross-origin by the app frontends.
+app.use('*', harden({ csrf: false }));
 
 app.use('/auth/*', (c, next) =>
   cors({
