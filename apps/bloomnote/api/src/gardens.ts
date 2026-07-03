@@ -72,7 +72,8 @@ export type CreateResult = { ok: true; id: string } | { ok: false; status: 400 |
 /** Create a garden. When `ownerId` is set (a signed-in creator), stamp it and index it as Sent. */
 export async function createGarden(env: Env, garden: unknown, ownerId?: string): Promise<CreateResult> {
   if (!looksLikeGarden(garden)) return { ok: false, status: 400, message: 'Body does not look like a garden.' };
-  const obj = garden as Record<string, unknown>;
+  // Shallow-copy so we never mutate the caller's object when stamping ownerId.
+  const obj = { ...(garden as Record<string, unknown>) };
   if (ownerId) obj.ownerId = ownerId;
   const serialized = JSON.stringify(obj);
   if (serialized.length > MAX_GARDEN_BYTES) {

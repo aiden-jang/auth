@@ -197,11 +197,9 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
   const [garden, setGarden] = useState<DesignResult | null>(null)
   const [flowers, setFlowers] = useState<FlowerSpec[]>([])
   const [shareUrl, setShareUrl] = useState<string | null>(null)
-  // The short ID is also captured separately because the "save as
-  // image" button needs to build `/api/card?id=<id>` independently of
-  // the (potentially shortened) display URL. Could be derived by
-  // parsing shareUrl, but a dedicated piece of state is clearer than
-  // a regex inside the JSX.
+  // The short ID is captured separately from the (potentially shortened) display share URL —
+  // it's used to record the garden in the on-device archive / account. Clearer as its own
+  // piece of state than a regex over shareUrl.
   const [gardenId, setGardenId] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   // Web Share API is mobile + modern desktop Safari only. We detect on

@@ -7,8 +7,6 @@
 // (state machine, handlers) reads independently of the share UI.
 // Composer still owns the state; this component is presentational.
 
-import { useEffect } from 'react'
-import { prefetchSharedImage, saveSharedImage } from '../lib/saveImage'
 import styles from './Composer.module.css'
 
 interface Props {
@@ -32,7 +30,6 @@ interface Props {
 
 export default function ShareCard({
   shareUrl,
-  gardenId,
   recipient,
   copied,
   canShare,
@@ -46,18 +43,6 @@ export default function ShareCard({
   onReroll,
   onStartOver,
 }: Props) {
-  // Built once so the prefetch effect and the anchors share one source.
-  const cardUrl = gardenId ? `/api/card?id=${encodeURIComponent(gardenId)}&download=1` : undefined
-  const storyUrl = gardenId ? `/api/story?id=${encodeURIComponent(gardenId)}&download=1` : undefined
-
-  // On iOS the save handler fetches the PNG itself; warm both now so the
-  // share sheet opens inside the post-gesture window rather than waiting on
-  // a cold render. No-op on desktop/Android (see prefetchSharedImage).
-  useEffect(() => {
-    if (cardUrl) prefetchSharedImage(cardUrl)
-    if (storyUrl) prefetchSharedImage(storyUrl)
-  }, [cardUrl, storyUrl])
-
   return (
     <div className={styles.shareCard}>
       <p className={styles.shareTitle}>
@@ -87,10 +72,9 @@ export default function ShareCard({
           <span className={styles.urlText}>{shareUrl}</span>
         )}
       </div>
-      {/* Three rows of progressively quieter actions:
+      {/* Progressively quieter actions:
             primary   — share / copy (the thing the user came here to do)
             secondary — different flowers (iterate before committing)
-            tertiary  — save as image / save as story (text links)
             quiet     — make another (destructive; bottom, alone) */}
       <div className={styles.shareActions}>
         <div className={styles.shareActionsPrimary}>
@@ -117,34 +101,6 @@ export default function ShareCard({
         >
           ⟳ different flowers
         </button>
-
-        {/* Save-as links — text-link weight, not button weight. Save
-            options are tertiary; making them look like primary actions
-            would compete with share. Still real anchors so right-click
-            "save link as" works on desktop; on phones the onClick routes
-            through the share sheet so the image lands in Photos rather
-            than Files (see saveSharedImage). */}
-        {gardenId && !isRerolling && (
-          <p className={styles.shareDownloads}>
-            <a
-              href={cardUrl}
-              download
-              className={styles.shareDownloadLink}
-              onClick={e => saveSharedImage(e, 'composer', 'square')}
-            >
-              save as image
-            </a>
-            <span className={styles.shareDownloadSep} aria-hidden>·</span>
-            <a
-              href={storyUrl}
-              download
-              className={styles.shareDownloadLink}
-              onClick={e => saveSharedImage(e, 'composer', 'story')}
-            >
-              save as story
-            </a>
-          </p>
-        )}
 
         <button
           className={styles.resetBtn}

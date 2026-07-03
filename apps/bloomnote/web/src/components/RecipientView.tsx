@@ -13,7 +13,6 @@ import {
   trackReplyStarted,
 } from '../lib/analytics'
 import { formatGardenDate } from '../lib/formatDate'
-import { prefetchSharedImage, saveSharedImage } from '../lib/saveImage'
 import { playChime } from '../sound'
 import styles from './RecipientView.module.css'
 
@@ -80,18 +79,6 @@ export default function RecipientView({ gardenData, gardenId }: Props) {
   const remixHref = buildRemixUrl(gardenId)
 
   // Save URLs, built once so the prefetch effect and the anchors agree.
-  const cardUrl = gardenId ? `/api/card?id=${encodeURIComponent(gardenId)}&download=1` : undefined
-  const storyUrl = gardenId ? `/api/story?id=${encodeURIComponent(gardenId)}&download=1` : undefined
-
-  // On iOS the save handler fetches the PNG itself; warm both while the
-  // recipient watches the garden bloom, so the share sheet opens inside the
-  // post-gesture window instead of waiting on a cold render. No-op on
-  // desktop/Android (see prefetchSharedImage).
-  useEffect(() => {
-    if (cardUrl) prefetchSharedImage(cardUrl)
-    if (storyUrl) prefetchSharedImage(storyUrl)
-  }, [cardUrl, storyUrl])
-
   return (
     <div className={styles.wrap}>
       <SoundToggle />
@@ -175,35 +162,6 @@ export default function RecipientView({ gardenData, gardenId }: Props) {
             start one for someone new
           </a>
         </p>
-        {/* Save-as-image — only show if we have a short ID (always do
-            for KV-backed gardens). Recipient downloads typically end up
-            as personal keepsakes or screenshots; we still track the
-            event because spikes here are a signal that "the bloom is
-            beautiful enough to capture," which informs design choices.
-            On phones the onClick routes through the share sheet so the
-            image saves to Photos instead of Files (see saveSharedImage);
-            desktop keeps the plain download. */}
-        {gardenId && (
-          <p className={styles.downloadRow}>
-            <a
-              href={cardUrl}
-              download
-              className={styles.downloadLink}
-              onClick={e => saveSharedImage(e, 'recipient', 'square')}
-            >
-              save as image
-            </a>
-            <span className={styles.downloadSep} aria-hidden>·</span>
-            <a
-              href={storyUrl}
-              download
-              className={styles.downloadLink}
-              onClick={e => saveSharedImage(e, 'recipient', 'story')}
-            >
-              save as story
-            </a>
-          </p>
-        )}
       </div>
 
       {/* Author credit. Quieter than Composer's because this is the
