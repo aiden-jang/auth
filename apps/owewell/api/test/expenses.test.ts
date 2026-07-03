@@ -225,6 +225,38 @@ describe('expenses — editing', () => {
     expect(Object.values(await net()).reduce((a, b) => a + b, 0)).toBe(0);
   });
 
+  test('listExpenses returns line items + tax/tip for an itemized expense', async () => {
+    const e = await createItemizedExpense(db, alice, groupId, {
+      description: 'Dinner',
+      payerId: bob,
+      taxCents: 300,
+      tipCents: 200,
+      items: [
+        { name: 'Pizza', amountCents: 1800, participantIds: [alice, bob] },
+        { name: 'Salad', amountCents: 1200, participantIds: [carl] },
+      ],
+    });
+    const listed = (await listExpenses(db, alice, groupId)).find((x) => x.id === e.id);
+    expect(listed?.taxCents).toBe(300);
+    expect(listed?.tipCents).toBe(200);
+    expect(listed?.items).toHaveLength(2);
+    const pizza = listed?.items?.find((i) => i.name === 'Pizza');
+    expect(pizza?.amountCents).toBe(1800);
+    expect(new Set(pizza?.participantIds)).toEqual(new Set([alice, bob]));
+  });
+
+  test('a simple expense has no items attached', async () => {
+    const e = await createExpense(db, alice, groupId, {
+      description: 'Cab',
+      amountCents: 1000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }],
+    });
+    const listed = (await listExpenses(db, alice, groupId)).find((x) => x.id === e.id);
+    expect(listed?.items).toBeUndefined();
+  });
+
   test('editing a missing expense is NOT_FOUND', async () => {
     await expect(
       updateExpense(db, alice, groupId, 'nope', {
