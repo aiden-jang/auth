@@ -5,6 +5,8 @@ import FlowerLegend from './FlowerLegend'
 import RemixContext from './RemixContext'
 import SoundToggle from './SoundToggle'
 import { buildRemixUrl, type GardenData } from '../garden'
+import { useAuth } from '../auth/AuthContext'
+import { recordReceived } from '../lib/account'
 import {
   trackGardenBloomed,
   trackGardenOpened,
@@ -30,6 +32,13 @@ type Phase = 'sealed' | 'blooming'
 export default function RecipientView({ gardenData, gardenId }: Props) {
   const { flowers, message, from, to, bouquetNote, previous, createdAt, occasion } = gardenData
   const grownOn = formatGardenDate(createdAt)
+
+  // If a signed-in visitor opens a garden, keep it in their Received list (cross-device).
+  // Best-effort and idempotent; anonymous visitors are unaffected.
+  const { user } = useAuth()
+  useEffect(() => {
+    if (user && gardenId) void recordReceived(gardenId)
+  }, [user, gardenId])
   // The page lands in 'sealed' state — the garden plot is empty, a
   // "open the garden" button sits below it. Tapping the button
   // transitions to 'blooming' AND fires playChime() from inside the

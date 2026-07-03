@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { getSessionUser } from '@aidenjang/auth-client';
 import type { Env } from './env.js';
-import { createGarden, readGarden } from './gardens.js';
+import { claimGardens, createGarden, listMine, readGarden, recordReceived } from './gardens.js';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -25,12 +25,38 @@ app.get('/api/garden', async (c) => {
   return c.json({ garden });
 });
 
-// Create a garden, returning its short id. Body is the garden JSON.
+// Create a garden, returning its short id. Body is the garden JSON. When the creator is signed
+// in, the garden is stamped with their ownerId and added to their Sent list; anonymous still works.
 app.post('/api/garden', async (c) => {
   const body = await c.req.json().catch(() => null);
-  const result = await createGarden(c.env, body);
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
+  const result = await createGarden(c.env, body, user?.id);
   if (!result.ok) return c.json({ error: result.message }, result.status);
   return c.json({ id: result.id });
+});
+
+// Record that the signed-in caller opened someone else's garden (adds it to their Received list).
+app.post('/api/garden/:id/receive', async (c) => {
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
+  if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  await recordReceived(c.env, user.id, c.req.param('id'));
+  return c.json({ ok: true });
+});
+
+// The signed-in user's gardens (Sent + Received), read server-side so it's the same on any device.
+app.get('/api/mine', async (c) => {
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
+  if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  return c.json(await listMine(c.env, user.id));
+});
+
+// First-login claim: adopt anonymous on-device gardens (their ids) into the account.
+app.post('/api/mine/claim', async (c) => {
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
+  if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const body = (await c.req.json().catch(() => ({}))) as { ids?: unknown };
+  const ids = Array.isArray(body.ids) ? body.ids.filter((x): x is string => typeof x === 'string') : [];
+  return c.json({ claimed: await claimGardens(c.env, user.id, ids) });
 });
 
 // Everything that isn't the API is the web SPA: real files, or index.html for client routes
