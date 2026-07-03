@@ -14,5 +14,14 @@ class_name = "GameRoom"
 tag = "v1"
 new_sqlite_classes = ["GameRoom"]
 
+# Serve the built client SPA from this same Worker so the UI and /rooms/:id/ws share one origin.
+# run_worker_first = true → the Worker routes everything; /health + /rooms/* are handled, the rest
+# falls through to ASSETS (real files + index.html fallback for client routes).
+[assets]
+directory = "../client/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+run_worker_first = true
+
 # AI_WORKER_URL is wired after the ai-worker deploys (step 4.3). Local dev / prod set it as a var
 # or secret; unset = AI modes degrade gracefully (no guesses/draws).
