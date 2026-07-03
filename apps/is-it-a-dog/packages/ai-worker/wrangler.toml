@@ -1,0 +1,7 @@
+name = "is-it-a-dog-ai"
+main = "src/worker.ts"
+compatibility_date = "2024-12-30"
+compatibility_flags = ["nodejs_compat"]
+
+# Provider keys are secrets (wrangler secret put OPENAI_API_KEY / ANTHROPIC_API_KEY). With none
+# set, the worker uses the mock provider. VISION_PROVIDER can force one ("mock"|"openai"|"anthropic").
