@@ -15,6 +15,13 @@
       "when": 1783046198441,
       "tag": "0001_panoramic_ben_grimm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783048167333,
+      "tag": "0002_unique_landau",
+      "breakpoints": true
     }
   ]
 }

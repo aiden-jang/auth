@@ -156,21 +156,25 @@ app.get('/owewell/groups/:id/expenses', async (c) => {
   return c.json({ expenses: await listExpenses(createDb(c.env), c.get('person').id, c.req.param('id')) });
 });
 
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const createExpenseBody = z.object({
   description: z.string().trim().min(1).max(140),
   amountCents: z.number().int().positive(),
   payerId: z.string().min(1),
   splitMethod: z.enum(['EQUAL', 'EXACT', 'PERCENT', 'SHARES']),
   participants: z.array(z.object({ userId: z.string().min(1), value: z.number().int().optional() })).min(1),
+  date: isoDate.optional(),
 });
 app.post('/owewell/groups/:id/expenses', async (c) => {
   const parsed = createExpenseBody.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const { date, participants, ...rest } = parsed.data;
   const expense = await createExpense(createDb(c.env), c.get('person').id, c.req.param('id'), {
-    ...parsed.data,
-    participants: parsed.data.participants.map((p) =>
+    ...rest,
+    participants: participants.map((p) =>
       p.value === undefined ? { userId: p.userId } : { userId: p.userId, value: p.value },
     ),
+    ...(date ? { date: new Date(date) } : {}),
   });
   c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ expense }, 201);
@@ -190,11 +194,16 @@ const itemizedBody = z.object({
       }),
     )
     .min(1),
+  date: isoDate.optional(),
 });
 app.post('/owewell/groups/:id/expenses/itemized', async (c) => {
   const parsed = itemizedBody.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
-  const expense = await createItemizedExpense(createDb(c.env), c.get('person').id, c.req.param('id'), parsed.data);
+  const { date, ...rest } = parsed.data;
+  const expense = await createItemizedExpense(createDb(c.env), c.get('person').id, c.req.param('id'), {
+    ...rest,
+    ...(date ? { date: new Date(date) } : {}),
+  });
   c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ expense }, 201);
 });
@@ -202,11 +211,13 @@ app.post('/owewell/groups/:id/expenses/itemized', async (c) => {
 app.put('/owewell/groups/:id/expenses/:expenseId', async (c) => {
   const parsed = createExpenseBody.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const { date, participants, ...rest } = parsed.data;
   const expense = await updateExpense(createDb(c.env), c.get('person').id, c.req.param('id'), c.req.param('expenseId'), {
-    ...parsed.data,
-    participants: parsed.data.participants.map((p) =>
+    ...rest,
+    participants: participants.map((p) =>
       p.value === undefined ? { userId: p.userId } : { userId: p.userId, value: p.value },
     ),
+    ...(date ? { date: new Date(date) } : {}),
   });
   c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ expense });
@@ -215,13 +226,11 @@ app.put('/owewell/groups/:id/expenses/:expenseId', async (c) => {
 app.put('/owewell/groups/:id/expenses/:expenseId/itemized', async (c) => {
   const parsed = itemizedBody.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
-  const expense = await updateItemizedExpense(
-    createDb(c.env),
-    c.get('person').id,
-    c.req.param('id'),
-    c.req.param('expenseId'),
-    parsed.data,
-  );
+  const { date, ...rest } = parsed.data;
+  const expense = await updateItemizedExpense(createDb(c.env), c.get('person').id, c.req.param('id'), c.req.param('expenseId'), {
+    ...rest,
+    ...(date ? { date: new Date(date) } : {}),
+  });
   c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ expense });
 });
