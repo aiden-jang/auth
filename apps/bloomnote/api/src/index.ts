@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { getSessionUser } from '@aidenjang/auth-client';
 import type { Env } from './env.js';
 import { claimGardens, createGarden, listMine, readGarden, recordReceived } from './gardens.js';
+import { buildPrompt, checkBudget, generateGarden, validateBody } from './designGarden.js';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -57,6 +58,42 @@ app.post('/api/mine/claim', async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as { ids?: unknown };
   const ids = Array.isArray(body.ids) ? body.ids.filter((x): x is string => typeof x === 'string') : [];
   return c.json({ claimed: await claimGardens(c.env, user.id, ids) });
+});
+
+// Generate a garden from a note (Gemini via REST). Streams SSE (start/thinking/complete/error)
+// to match the existing client. Rate-limited + globally capped to protect the Gemini budget.
+app.post('/api/design-garden', async (c) => {
+  if (!c.env.GEMINI_API_KEY) return c.json({ error: 'Garden generation is not configured yet.' }, 503);
+  const parsed = validateBody(await c.req.json().catch(() => null));
+  if (!parsed.ok) return c.json({ error: parsed.error }, 400);
+
+  const ip =
+    c.req.header('cf-connecting-ip') ?? c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const budget = await checkBudget(c.env, ip);
+  if (!budget.ok) return c.json({ error: budget.message }, budget.status, { 'Retry-After': String(budget.retryAfter) });
+
+  const apiKey = c.env.GEMINI_API_KEY;
+  const userPrompt = buildPrompt(parsed.body);
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const enc = new TextEncoder();
+      const send = (event: string, data: unknown): void =>
+        controller.enqueue(enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      try {
+        send('start', { ok: true });
+        send('thinking', {});
+        const garden = await generateGarden(apiKey, userPrompt);
+        send('complete', { garden });
+      } catch (err) {
+        send('error', { error: err instanceof Error ? err.message : 'Generation failed.' });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+  return new Response(stream, {
+    headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' },
+  });
 });
 
 // Everything that isn't the API is the web SPA: real files, or index.html for client routes
