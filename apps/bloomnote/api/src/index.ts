@@ -1,10 +1,14 @@
 import { Hono } from 'hono';
 import { getSessionUser } from '@aidenjang/auth-client';
+import { harden } from '@aidenjang/http';
 import type { Env } from './env.js';
 import { claimGardens, createGarden, listMine, readGarden, recordReceived } from './gardens.js';
 import { buildPrompt, checkBudget, generateGarden, validateBody } from './designGarden.js';
 
 const app = new Hono<{ Bindings: Env }>();
+
+// Security headers on every response + a same-origin CSRF guard on state-changing requests.
+app.use('*', harden());
 
 app.get('/health', (c) => c.json({ status: 'ok', service: 'bloomnote' }));
 

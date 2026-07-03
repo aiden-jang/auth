@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getSessionUser } from '@aidenjang/auth-client';
+import { harden } from '@aidenjang/http';
 import type { Env } from './env.js';
 import { createDb } from './db/client.js';
 import { getOrCreatePerson, type Person } from './people.js';
@@ -42,6 +43,10 @@ import { notifyGroupChanged } from './realtime.js';
 
 type Vars = { person: Person };
 const app = new Hono<{ Bindings: Env; Variables: Vars }>();
+
+// Security headers on every response + a same-origin CSRF guard on state-changing requests.
+// The GET WebSocket upgrade for realtime is a safe method, so it passes through untouched.
+app.use('*', harden());
 
 app.get('/health', (c) => c.json({ status: 'ok', service: 'owewell' }));
 
