@@ -1,0 +1,26 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Social share card. Served directly as og:image; the rendering surface
+       supplies the sans-serif fallback for the wordmark. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#818cf8" />
+      <stop offset="1" stop-color="#a855f7" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#0b0a12" />
+
+  <!-- paw mark -->
+  <g transform="translate(100, 150)">
+    <rect width="150" height="150" rx="40" fill="url(#g)" />
+    <g transform="translate(15, 15) scale(0.234)" fill="#0b0a12">
+      <circle cx="256" cy="330" r="78" />
+      <circle cx="158" cy="252" r="36" />
+      <circle cx="218" cy="200" r="36" />
+      <circle cx="294" cy="200" r="36" />
+      <circle cx="354" cy="252" r="36" />
+    </g>
+  </g>
+
+  <text x="100" y="430" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="120" font-weight="800" fill="#f5f3ff" letter-spacing="-4">is it a dog?</text>
+  <text x="106" y="500" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="40" font-weight="500" fill="#a5b4fc">draw bad, win anyway. race the bot.</text>
+</svg>

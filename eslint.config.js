@@ -11,7 +11,7 @@ export default [
       // Static assets served as-is (service workers, PWA files) — not app source to lint.
       '**/public/**',
       // Build-time asset scripts (icon generation, etc.) — run under Node, not app code.
-      '**/web/scripts/**',
+      '**/scripts/**',
     ],
   },
   ...baseConfig,
