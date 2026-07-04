@@ -24,15 +24,17 @@ The two halves meet through two narrow interfaces:
 
 - **`EngineDeps`** — what the transport layer injects *into* the engine
   (`broadcast`, `sendToPlayer`, `clearCanvas`, `drawOp`, …). The engine never
-  imports `ws` or `redis`; it only knows these verbs. That's what makes it unit-
-  testable and transport-agnostic.
+  imports the transport or a store; it only knows these verbs. That's what makes
+  it unit-testable and transport-agnostic — and it's exactly why the whole thing
+  ported from a Node/`ws`/Redis process into a Cloudflare Durable Object without
+  the engine or the modes changing at all (see §4).
 - **`EngineContext`** — the verbs the engine hands *to* a mode
   (`awardPoints`, `endTurn`, `addParticipant`, `draw`, `turnFractionRemaining`,
-  …). A mode never sees a socket, Redis, or even the full engine — just this
+  …). A mode never sees a socket, a store, or even the full engine — just this
   surface.
 
 ```
-transport (index.ts)
+transport (worker.ts → GameRoom Durable Object)
       │  injects EngineDeps
       ▼
   GameEngine ── timeline, scoring bookkeeping
@@ -82,8 +84,8 @@ flows through `broadcast`/`broadcastExcept`. The drawing model:
   (`broadcastExcept`). This hides round-trip latency for the person drawing
   while keeping everyone else server-driven.
 - **Late joiners replay the log.** On connect, the server sends one
-  `canvas_sync` containing the full ordered op list from Redis, so a mid-turn
-  joiner catches up exactly.
+  `canvas_sync` containing the full ordered op list held in the room's Durable
+  Object memory, so a mid-turn joiner catches up exactly.
 - **`clear` truncates the log** rather than appending, and each turn starts with
   a clear — which also bounds how large the per-turn log can grow.
 
@@ -98,15 +100,15 @@ flows through `broadcast`/`broadcastExcept`. The drawing model:
 
 ## 3. AI guessing — data flow, latency, cost
 
-The vision model runs in a **separate `ai-worker` process** (Express), never in
-the WebSocket event loop.
+The vision model runs in a **separate `ai-worker` Worker**, never in the
+WebSocket event loop.
 
 ```
-game-server                         ai-worker
+game-server (GameRoom DO)           ai-worker (Worker)
   AIGuesserMode (timer)
      │ requestGuess()
      ▼
-  aiWorkerClient ── HTTP POST /guess { ops } ──►  renderToPng(ops)  (napi-rs/canvas)
+  aiWorkerClient ── HTTP POST /guess { ops } ──►  strokeSvg(ops) → PNG (resvg-wasm)
      ▲                                                   │
      │            { guess }                              ▼
      └────────────────────────────────────────  VisionProvider (Mock|OpenAI|Anthropic)
@@ -140,52 +142,56 @@ Key properties:
 
 ---
 
-## 4. Scaling stateful WebSocket servers horizontally
+## 4. Scaling stateful WebSocket servers — the design, now realized by Durable Objects
 
-Today this runs as a **single process**: live sockets and the per-room
-`GameEngine` (including its turn `setTimeout`) live in memory; Redis holds only
-*durable* state (the presence hash and the stroke list). That split is
-deliberate and is exactly what makes scaling tractable. Here's how I'd grow it.
+This section originally described how I'd *hypothetically* scale a single Node
+process horizontally. Porting to Cloudflare turned that design into the actual
+implementation, so it's worth reading as "the problem, the approach I reasoned
+out, and the runtime that happens to be that approach."
 
 **The hard constraint: the engine is a single-writer.** Each room has one
 authoritative timeline with one running timer. If two instances both ran a
 room's engine, you'd get two timers, two "turn ended" events, double scoring.
 So *whatever* the topology, **each room must have exactly one owning process at
-a time.** This is the insight that rules out the naive answer.
+a time.** That constraint is what ruled out the naive answers (fully stateless
+instances + pub/sub relay solves *message delivery* but not *authority*; you'd
+still get two timers). The approach that survives it is **route by room, not by
+connection**: consistent-hash each room to one owning instance, keep in-room
+broadcast a local in-memory fan-out, and make the owner's state rehydratable so
+a failover is a *rehydrate*, not a *rebuild*.
 
-**Why naive Redis pub/sub fan-out isn't enough on its own.** "Make every
-instance stateless and relay all broadcasts through Redis pub/sub" solves
-*message delivery* across instances, but not *authority*. You still need a
-single writer per room to advance the timeline, or you reintroduce the
-double-timer problem. Pub/sub is a piece of the solution, not the solution.
+**A Durable Object is exactly that owner, by construction.** In the Cloudflare
+port, each room is one `GameRoom` Durable Object addressed by `idFromName(room)`.
+The platform guarantees **at most one instance per id, globally, single-threaded**
+— which is precisely the "exactly one owning process per room" invariant I'd
+otherwise have to build with an L7 hash ring plus checkpoint/rehydrate plumbing.
+So:
 
-**The approach I'd choose: route by room, not by connection.**
+1. **Routing by room is the addressing model, not a gateway I run.** The
+   `worker.ts` fetch handler derives the DO id from the room in the URL and hands
+   the socket to that object. Cloudflare routes it to the one instance.
+2. **In-room broadcast is a local in-memory fan-out.** The roster and stroke log
+   live in the object's memory (no Redis, no per-message network hop) because the
+   object *is* the single owner — there's no other instance to synchronize with.
+3. **The timeline runs in the object.** The turn `setTimeout` lives inside the
+   DO. To keep timers alive I use **pinned** WebSockets (`server.accept()`)
+   rather than the hibernation API, since hibernation evicts pending timers — a
+   deliberate cost trade (a live game keeps the object resident) for correctness.
+4. **Durability is available without a second store.** State can be persisted to
+   the object's own SQLite storage; today the game holds it in memory (a room's
+   worth of state is small and a crash simply ends that game), which is the same
+   "checkpoint is cheap because the state is small" observation from the original
+   design.
 
-1. **Consistent-hash rooms to instances** at an L7 gateway, keyed on the `room`
-   param already in the connect URL (`?room=…`). All sockets for a room land on
-   the instance that owns that room's engine, so in-room broadcast stays a
-   local in-memory fan-out — no per-message Redis hop, lowest latency.
-2. **Checkpoint engine state to Redis on every transition.** Phase, turnIndex,
-   drawerId, turnEndsAt, scoreboard, and the guessed set are small and already
-   computed on each `broadcastState`. Persisting them makes the engine
-   *rehydratable*.
-3. **On instance failure / rebalance, a new owner rehydrates from Redis** and
-   resumes the timer from `turnEndsAt`. The stroke log and presence are already
-   durable, so the canvas and roster survive; only the in-flight timer needs
-   reconstructing.
-4. **Redis pub/sub is then reserved for genuinely cross-instance concerns** —
-   e.g. a global lobby/room directory, or forwarding a stray connection that
-   landed on the wrong instance to the room's owner.
-
-> **Decision — room-affinity (sticky by `roomId`) over sticky-by-IP or fully
-> stateless + pub/sub.** IP stickiness is fragile (mobile networks, NAT,
-> reconnects change IPs) and load-imbalances by client rather than by work.
-> Room-affinity matches the unit of state to the unit of routing, keeps the
-> authoritative single-writer model intact, and makes failover a *rehydrate*
-> rather than a *rebuild*. The trade-off: a single hot room can't be split
-> across instances, and a failover drops the live timer for a beat — acceptable
-> for this workload, and both are addressable (room sharding; timer
-> reconstruction from `turnEndsAt`).
+> **Decision — Durable Objects over a hand-rolled room-affinity cluster.** The
+> earlier plan (L7 consistent-hash by `roomId` + Redis checkpointing +
+> rehydrate-on-failover) was the *right* design; a Durable Object is that design
+> delivered as a primitive, minus the infrastructure I'd otherwise operate. The
+> trade-offs are inherent to single-writer-per-room, not to the platform: a
+> single hot room still can't be split across instances (fine for a party game —
+> a room is a handful of people), and keeping timers alive means choosing pinned
+> over hibernating sockets, so an idle-but-open room isn't free the way a
+> hibernating one would be.
 
 ---
 
@@ -199,10 +205,11 @@ double-timer problem. Pub/sub is a piece of the solution, not the solution.
 | Shared AI behavior | Composable helpers | Mode base class / engine | It's policy, not timeline; one mode needs both loops |
 | Canvas sync | Streamed ops | Snapshot images | Tiny messages, live growth, perfect replay, resolution-independent |
 | AI guess timing | Interval + cap | Per-frame / final-only | Bounded cost without killing the live feel |
-| AI vision | Separate worker | Inline call | Isolate latency; scale the model tier independently |
+| AI vision | Separate Worker | Inline call | Isolate latency; scale the model tier independently |
 | AI drawer art | Curated doodle library | Generative model | Legible, free, testable; a generator can slot behind the same injected callback |
 | Team scoring | System messages + scoreboard | New `PublicGameState` fields | Team scoring is mode-specific; adding it to the shared contract is the wrong coupling |
-| State storage | In-memory live + Redis durable | All-Redis / all-memory | Sockets can't live in Redis; durable bits shouldn't die with the process |
+| Room runtime | Durable Object per room | Node + Redis / stateless + pub-sub | Single-writer-per-room by construction; roster + strokes in-memory, no external store (§4) |
+| WebSocket style | Pinned (`server.accept()`) | Hibernation API | The turn timer must survive; hibernation evicts pending timers |
 
 ---
 
@@ -240,20 +247,28 @@ Honest list:
 - **Basic flood protection:** a coarse per-connection token bucket (200 msg/s)
   drops pathological floods without throttling normal play. *Remaining:* no
   auth — anyone can join any room and `start_game`.
-- **Single process / no horizontal scale yet.** §4 is the design, not the
-  implementation. The engine isn't checkpointed to Redis, so it can't currently
-  fail over.
+- **Horizontal scale is now the runtime, not a plan.** §4's design is
+  implemented: one Durable Object per room gives single-writer-per-room by
+  construction. What's *not* done is persisting engine state to the DO's SQLite
+  storage — today a room's state is in-memory, so a rare object eviction ends
+  that game rather than rehydrating it. That's the cheap, obvious next step now
+  that the object owns the state.
 - **Unit-tested core; integration coverage is the gap.** The engine, modes, and
-  pure helpers have a committed suite (Node's built-in test runner, `npm test`)
-  that drives the engine through whole games against in-memory `EngineDeps` —
-  rounds, scoring, hints, forgiving-guess matching, and the word-choice phase.
-  *Remaining:* no end-to-end test that exercises the real `ws` transport + Redis
-  together; those paths are still validated by hand.
+  pure helpers have a committed suite (`pnpm --filter @is-it-a-dog/game-server
+  test`) that drives the engine through whole games against in-memory
+  `EngineDeps` — rounds, scoring, hints, forgiving-guess matching, and the
+  word-choice phase. *Remaining:* no end-to-end test exercising the real
+  WebSocket transport through the Durable Object; those paths are validated by
+  hand (a two-browser playthrough).
+- **No auth, by design.** Anyone can join any room and `start_game` — that's the
+  intended "type a name, share a link" flow for a party game. A coarse
+  per-connection token bucket (200 msg/s) drops pathological floods.
 - **The AI drawer is canned, not generative.** It draws from a small doodle
   library. A model-based generator (LLM emitting stroke ops, or image→trace) can
   slot behind the existing injected `requestDrawing` callback without touching
   the mode.
 
-**Next three things, in order:** (1) engine checkpointing to unlock the §4
-scaling story; (2) an end-to-end test across the real `ws` transport + Redis;
-(3) signed session tokens + a reconnect grace period for the drawer.
+**Next three things, in order:** (1) persist engine state to the DO's SQLite so a
+room survives eviction; (2) an end-to-end test across the real WebSocket +
+Durable Object; (3) signed session tokens + a reconnect grace period for the
+drawer.
