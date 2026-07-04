@@ -1,20 +1,20 @@
 # is-it-a-dog
 
-[![CI](https://github.com/aiden-jang/is-it-a-dog/actions/workflows/ci.yml/badge.svg)](https://github.com/aiden-jang/is-it-a-dog/actions/workflows/ci.yml)
-
 A multiplayer drawing-and-guessing game in the skribbl.io vein, with one twist:
 an AI vision model plays as one of the guessers. It looks at the live canvas and
 types answers into chat along with everyone else. (It guesses "dog" a lot.)
 
-`TypeScript` · `Node` · `raw ws (WebSockets)` · `Redis` · `React` · `Vite` · `Canvas`
+**Live:** [is-it-a-dog.aidenjang.com](https://is-it-a-dog.aidenjang.com)
+
+`TypeScript` · `Cloudflare Workers` · `Durable Objects` · `raw WebSockets` · `React` · `Vite` · `Canvas`
 
 The game itself is straightforward; I built it mostly to work on the structure.
 The game engine has no idea AI exists. Everything AI-related lives in game
 *modes*, which plug into the engine, so "AI guesser", "AI drawer", and "humans vs
 AI" are separate modes rather than changes to the core.
 
-> For the design decisions and how I'd scale it, see
-> **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
+> Part of the [platform monorepo](../../README.md). For the design decisions and
+> how I'd scale it, see **[ARCHITECTURE.md](./ARCHITECTURE.md)**.
 
 ---
 
@@ -61,7 +61,7 @@ word — proof the strokes sync live and the word stays secret:
   punctuation (plus a private "so close!" when you're one letter off).
 - The AI joins the roster as a regular player, so it goes through the same
   presence, scoring, and turn-end code as a human. The engine has no AI branch.
-- Vision runs in a separate `ai-worker` process that turns the stroke log into a
+- Vision runs in a separate `ai-worker` Worker that turns the stroke log into a
   PNG and calls a model. A slow or failed call won't block the WebSocket loop; it
   just means no guess that round.
 - Vision providers (mock / OpenAI / Anthropic) sit behind one interface and are
@@ -79,28 +79,30 @@ word — proof the strokes sync live and the word stays secret:
         │  draw│  │remote   chat│  │state│
         └──────┼──┼────────────┼──┼─────┘
                │  │            │  │
-               ▼  │            ▼  │        WebSocket (raw `ws`)
+               ▼  │            ▼  │        WebSocket (wss, raw)
         ╔══════════════════════════════════════╗
-        ║            game-server                ║
-        ║                                       ║
-        ║   index.ts  (WS plumbing, rooms)      ║
-        ║       │                               ║
-        ║       ▼                               ║
-        ║   engine.ts  ── stable turn timeline ─║──► Redis
-        ║       │        scoring, draw-lock     ║   (presence hash,
-        ║       ▼                               ║    stroke LIST)
-        ║   GameMode (strategy)                 ║
-        ║   ├─ ClassicMode   (humans only)      ║
-        ║   ├─ AIGuesserMode (adds virtual AI)  ║
-        ║   ├─ AIDrawerMode  (AI draws)         ║
-        ║   └─ TeamBattleMode(humans vs AI)     ║
-        ║              │                        ║
-        ╚══════════════┼═══════════════════════ ╝
+        ║   game-server Worker                   ║
+        ║                                        ║
+        ║   worker.ts  (routing, SPA assets)     ║
+        ║       │  /rooms/:id/ws → Durable Object ║
+        ║       ▼                                ║
+        ║   GameRoom (Durable Object, 1/room)    ║
+        ║       │   in-memory roster + stroke log ║  (single-threaded per room;
+        ║       ▼   pinned WebSockets for timers   ║   no external store needed)
+        ║   engine.ts ── turn timeline, scoring ─ ║
+        ║       ▼                                ║
+        ║   GameMode (strategy)                  ║
+        ║   ├─ ClassicMode   (humans only)       ║
+        ║   ├─ AIGuesserMode (adds virtual AI)   ║
+        ║   ├─ AIDrawerMode  (AI draws)          ║
+        ║   └─ TeamBattleMode(humans vs AI)      ║
+        ║              │                         ║
+        ╚══════════════┼════════════════════════ ╝
                        │ HTTP POST /guess { ops }
                        ▼
         ┌───────────────────────────────────────┐
-        │            ai-worker (Express)         │
-        │   canvasRenderer: ops → PNG            │
+        │            ai-worker (Worker)          │
+        │   strokeRender: ops → PNG (resvg-wasm) │
         │   VisionProvider: Mock|OpenAI|Anthropic│
         └───────────────────────────────────────┘
 ```
@@ -110,10 +112,13 @@ A few of the choices and why:
 | Decision | Choice | Why |
 |---|---|---|
 | State authority | Authoritative server | One source of truth, and clients can't cheat. The drawer renders locally to hide latency. |
+| Room runtime | One Durable Object per room | A room is single-threaded per its id, so roster + stroke log live in the object's memory — no external store, no lock, no cross-instance race. An idle room costs nothing. |
+| Dropped Redis | In-memory in the DO | The old Node build used Redis for presence + strokes across instances. A Durable Object *is* the single instance for a room, so that entire dependency (and its ops cost) went away in the port. |
+| WebSocket style | Pinned (`server.accept()`), not hibernation | The turn timeline runs on `setTimeout`/`setInterval`; hibernation evicts timers, so a room stays pinned while a game is live. |
 | Transport | Raw `ws`, not Socket.IO | I wanted to see the actual protocol instead of relying on hidden reconnection/room behavior. |
 | Stroke format | Normalized 0–1 coords, streamed ops | Works at any canvas size, messages stay small, and the op log replays for late joiners and the AI. |
 | AI guess timing | Interval (~8s first, then every 10s, max 4/turn) | Keeps cost and latency bounded without spamming the model. |
-| AI process | Separate worker | Vision calls are slow, so I kept them off the WebSocket loop. |
+| AI process | Separate Worker | Vision calls are slow, so I kept them off the WebSocket loop. |
 | AI identity | Virtual player in roster | Lets it reuse the human scoring/turn code instead of adding AI special cases. |
 
 ---
@@ -122,8 +127,9 @@ A few of the choices and why:
 
 ```
 shared/events.ts                 the typed client↔server contract
-packages/game-server/            WebSocket server + engine + modes
-  src/index.ts                   WS plumbing, rooms, presence
+packages/game-server/            game Worker: routing + Durable Object + engine + modes
+  src/worker.ts                  fetch handler: routes /rooms/:id/ws → DO, serves the SPA
+  src/GameRoom.ts                Durable Object: one per room, holds roster + stroke log
   src/engine.ts                  mode-agnostic turn timeline & scoring
   src/modes/GameMode.ts          EngineContext + GameMode interface
   src/modes/ClassicMode.ts       base mode (humans take turns)
@@ -134,8 +140,10 @@ packages/game-server/            WebSocket server + engine + modes
   src/text.ts                    guess normalization + close-match
   src/services/aiWorkerClient.ts resilient HTTP client to ai-worker
   src/words.{ts,json}            configurable word list
-packages/ai-worker/              vision service (Express)
-  src/canvasRenderer.ts          DrawOps → PNG via @napi-rs/canvas
+packages/ai-worker/              vision Worker
+  src/worker.ts                  fetch handler: POST /guess, /health
+  src/strokeSvg.ts               DrawOps → SVG (pure)
+  src/strokeRender.ts            SVG → PNG via @resvg/resvg-wasm
   src/visionProviders.ts         Mock | OpenAI | Anthropic
 packages/client/                 React + Vite + Canvas UI
 ```
@@ -144,29 +152,28 @@ packages/client/                 React + Vite + Canvas UI
 
 ## Running locally
 
-Requires **Node 22** (see `.nvmrc`) and a Redis on `:6379`.
+Requires **Node 22** (repo `.nvmrc`) and pnpm. No Redis, no Docker — the game
+server, the Durable Object, and the AI worker all run under `wrangler dev`
+(Miniflare), and the client runs under Vite.
 
 ```bash
-nvm use 22
-npm install
-cp .env.example .env        # optional: add an API key for a real vision model
+pnpm install
 
-# terminal 1 — Redis (or use an existing local instance)
-npm run redis
+# terminal 1 — game-server Worker + GameRoom Durable Object
+pnpm --filter @is-it-a-dog/game-server dev
 
-# terminal 2 — game server (ws://localhost:8080)
-npm run dev:server
+# terminal 2 — ai-worker (vision)
+pnpm --filter @is-it-a-dog/ai-worker dev
 
-# terminal 3 — AI worker (http://localhost:8090)
-npm run dev --workspace=ai-worker
-
-# terminal 4 — client (http://localhost:5173)
-npm run dev:client
+# terminal 3 — client (http://localhost:33100, proxies /rooms to the game server)
+pnpm --filter @is-it-a-dog/client dev
 ```
 
 Open two browser tabs, join the same room, and pick the **AI** mode from the
 join screen (or append `?mode=ai`) to play against the vision model. With no API
-key configured the mock provider makes random guesses so everything still works.
+key configured the mock provider makes random guesses so everything still works;
+set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` as a `wrangler secret` on the
+ai-worker for a real model. See [DEPLOY.md](DEPLOY.md) for production.
 
 ### Quick demo
 
@@ -186,22 +193,13 @@ or "Team battle" (humans vs AI). Same engine, different mode.
 ### Tests
 
 ```bash
-npm test    # engine + modes + helpers, via Node's built-in test runner
+pnpm --filter @is-it-a-dog/game-server test    # engine + modes + helpers
+pnpm --filter @is-it-a-dog/ai-worker test      # stroke→SVG + vision providers
 ```
 
-The tests run whole games through the `GameEngine` with in-memory deps (no
-sockets, Redis, or real timers), covering rounds, scoring, hints, the word-choice
+The engine tests run whole games through the `GameEngine` with in-memory deps
+(no sockets or real timers), covering rounds, scoring, hints, the word-choice
 step, and guess matching.
-
-### Docker Compose
-
-```bash
-docker compose up
-```
-
-Brings up Redis, the AI worker, and the game server together. Pass an
-`OPENAI_API_KEY` or `ANTHROPIC_API_KEY` in your environment (or `.env`) to use a
-real vision model.
 
 ---
 
