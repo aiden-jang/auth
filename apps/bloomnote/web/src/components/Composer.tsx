@@ -674,7 +674,7 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
   const handleShare = useCallback(async () => {
     if (!shareUrl) return
     const data: ShareData = {
-      title: 'Blossom',
+      title: 'bloomnote',
       text: recipient.trim() ? `A garden for ${recipient.trim()}` : 'A garden for you',
       url: shareUrl,
     }
@@ -691,7 +691,7 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
     <div className={styles.wrap}>
       <SoundToggle />
       <header className={styles.header}>
-        <h1 className={styles.title}>blossom</h1>
+        <h1 className={styles.title}>bloomnote</h1>
         <p className={styles.subtitle}>
           {remixSeed
             ? `write ${remixSeed.from || 'them'} back.`
