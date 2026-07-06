@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { APPS } from '../lib/apps';
 
 export const inputClass =
   'w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20';
@@ -23,25 +24,80 @@ function BrandMark(): ReactNode {
   );
 }
 
+function Wordmark(): ReactNode {
+  return (
+    <div className="flex items-center gap-2 font-semibold tracking-tight">
+      <BrandMark /> aidenjang
+    </div>
+  );
+}
+
+// Branded panel shown on the left half at md+. Aurora background, a tagline,
+// and a showcase of the apps this login unlocks. Hidden on small screens,
+// where a compact wordmark sits above the form instead.
+function BrandPanel({ showApps }: { showApps: boolean }): ReactNode {
+  return (
+    <aside className="relative hidden overflow-hidden border-r border-line bg-canvas p-10 md:flex md:flex-col md:justify-between">
+      <div className="aurora" aria-hidden />
+      <div className="relative z-10">
+        <Wordmark />
+      </div>
+
+      <div className="relative z-10">
+        <h2 className="max-w-sm text-3xl font-medium leading-tight tracking-tight">
+          one login for everything I build.
+        </h2>
+        {showApps && (
+          <ul className="mt-8 space-y-3.5">
+            {APPS.map((app) => (
+              <li key={app.name} className="flex items-baseline gap-3">
+                <span
+                  aria-hidden
+                  className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: app.accent }}
+                />
+                <span>
+                  <span className="text-sm font-medium text-ink">{app.name}</span>
+                  <span className="ml-2 text-sm text-muted">{app.tagline}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <p className="relative z-10 text-xs text-muted">made by aiden jang</p>
+    </aside>
+  );
+}
+
 export function AuthCard({
   title,
   subtitle,
   children,
+  showApps = true,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
+  /** Whether the branded panel lists the apps. Off for the account hub,
+   *  which shows its own interactive launcher. */
+  showApps?: boolean;
 }): ReactNode {
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 py-10">
-      <div className="mb-6 flex items-center gap-2 font-semibold tracking-tight">
-        <BrandMark /> aidenjang
-      </div>
-      <div className="surface rounded-3xl border border-line bg-card p-6 sm:p-7">
-        <h1 className="font-display text-2xl font-semibold tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
-        <div className="mt-5">{children}</div>
-      </div>
+    <main className="grid min-h-screen md:grid-cols-2">
+      <BrandPanel showApps={showApps} />
+
+      <section className="flex flex-col justify-center px-5 py-12 sm:px-10">
+        <div className="mx-auto w-full max-w-sm">
+          <div className="mb-8 md:hidden">
+            <Wordmark />
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+          <div className="mt-6">{children}</div>
+        </div>
+      </section>
     </main>
   );
 }

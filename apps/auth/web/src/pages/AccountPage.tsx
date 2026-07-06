@@ -69,7 +69,7 @@ export function AccountPage(): ReactNode {
   if (!user) return null;
 
   return (
-    <AuthCard title="Your account" subtitle="One login for all of aidenjang's apps.">
+    <AuthCard title="Your account" subtitle="One login for all of aidenjang's apps." showApps={false}>
       {/* App launcher — this is the landing when a visitor signs in at
           aidenjang.com without being sent back to a specific app, so lead
           with somewhere to go. Sourced from lib/apps.ts. */}
@@ -82,9 +82,16 @@ export function AccountPage(): ReactNode {
                 href={appHref(app)}
                 className="group flex items-center justify-between rounded-xl border border-line bg-field px-4 py-3 transition hover:border-accent"
               >
-                <span>
-                  <span className="font-medium text-ink">{app.name}</span>
-                  <span className="block text-xs text-muted">{app.tagline}</span>
+                <span className="flex items-center gap-3">
+                  <span
+                    aria-hidden
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: app.accent }}
+                  />
+                  <span>
+                    <span className="font-medium text-ink">{app.name}</span>
+                    <span className="block text-xs text-muted">{app.tagline}</span>
+                  </span>
                 </span>
                 <span
                   aria-hidden

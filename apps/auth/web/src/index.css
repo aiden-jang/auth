@@ -38,3 +38,47 @@ body {
 button:not(:disabled) {
   cursor: pointer;
 }
+
+/* Aurora — two slow, blurred color blobs behind the branded auth panel.
+   Purely decorative; disabled for reduced-motion. */
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.aurora::before,
+.aurora::after {
+  content: '';
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(72px);
+  opacity: 0.55;
+}
+.aurora::before {
+  width: 420px;
+  height: 420px;
+  background: #7c5cff;
+  top: -90px;
+  left: -70px;
+  animation: aurora-a 15s ease-in-out infinite;
+}
+.aurora::after {
+  width: 380px;
+  height: 380px;
+  background: #22d3ee;
+  bottom: -110px;
+  right: -50px;
+  animation: aurora-b 18s ease-in-out infinite;
+}
+@keyframes aurora-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, -24px) scale(1.15); }
+}
+@keyframes aurora-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-30px, 26px) scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora::before,
+  .aurora::after { animation: none; }
+}
