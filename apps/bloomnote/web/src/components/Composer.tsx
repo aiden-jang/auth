@@ -1004,14 +1004,16 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
       )}
 
       {/* Attribution + legal live in the shared site Footer (App.tsx). Here we keep only the
-          "your gardens" nav link, shown once this device has sent something. */}
-      <footer className={styles.footer}>
-        {mineCount > 0 && (
+          "your gardens" nav link, shown once this device has sent something. When this device
+          hasn't sent anything the whole footer is omitted so it doesn't leave an empty padded
+          band above the shared site footer. */}
+      {mineCount > 0 && (
+        <footer className={styles.footer}>
           <p className={styles.footerNav}>
             <a href="/mine">your gardens</a>
           </p>
-        )}
-      </footer>
+        </footer>
+      )}
     </div>
   )
 }

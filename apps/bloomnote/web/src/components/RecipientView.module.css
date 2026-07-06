@@ -113,17 +113,26 @@
   display: inline-block;
   padding: 10px 24px;
   border-radius: 22px;
-  background: var(--green-mid);
+  /* Match the composer CTA: green gradient + soft shadow, hover lift,
+     active press. */
+  background: linear-gradient(135deg, var(--green-mid), var(--green-deep));
   color: white;
   font-size: 14px;
   font-weight: 500;
   text-decoration: none;
   font-family: var(--sans);
-  transition: background 0.15s;
+  box-shadow: 0 3px 12px rgba(45, 90, 27, 0.2);
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .ctaBtn:hover {
-  background: var(--green-deep);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(45, 90, 27, 0.26);
+}
+
+.ctaBtn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(45, 90, 27, 0.18);
 }
 
 /* "Open the garden" — the gesture that unlocks audio + triggers
@@ -135,19 +144,22 @@
   align-self: center;
   padding: 14px 32px;
   border-radius: 28px;
-  background: var(--green-mid);
+  background: linear-gradient(135deg, var(--green-mid), var(--green-deep));
   color: white;
   font-size: 15px;
   font-weight: 500;
   border: none;
   cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
+  transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
   animation: openBtnPulse 2.4s ease-in-out infinite;
 }
 
+/* On hover the attention pulse stops (they've found it); it settles
+   into a lifted resting state matching the other CTAs. */
 .openBtn:hover {
-  background: var(--green-deep);
   animation: none;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 18px rgba(45, 90, 27, 0.28);
 }
 
 .openBtn:active {
