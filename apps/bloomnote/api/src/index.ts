@@ -7,14 +7,6 @@ import { buildPrompt, checkBudget, generateGarden, validateBody } from './design
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Which auth service to validate the session against. In local `wrangler dev` the auth Worker
-// runs on :34100, so a request hitting localhost validates there rather than production —
-// otherwise a local login is checked against the live auth service and never recognized.
-function authBase(req: Request, env: Env): string {
-  const host = new URL(req.url).hostname;
-  return host === 'localhost' || host === '127.0.0.1' ? 'http://localhost:34100' : env.AUTH_URL;
-}
-
 // Security headers on every response + a same-origin CSRF guard on state-changing requests.
 app.use('*', harden());
 
@@ -24,7 +16,7 @@ app.get('/health', (c) => c.json({ status: 'ok', service: 'bloomnote' }));
 // auth service cross-origin. Returns { user: null } when signed out — bloomnote is anonymous-
 // first, so accounts are optional and this is never a hard 401.
 app.get('/api/me', async (c) => {
-  const user = await getSessionUser(c.req.raw, authBase(c.req.raw, c.env));
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
   return c.json({ user: user ? { id: user.id, email: user.email, displayName: user.displayName } : null });
 });
 
@@ -42,7 +34,7 @@ app.get('/api/garden', async (c) => {
 // in, the garden is stamped with their ownerId and added to their Sent list; anonymous still works.
 app.post('/api/garden', async (c) => {
   const body = await c.req.json().catch(() => null);
-  const user = await getSessionUser(c.req.raw, authBase(c.req.raw, c.env));
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
   const result = await createGarden(c.env, body, user?.id);
   if (!result.ok) return c.json({ error: result.message }, result.status);
   return c.json({ id: result.id });
@@ -50,7 +42,7 @@ app.post('/api/garden', async (c) => {
 
 // Record that the signed-in caller opened someone else's garden (adds it to their Received list).
 app.post('/api/garden/:id/receive', async (c) => {
-  const user = await getSessionUser(c.req.raw, authBase(c.req.raw, c.env));
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
   if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
   await recordReceived(c.env, user.id, c.req.param('id'));
   return c.json({ ok: true });
@@ -58,14 +50,14 @@ app.post('/api/garden/:id/receive', async (c) => {
 
 // The signed-in user's gardens (Sent + Received), read server-side so it's the same on any device.
 app.get('/api/mine', async (c) => {
-  const user = await getSessionUser(c.req.raw, authBase(c.req.raw, c.env));
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
   if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
   return c.json(await listMine(c.env, user.id));
 });
 
 // First-login claim: adopt anonymous on-device gardens (their ids) into the account.
 app.post('/api/mine/claim', async (c) => {
-  const user = await getSessionUser(c.req.raw, authBase(c.req.raw, c.env));
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
   if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
   const body = (await c.req.json().catch(() => ({}))) as { ids?: unknown };
   const ids = Array.isArray(body.ids) ? body.ids.filter((x): x is string => typeof x === 'string') : [];

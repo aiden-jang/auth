@@ -49,6 +49,11 @@ describe('enforceSameOrigin', () => {
     expect(enforceSameOrigin(post({ Origin: 'https://owewell.aidenjang.com' }))).toBeNull();
   });
 
+  it('allows a localhost Origin (wrangler dev simulates the prod host, so hosts never match)', () => {
+    expect(enforceSameOrigin(post({ Origin: 'http://localhost:32100' }))).toBeNull();
+    expect(enforceSameOrigin(post({ Origin: 'http://127.0.0.1:30001' }))).toBeNull();
+  });
+
   it('rejects a cross-origin state-changing request', () => {
     const res = enforceSameOrigin(post({ Origin: 'https://evil.example' }));
     expect(res?.status).toBe(403);
