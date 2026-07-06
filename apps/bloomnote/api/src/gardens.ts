@@ -110,6 +110,18 @@ export async function recordReceived(env: Env, userId: string, id: string): Prom
   );
 }
 
+/**
+ * Remove a garden from a user's Sent + Received lists. The garden itself (`g:<id>`) is kept, so
+ * any link already shared still opens — this only detaches it from this account's lists.
+ */
+export async function removeFromAccount(env: Env, userId: string, id: string): Promise<void> {
+  if (!ID_RE.test(id)) return;
+  await Promise.all([
+    env.GARDENS.delete(`sent:${userId}:${id}`),
+    env.GARDENS.delete(`recv:${userId}:${id}`),
+  ]);
+}
+
 async function listByPrefix(env: Env, prefix: string): Promise<GardenSummary[]> {
   const listed = await env.GARDENS.list({ prefix });
   const values = await Promise.all(listed.keys.map((k) => env.GARDENS.get(k.name)));

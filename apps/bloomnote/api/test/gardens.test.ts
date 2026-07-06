@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'vitest';
-import { claimGardens, createGarden, listMine, readGarden, recordReceived } from '../src/gardens.js';
+import {
+  claimGardens,
+  createGarden,
+  listMine,
+  readGarden,
+  recordReceived,
+  removeFromAccount,
+} from '../src/gardens.js';
 import { testEnv } from './helpers.js';
 
 const GARDEN = {
@@ -43,6 +50,20 @@ describe('gardens (KV)', () => {
     const bob = await listMine(testEnv, 'bob');
     expect(bob.received.map((x) => x.id)).toContain(r.id);
     expect(bob.received[0]?.receivedAt).toBeTruthy();
+  });
+
+  test('removeFromAccount detaches from Sent/Received but keeps the garden', async () => {
+    const r = await createGarden(testEnv, GARDEN, 'owner');
+    if (!r.ok) throw new Error('create failed');
+    await recordReceived(testEnv, 'bob', r.id);
+
+    await removeFromAccount(testEnv, 'owner', r.id);
+    await removeFromAccount(testEnv, 'bob', r.id);
+
+    expect((await listMine(testEnv, 'owner')).sent).toHaveLength(0);
+    expect((await listMine(testEnv, 'bob')).received).toHaveLength(0);
+    // The garden itself survives, so a shared link still opens.
+    expect(await readGarden(testEnv, r.id)).not.toBeNull();
   });
 
   test('claim adopts anonymous gardens once', async () => {
