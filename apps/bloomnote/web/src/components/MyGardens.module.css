@@ -158,12 +158,16 @@
   font-size: 12px;
   padding: 4px 12px;
   border-radius: 999px;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
 }
 
 .actionBtn:hover {
   background: var(--green-mid);
   color: white;
+}
+
+.actionBtn:active {
+  transform: scale(0.96);
 }
 
 .removeBtn {
@@ -241,6 +245,10 @@
 .tab:hover {
   color: var(--text-dark);
   border-color: var(--green-mid);
+}
+.tab:active,
+.tabActive:active {
+  transform: scale(0.96);
 }
 .tabActive {
   background: var(--green-deep);
