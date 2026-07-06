@@ -1025,16 +1025,25 @@
 .copyBtn {
   padding: 11px 20px;
   border-radius: 22px;
-  background: var(--green-mid);
+  /* Match the composer CTA: green gradient + soft shadow so the primary
+     share action reads as a lifted, tappable surface. */
+  background: linear-gradient(135deg, var(--green-mid), var(--green-deep));
   color: white;
   font-size: 14px;
   font-weight: 500;
   border: none;
-  transition: background 0.15s;
+  box-shadow: 0 3px 12px rgba(45, 90, 27, 0.2);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
 
-.copyBtn:hover {
-  background: var(--green-deep);
+.copyBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(45, 90, 27, 0.26);
+}
+
+.copyBtn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(45, 90, 27, 0.18);
 }
 
 /* Share button — primary action on mobile / Safari, where native
@@ -1042,16 +1051,23 @@
 .shareBtn {
   padding: 11px 20px;
   border-radius: 22px;
-  background: var(--green-mid);
+  background: linear-gradient(135deg, var(--green-mid), var(--green-deep));
   color: white;
   font-size: 14px;
   font-weight: 500;
   border: none;
-  transition: background 0.15s;
+  box-shadow: 0 3px 12px rgba(45, 90, 27, 0.2);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
 
-.shareBtn:hover {
-  background: var(--green-deep);
+.shareBtn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(45, 90, 27, 0.26);
+}
+
+.shareBtn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(45, 90, 27, 0.18);
 }
 
 /* Copy demoted to secondary when Share is the primary action. Same
@@ -1067,8 +1083,13 @@
   transition: all 0.15s;
 }
 
-.copyBtnSecondary:hover {
+.copyBtnSecondary:hover:not(:disabled) {
   background: #f0fae8;
+  transform: translateY(-1px);
+}
+
+.copyBtnSecondary:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .resetBtn {
@@ -1081,9 +1102,14 @@
   transition: all 0.15s;
 }
 
-.resetBtn:hover {
+.resetBtn:hover:not(:disabled) {
   border-color: var(--green-light);
   background: #f5fbf0;
+  transform: translateY(-1px);
+}
+
+.resetBtn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 /* Save-as-image — styled as a button but it's an anchor underneath so
@@ -1110,6 +1136,11 @@
   border-color: var(--green-light);
   background: #f5fbf0;
   color: var(--text-deep);
+  transform: translateY(-1px);
+}
+
+.downloadBtn:active {
+  transform: translateY(0);
 }
 
 /* Re-roll button. Same tertiary visual weight as resetBtn /
@@ -1131,6 +1162,11 @@
   border-color: var(--green-light);
   background: #f5fbf0;
   color: var(--text-deep);
+  transform: translateY(-1px);
+}
+
+.rerollBtn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .rerollBtn:disabled,
