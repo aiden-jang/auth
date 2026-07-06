@@ -64,6 +64,40 @@ app.delete('/api/garden/:id', async (c) => {
   return c.json({ ok: true });
 });
 
+// Funnel analytics. The web app POSTs structural, PII-free events here (usually via sendBeacon);
+// we record them to Workers Logs (query with `wrangler tail` or the dashboard). Only whitelisted
+// names are logged so a spoofed body can't spam arbitrary lines. Fire-and-forget → always 204.
+const TRACKED_EVENTS = new Set([
+  'composer_opened',
+  'garden_generated',
+  'garden_error',
+  'garden_canceled',
+  'garden_rerolled',
+  'share_link_copied',
+  'share_link_shared',
+  'card_downloaded',
+  'make_another',
+  'garden_opened',
+  'garden_bloomed',
+  'reply_started',
+]);
+app.post('/api/event', async (c) => {
+  const raw = await c.req.text().catch(() => '');
+  let name = '';
+  let meta: unknown = {};
+  try {
+    const parsed = JSON.parse(raw) as { name?: unknown; meta?: unknown };
+    if (typeof parsed.name === 'string') name = parsed.name;
+    if (parsed.meta && typeof parsed.meta === 'object') meta = parsed.meta;
+  } catch {
+    // malformed body — ignore
+  }
+  if (TRACKED_EVENTS.has(name)) {
+    console.log(`bloomnote_event ${name} ${JSON.stringify(meta).slice(0, 400)}`);
+  }
+  return c.body(null, 204);
+});
+
 // The signed-in user's gardens (Sent + Received), read server-side so it's the same on any device.
 app.get('/api/mine', async (c) => {
   const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
