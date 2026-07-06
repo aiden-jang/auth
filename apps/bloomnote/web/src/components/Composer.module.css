@@ -12,6 +12,19 @@
   padding-top: 1rem;
 }
 
+/* Small editorial eyebrow above the wordmark. Sets the emotional frame
+   ("this is for a person you care about") before the brand name, in the
+   warm soil tone so it reads as a quiet accent, not a second headline. */
+.kicker {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--soil);
+  margin-bottom: 10px;
+  opacity: 0.85;
+}
+
 .title {
   font-family: var(--serif);
   font-size: 44px;
@@ -48,20 +61,6 @@
   gap: 12px;
 }
 
-/* Occasion + Mood two-up row. Mirrors .nameRow so the two paired
-   selects feel like one logical control. On narrow screens both
-   wrap to full width; the section's existing flex behavior handles
-   that without an explicit media query. */
-.pickerRow {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.pickerRow > section {
-  flex: 1 1 140px;
-}
-
 .label {
   font-size: 12px;
   font-weight: 500;
@@ -80,6 +79,9 @@
   background: white;
   resize: none;
   line-height: 1.6;
+  /* Soft green-tinted lift so the field reads as a raised surface on
+     the warm page gradient rather than a flat cutout. */
+  box-shadow: 0 1px 3px rgba(45, 90, 27, 0.05);
   transition: border-color 0.15s;
 }
 
@@ -131,6 +133,7 @@
   font-size: 14px;
   color: var(--text-dark);
   background: white;
+  box-shadow: 0 1px 3px rgba(45, 90, 27, 0.05);
   transition: border-color 0.15s;
 }
 
@@ -138,27 +141,48 @@
   border-color: var(--green-mid);
 }
 
-/* Select shares input styling, plus a chevron rendered via background
-   image so we don't depend on the OS-native dropdown chrome (which
-   varies wildly across platforms). */
-.select {
-  width: 100%;
-  border: 1.5px solid var(--green-pale);
-  border-radius: 12px;
-  padding: 10px 36px 10px 14px;
-  font-size: 14px;
-  color: var(--text-dark);
-  background: white url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='%237a8f6b' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>") no-repeat right 14px center;
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-  transition: border-color 0.15s;
-  font-family: inherit;
+/* Occasion + mood as pill chips instead of dropdowns — every option is
+   visible at a glance (no hunting through a select), and tapping one is
+   a single gesture. Both groups are single-select (role=radiogroup on
+   the container, role=radio + aria-checked on each chip). */
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.select:focus {
-  border-color: var(--green-mid);
-  outline: none;
+.chip {
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--green-pale);
+  background: white;
+  color: var(--text-mid);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.chip:hover {
+  border-color: var(--green-light);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--green-mid);
+  outline-offset: 2px;
+}
+
+/* Selected chip — filled forest green so the active occasion/mood reads
+   instantly, echoing the CTA color for a coherent palette. */
+.chipOn {
+  background: var(--green-deep);
+  border-color: var(--green-deep);
+  color: var(--cream);
+}
+
+.chipOn:hover {
+  border-color: var(--green-deep);
 }
 
 /* Schedule (time capsule) — collapsed link, expanded row.

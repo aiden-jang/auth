@@ -721,6 +721,7 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
     <div className={styles.wrap}>
       <SoundToggle />
       <header className={styles.header}>
+        <p className={styles.kicker}>for someone who matters</p>
         <h1 className={styles.title}>bloomnote</h1>
         <p className={styles.subtitle}>
           {remixSeed
@@ -784,39 +785,46 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
             </section>
           </div>
 
-          {/* Occasion + Mood — two-up so it's clear they're a paired
-              control. Occasion is *when* (calendar), mood is *how*
-              (emotional register). Both optional from the user's
-              perspective (mood defaults to "no mood"), but always sent
-              so the AI gets the full signal. */}
-          <div className={styles.pickerRow}>
-            <section className={styles.section}>
-              <label className={styles.label} htmlFor="occasion-select">occasion</label>
-              <select
-                id="occasion-select"
-                className={styles.select}
-                value={occasion}
-                onChange={e => setOccasion(e.target.value)}
-              >
-                {OCCASIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </section>
-            <section className={styles.section}>
-              <label className={styles.label} htmlFor="mood-select">mood</label>
-              <select
-                id="mood-select"
-                className={styles.select}
-                value={mood}
-                onChange={e => setMood(e.target.value)}
-              >
-                {MOODS.map(m => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-            </section>
-          </div>
+          {/* Occasion + mood as chip selectors. Occasion is *when*
+              (calendar), mood is *how* (emotional register). Both are
+              optional from the user's perspective (mood defaults to "no
+              mood") but always sent so the AI gets the full signal.
+              Rendered as chips rather than dropdowns so every option is
+              visible at a glance and selecting is a single tap. */}
+          <section className={styles.section}>
+            <span className={styles.label} id="occasion-label">occasion</span>
+            <div className={styles.chipRow} role="radiogroup" aria-labelledby="occasion-label">
+              {OCCASIONS.map(o => (
+                <button
+                  key={o.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={occasion === o.value}
+                  className={occasion === o.value ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                  onClick={() => setOccasion(o.value)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </section>
+          <section className={styles.section}>
+            <span className={styles.label} id="mood-label">mood</span>
+            <div className={styles.chipRow} role="radiogroup" aria-labelledby="mood-label">
+              {MOODS.map(m => (
+                <button
+                  key={m.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={mood === m.value}
+                  className={mood === m.value ? `${styles.chip} ${styles.chipOn}` : styles.chip}
+                  onClick={() => setMood(m.value)}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </section>
 
           <section className={styles.section}>
             <label className={styles.label}>your message</label>

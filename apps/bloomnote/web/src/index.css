@@ -27,7 +27,14 @@ html, body, #root {
 
 body {
   font-family: var(--sans);
-  background: var(--cream);
+  /* Warm surface depth — a soft light-cream glow up top easing down to
+     the base cream, so the page reads as a lit surface rather than a
+     flat fill. Fixed so it stays put as the composer scrolls. Layers
+     under the paper-grain overlay for a printed-paper feel. */
+  background:
+    radial-gradient(115% 75% at 50% -8%, #fffdf7 0%, var(--cream) 58%),
+    var(--cream);
+  background-attachment: fixed;
   color: var(--text-dark);
   -webkit-font-smoothing: antialiased;
 }
