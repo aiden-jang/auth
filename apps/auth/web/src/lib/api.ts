@@ -37,6 +37,8 @@ export const authApi = {
   forgot: (email: string) => req<{ ok: boolean }>('/auth/forgot-password', 'POST', { email }),
   reset: (token: string, newPassword: string) =>
     req<{ ok: boolean }>('/auth/reset-password', 'POST', { token, newPassword }),
+  updateProfile: (displayName: string) =>
+    req<{ user: AuthUser }>('/auth/update-profile', 'POST', { displayName }),
   verifyEmail: (token: string) => req<{ ok: boolean }>('/auth/verify-email', 'POST', { token }),
   resendVerification: () => req<{ ok: boolean }>('/auth/resend-verification', 'POST'),
 };
