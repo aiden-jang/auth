@@ -101,7 +101,7 @@ app.post('/auth/register', async (c) => {
   await sendEmail(c.env, {
     to: email,
     subject: 'Verify your email',
-    html: `<p>Welcome to owewell. Confirm your email: <a href="${link(c.env, '/verify-email', verifyToken)}">verify email</a></p>`,
+    html: `<p>Welcome to aidenjang. Confirm your email: <a href="${link(c.env, '/verify-email', verifyToken)}">verify email</a></p>`,
   });
 
   return c.json({ user: { id, email, displayName, emailVerified: false } }, 201);
@@ -169,7 +169,7 @@ app.post('/auth/forgot-password', async (c) => {
     const token = await issueToken(db, user.id, 'reset');
     await sendEmail(c.env, {
       to: email,
-      subject: 'Reset your owewell password',
+      subject: 'Reset your aidenjang password',
       html: `<p>Reset your password: <a href="${link(c.env, '/reset-password', token)}">choose a new password</a>. This link expires in an hour.</p>`,
     });
   }
