@@ -3,7 +3,7 @@ import type { DB } from './db/client.js';
 import { addPlaceholderMember, createGroup } from './groups.js';
 import { createExpense } from './expenses.js';
 
-export type QuickSplitErrorCode = 'NO_PAYER' | 'TOO_MANY_YOU' | 'INVALID_SPLIT';
+export type QuickSplitErrorCode = 'NO_PAYER' | 'TOO_MANY_YOU' | 'NO_ITEMS' | 'INVALID_SPLIT';
 
 export class QuickSplitError extends Error {
   constructor(
@@ -15,74 +15,88 @@ export class QuickSplitError extends Error {
   }
 }
 
-export interface QuickSplitParticipant {
+export interface QuickSplitPerson {
   name: string;
-  value?: number;
   isPayer?: boolean;
   isYou?: boolean;
 }
 
-export interface QuickSplitInput {
+export interface QuickSplitItem {
   description: string;
   amountCents: number;
   splitMethod: SplitMethod;
-  participants: QuickSplitParticipant[];
+  /** Per-person values aligned to the `people` array order; null/omitted for EQUAL. */
+  values?: (number | null)[];
+}
+
+export interface QuickSplitInput {
+  people: QuickSplitPerson[];
+  items: QuickSplitItem[];
+}
+
+/** Build the computeSplit participants for one item, aligning values to the shared people order. */
+function itemParticipants(
+  people: QuickSplitPerson[],
+  item: QuickSplitItem,
+  userId: (index: number) => string,
+): { userId: string; value?: number }[] {
+  return people.map((_, i) => {
+    const v = item.values?.[i];
+    return v === undefined || v === null ? { userId: userId(i) } : { userId: userId(i), value: v };
+  });
 }
 
 /**
- * Turn a signed-out calculation into a saved group: the saving user owns it, every other
- * person becomes a name-only placeholder member, and the split becomes the first expense.
- * The split math is validated up front so a half-built group is never created.
+ * Turn a signed-out calculation into a saved group: the saving user owns it, every other person
+ * becomes a name-only placeholder member, and each item becomes its own expense (all paid by the
+ * one payer). Every item's split math is validated up front so a half-built group is never created.
  */
 export async function createQuickSplit(
   db: DB,
   personId: string,
   input: QuickSplitInput,
 ): Promise<{ groupId: string }> {
-  if (input.participants.filter((p) => p.isPayer).length !== 1) {
+  if (input.people.filter((p) => p.isPayer).length !== 1) {
     throw new QuickSplitError('NO_PAYER', 'Mark exactly one person as the payer.');
   }
-  if (input.participants.filter((p) => p.isYou).length > 1) {
+  if (input.people.filter((p) => p.isYou).length > 1) {
     throw new QuickSplitError('TOO_MANY_YOU', 'Only one person can be you.');
   }
-
-  try {
-    computeSplit(
-      input.splitMethod,
-      input.amountCents,
-      input.participants.map((p, i) =>
-        p.value === undefined ? { userId: `p${i}` } : { userId: `p${i}`, value: p.value },
-      ),
-    );
-  } catch (err) {
-    throw new QuickSplitError('INVALID_SPLIT', err instanceof Error ? err.message : 'Invalid split.');
+  if (input.items.length === 0) {
+    throw new QuickSplitError('NO_ITEMS', 'Add at least one item.');
   }
 
-  const name = input.description.trim() || 'Quick split';
-  const group = await createGroup(db, personId, name);
-
-  const resolved: { userId: string; value?: number; isPayer: boolean }[] = [];
-  for (const p of input.participants) {
-    const uid = p.isYou ? personId : (await addPlaceholderMember(db, personId, group.id, p.name)).userId;
-    resolved.push(
-      p.value === undefined
-        ? { userId: uid, isPayer: Boolean(p.isPayer) }
-        : { userId: uid, value: p.value, isPayer: Boolean(p.isPayer) },
-    );
+  // Validate every item against placeholder ids before touching the database.
+  for (const item of input.items) {
+    try {
+      computeSplit(item.splitMethod, item.amountCents, itemParticipants(input.people, item, (i) => `p${i}`));
+    } catch (err) {
+      throw new QuickSplitError('INVALID_SPLIT', err instanceof Error ? err.message : 'Invalid split.');
+    }
   }
 
-  const payer = resolved.find((r) => r.isPayer);
-  if (!payer) throw new QuickSplitError('NO_PAYER', 'Mark exactly one person as the payer.');
+  const groupName = input.items[0]!.description.trim() || 'Quick split';
+  const group = await createGroup(db, personId, groupName);
 
-  await createExpense(db, personId, group.id, {
-    description: name,
-    amountCents: input.amountCents,
-    payerId: payer.userId,
-    splitMethod: input.splitMethod,
-    participants: resolved.map((r) =>
-      r.value === undefined ? { userId: r.userId } : { userId: r.userId, value: r.value },
-    ),
-  });
+  // Resolve each person to a member id once, preserving order so item value arrays line up.
+  const userIds: string[] = [];
+  for (const p of input.people) {
+    const uid = p.isYou
+      ? personId
+      : (await addPlaceholderMember(db, personId, group.id, p.name)).userId;
+    userIds.push(uid);
+  }
+  const payerId = userIds[input.people.findIndex((p) => p.isPayer)]!;
+
+  for (const item of input.items) {
+    await createExpense(db, personId, group.id, {
+      description: item.description.trim() || 'Quick split',
+      amountCents: item.amountCents,
+      payerId,
+      splitMethod: item.splitMethod,
+      participants: itemParticipants(input.people, item, (i) => userIds[i]!),
+    });
+  }
 
   return { groupId: group.id };
 }
