@@ -90,8 +90,8 @@ pnpm --filter @wherever/worker run deploy
 # deploy the web build per apps/wherever/DEPLOY.md
 ```
 
-Verify: `/health` on the deployed origin; create a session, join by code from a second browser,
-swipe, majority resolves.
+Verify: `/api/health` on the deployed origin (wherever namespaces its API under `/api`); create a
+session, join by code from a second browser, swipe, majority resolves.
 
 ## 6. Cross-cutting (dashboard / one-time)
 
