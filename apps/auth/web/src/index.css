@@ -31,3 +31,10 @@ body {
   background: linear-gradient(115deg, #a78bfa 0%, #6ee7f0 100%);
   color: #09090f;
 }
+
+/* Tailwind v4's preflight no longer sets a pointer cursor on buttons, so
+   add it back globally. Enabled buttons get the pointer; disabled ones keep
+   the default arrow (utilities like disabled:cursor-not-allowed still win). */
+button:not(:disabled) {
+  cursor: pointer;
+}
