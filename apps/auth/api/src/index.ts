@@ -219,6 +219,23 @@ app.post('/auth/resend-verification', async (c) => {
   return c.json({ ok: true });
 });
 
+// Update the signed-in user's profile. Only the display name is editable
+// today (email/password have their own dedicated flows), but the endpoint
+// is shaped as a general profile update so more fields can be added here.
+app.post('/auth/update-profile', async (c) => {
+  const cookie = getCookie(c, SESSION_COOKIE);
+  const db = createDb(c.env);
+  const user = cookie ? await validateSession(db, cookie) : null;
+  if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const parsed = z
+    .object({ displayName: z.string().trim().min(1).max(80) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const displayName = parsed.data.displayName.trim();
+  await db.update(users).set({ displayName, updatedAt: new Date() }).where(eq(users.id, user.id));
+  return c.json({ user: publicUser({ ...user, displayName }) });
+});
+
 // Everything that isn't an API route: serve the login/account UI (SPA fallback via assets).
 app.all('*', (c) => c.env.ASSETS.fetch(c.req.raw));
 

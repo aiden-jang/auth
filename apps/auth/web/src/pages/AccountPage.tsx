@@ -1,12 +1,48 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { authApi, type AuthUser } from '../lib/api';
-import { AuthCard, buttonClass } from '../components/AuthCard';
+import { AuthCard, buttonClass, inputClass } from '../components/AuthCard';
 import { APPS } from '../lib/apps';
 
 export function AccountPage(): ReactNode {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [resent, setResent] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  function startEditName(): void {
+    if (!user) return;
+    setNameDraft(user.displayName);
+    setNameError(null);
+    setEditingName(true);
+  }
+
+  async function saveName(e: FormEvent): Promise<void> {
+    e.preventDefault();
+    if (!user) return;
+    const next = nameDraft.trim();
+    if (!next) {
+      setNameError('Name cannot be empty.');
+      return;
+    }
+    if (next === user.displayName) {
+      setEditingName(false);
+      return;
+    }
+    setSavingName(true);
+    setNameError(null);
+    try {
+      const r = await authApi.updateProfile(next);
+      setUser(r.user);
+      setEditingName(false);
+    } catch (err) {
+      setNameError(err instanceof Error ? err.message : 'Could not save your name.');
+    } finally {
+      setSavingName(false);
+    }
+  }
 
   useEffect(() => {
     authApi
@@ -65,10 +101,53 @@ export function AccountPage(): ReactNode {
       <hr className="my-6 border-line" />
 
       <dl className="space-y-3 text-sm">
-        <div className="flex justify-between gap-4">
-          <dt className="text-muted">Name</dt>
-          <dd className="font-medium">{user.displayName}</dd>
-        </div>
+        {editingName ? (
+          <div>
+            <dt className="mb-1.5 text-muted">Name</dt>
+            <form onSubmit={(e) => void saveName(e)} className="flex items-center gap-2">
+              <input
+                className={inputClass}
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                maxLength={80}
+                autoFocus
+                aria-label="Display name"
+              />
+              <button
+                className="btn-gradient shrink-0 cursor-pointer rounded-lg px-3.5 py-2.5 text-sm font-semibold disabled:opacity-60"
+                disabled={savingName}
+              >
+                {savingName ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingName(false)}
+                className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2.5 text-sm text-muted transition hover:text-ink"
+              >
+                Cancel
+              </button>
+            </form>
+            {nameError && (
+              <p role="alert" className="mt-1.5 text-xs font-medium text-neg">
+                {nameError}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-4">
+            <dt className="text-muted">Name</dt>
+            <dd className="flex items-center gap-2 font-medium">
+              {user.displayName}
+              <button
+                type="button"
+                onClick={startEditName}
+                className="cursor-pointer text-xs font-medium text-accent hover:underline"
+              >
+                Edit
+              </button>
+            </dd>
+          </div>
+        )}
         <div className="flex justify-between gap-4">
           <dt className="text-muted">Email</dt>
           <dd className="font-medium">{user.email}</dd>
