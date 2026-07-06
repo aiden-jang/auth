@@ -25,7 +25,7 @@ new_sqlite_classes = ["RateLimiter"]
 [[d1_databases]]
 binding = "DB"
 database_name = "wherever"
-database_id = "local-dev-placeholder"
+database_id = "bc8f7c67-ddf5-40ee-af38-7cee0697bc9a"
 migrations_dir = "migrations"
 
 # Workers Logs — native, free-tier error/log observability. Tail live with `wrangler tail`;
