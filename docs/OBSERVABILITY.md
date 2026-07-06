@@ -51,7 +51,7 @@ are a paid add-on, so point a **free external monitor** (e.g. UptimeRobot, 5-min
 | bloomnote | `https://bloomnote.aidenjang.com/health` |
 | is-it-a-dog (game) | `https://is-it-a-dog.aidenjang.com/health` |
 | is-it-a-dog (ai) | `https://is-it-a-dog-ai.<subdomain>.workers.dev/health` (internal) |
-| wherever | `<wherever origin>/health` (per apps/wherever/DEPLOY.md) |
+| wherever | `https://wherever-honestly.aidenjang.workers.dev/api/health` (API namespaced under /api) |
 
 A green `/health` proves the worker is reachable and its runtime is up; it does not exercise D1/KV
 /DO, which surface via Workers Logs instead.
