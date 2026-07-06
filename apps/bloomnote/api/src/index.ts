@@ -100,6 +100,31 @@ app.post('/api/design-garden', async (c) => {
   });
 });
 
+// Per-garden link previews. A shared /g/<id> link should unfurl as "X sent Y a garden", not the
+// generic homepage card. We serve the same SPA shell but rewrite its OG/Twitter title+description
+// from the garden. Crawlers read the injected tags; real users still boot the SPA normally.
+app.get('/g/:id', async (c) => {
+  const shell = await c.env.ASSETS.fetch(c.req.raw); // SPA fallback → index.html
+  const garden = await readGarden(c.env, c.req.param('id'));
+  if (garden === null || typeof garden !== 'object') return shell; // unknown id → plain shell (SPA 404s)
+
+  const g = garden as Record<string, unknown>;
+  const from = typeof g.from === 'string' ? g.from.trim() : '';
+  const to = typeof g.to === 'string' ? g.to.trim() : '';
+  const title = from && to ? `${from} sent ${to} a garden` : from ? `${from} sent you a garden` : 'someone sent you a garden';
+  const description = 'a little garden, grown just for you. open it to watch it bloom.';
+  const url = new URL(c.req.url).toString();
+
+  return new HTMLRewriter()
+    .on('title', { element: (e) => { e.setInnerContent(title); } })
+    .on('meta[property="og:title"]', { element: (e) => { e.setAttribute('content', title); } })
+    .on('meta[name="twitter:title"]', { element: (e) => { e.setAttribute('content', title); } })
+    .on('meta[property="og:description"]', { element: (e) => { e.setAttribute('content', description); } })
+    .on('meta[name="twitter:description"]', { element: (e) => { e.setAttribute('content', description); } })
+    .on('meta[property="og:url"]', { element: (e) => { e.setAttribute('content', url); } })
+    .transform(shell);
+});
+
 // Everything that isn't the API is the web SPA: real files, or index.html for client routes
 // (/g/:id, /r/:id, /mine). run_worker_first routes it all through here.
 app.all('*', (c) => c.env.ASSETS.fetch(c.req.raw));
