@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { loginUrl, logoutUrl } from '@aidenjang/auth-client';
+import { loginUrl, logoutUrl, signupUrl } from '@aidenjang/auth-client';
 import { api, AUTH_ORIGIN } from '../lib/api';
 
 export interface AuthUser {
@@ -13,6 +13,8 @@ interface AuthContextValue {
   loading: boolean;
   /** Send the visitor to the shared sign-in page, returning them here afterward. */
   login: (returnTo?: string) => void;
+  /** Send the visitor to the shared sign-up page, returning them here afterward. */
+  signup: (returnTo?: string) => void;
   /** Sign out at the shared auth service, then return here. */
   logout: (returnTo?: string) => void;
   /** The shared account page (name, email, password all live there now). */
@@ -41,6 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
       loading,
       login: (returnTo?: string) => {
         window.location.assign(loginUrl(AUTH_ORIGIN, returnTo ?? here()));
+      },
+      signup: (returnTo?: string) => {
+        window.location.assign(signupUrl(AUTH_ORIGIN, returnTo ?? here()));
       },
       logout: (returnTo?: string) => {
         window.location.assign(logoutUrl(AUTH_ORIGIN, returnTo ?? window.location.origin));
