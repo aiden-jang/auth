@@ -8,13 +8,22 @@ import {
   clearPendingSplit,
   quickSplitApi,
   stashPendingSplit,
-  type PendingParticipant,
+  type PendingItem,
+  type PendingSplit,
 } from '../lib/quicksplit';
 
 interface Person {
   id: string;
   name: string;
-  value: string;
+}
+
+interface Item {
+  id: string;
+  description: string;
+  amount: string;
+  method: SplitMethod;
+  /** Per-person raw value inputs (shares / percent / exact), keyed by person id. */
+  values: Record<string, string>;
 }
 
 const METHODS: { value: SplitMethod; label: string }[] = [
@@ -32,9 +41,14 @@ const VALUE_HINT: Record<SplitMethod, string> = {
 };
 
 function newPerson(name = ''): Person {
-  return { id: crypto.randomUUID(), name, value: '' };
+  return { id: crypto.randomUUID(), name };
 }
 
+function newItem(): Item {
+  return { id: crypto.randomUUID(), description: '', amount: '', method: 'EQUAL', values: {} };
+}
+
+/** Parse a raw per-person input into the server value for a method, or undefined for EQUAL. */
 function serverValue(method: SplitMethod, raw: string): number | undefined {
   const trimmed = raw.trim();
   if (method === 'EQUAL') return undefined;
@@ -81,10 +95,8 @@ function PublicHeader(): ReactNode {
 export function QuickSplitPage(): ReactNode {
   const { user, signup } = useAuth();
   const navigate = useNavigate();
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [method, setMethod] = useState<SplitMethod>('EQUAL');
   const [people, setPeople] = useState<Person[]>([newPerson('You'), newPerson('')]);
+  const [items, setItems] = useState<Item[]>([newItem()]);
   const [payerId, setPayerId] = useState<string>('');
   const [youId, setYouId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -104,22 +116,46 @@ export function QuickSplitPage(): ReactNode {
     setPeople((prev) => (prev.length <= 2 ? prev : prev.filter((p) => p.id !== id)));
   }
 
-  // Live breakdown: map each person to their owed cents, or null if the inputs aren't valid yet.
+  function updateItem(id: string, patch: Partial<Item>): void {
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
+  }
+  function updateItemValue(itemId: string, personId: string, value: string): void {
+    setItems((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, values: { ...it.values, [personId]: value } } : it)),
+    );
+  }
+  function addItem(): void {
+    setItems((prev) => [...prev, newItem()]);
+  }
+  function removeItem(id: string): void {
+    setItems((prev) => (prev.length <= 1 ? prev : prev.filter((it) => it.id !== id)));
+  }
+
+  const named = people.filter((p) => p.name.trim());
+
+  // Live combined breakdown: each person's total share summed across every valid item, or null
+  // until at least one item has a usable amount + valid per-person values.
   let owed: Record<string, number> | null = null;
+  let grandTotal = 0;
   try {
-    const named = people.filter((p) => p.name.trim());
-    const amountCents = amount.trim() ? dollarsToCents(amount) : 0;
-    if (amountCents > 0 && named.length > 0) {
+    const acc: Record<string, number> = Object.fromEntries(named.map((p) => [p.id, 0]));
+    let any = false;
+    for (const item of items) {
+      const amountCents = item.amount.trim() ? dollarsToCents(item.amount) : 0;
+      if (amountCents <= 0 || named.length === 0) continue;
       const shares = computeSplit(
-        method,
+        item.method,
         amountCents,
         named.map((p) => {
-          const value = serverValue(method, p.value);
+          const value = serverValue(item.method, item.values[p.id] ?? '');
           return value === undefined ? { userId: p.id } : { userId: p.id, value };
         }),
       );
-      owed = Object.fromEntries(shares.map((s) => [s.userId, s.owedCents]));
+      for (const s of shares) acc[s.userId] = (acc[s.userId] ?? 0) + s.owedCents;
+      grandTotal += amountCents;
+      any = true;
     }
+    owed = any ? acc : null;
   } catch {
     owed = null;
   }
@@ -128,50 +164,57 @@ export function QuickSplitPage(): ReactNode {
 
   async function onSave(): Promise<void> {
     setError(null);
-    const named = people.filter((p) => p.name.trim());
     if (named.length < 2) {
       setError('Add at least two people.');
       return;
     }
-    let amountCents: number;
-    try {
-      amountCents = dollarsToCents(amount);
-    } catch {
-      setError('Enter a valid amount.');
-      return;
-    }
-    if (amountCents <= 0) {
-      setError('Amount must be more than zero.');
-      return;
-    }
-
-    let participants: PendingParticipant[];
-    try {
-      participants = named.map((p) => {
-        const value = serverValue(method, p.value);
-        return {
-          name: p.name.trim(),
-          ...(value === undefined ? {} : { value }),
-          isPayer: p.id === effectivePayerId,
-          isYou: p.id === effectiveYouId,
-        };
-      });
-    } catch {
-      setError('Check the values for each person.');
-      return;
-    }
-    if (!participants.some((p) => p.isPayer)) {
+    if (!named.some((p) => p.id === effectivePayerId)) {
       setError('Pick who paid.');
       return;
     }
 
-    const split = {
-      description: description.trim() || 'Quick split',
-      amountCents,
-      splitMethod: method,
-      participants,
+    const builtItems: PendingItem[] = [];
+    for (const item of items) {
+      if (!item.amount.trim()) continue;
+      let amountCents: number;
+      try {
+        amountCents = dollarsToCents(item.amount);
+      } catch {
+        setError('Enter a valid amount for each item.');
+        return;
+      }
+      if (amountCents <= 0) {
+        setError('Each item amount must be more than zero.');
+        return;
+      }
+      let values: (number | null)[];
+      try {
+        values = named.map((p) => serverValue(item.method, item.values[p.id] ?? '') ?? null);
+      } catch {
+        setError('Check the per-person values on each item.');
+        return;
+      }
+      builtItems.push({
+        description: item.description.trim() || 'Quick split',
+        amountCents,
+        splitMethod: item.method,
+        values,
+      });
+    }
+    if (builtItems.length === 0) {
+      setError('Add at least one item with an amount.');
+      return;
+    }
+
+    const pending: PendingSplit = {
+      people: named.map((p) => ({
+        name: p.name.trim(),
+        isPayer: p.id === effectivePayerId,
+        isYou: p.id === effectiveYouId,
+      })),
+      items: builtItems,
     };
-    stashPendingSplit(split);
+    stashPendingSplit(pending);
 
     if (!user) {
       // Stash it, send them to sign up on the shared auth service, and land back on the dashboard,
@@ -182,7 +225,7 @@ export function QuickSplitPage(): ReactNode {
 
     setSaving(true);
     try {
-      const { groupId } = await quickSplitApi.save(split);
+      const { groupId } = await quickSplitApi.save(pending);
       clearPendingSplit();
       navigate(`/groups/${groupId}`);
     } catch (err) {
@@ -200,97 +243,52 @@ export function QuickSplitPage(): ReactNode {
       <main className="mx-auto max-w-xl animate-rise px-4 py-10">
         <h1 className="font-display text-4xl font-semibold tracking-tight">Split a bill</h1>
         <p className="mt-2 text-base text-muted">
-          Who owes who, minus the group-chat math. No login required, save it if you get attached.
+          Add everyone once, then list what you spent. No login required, save it if you get attached.
         </p>
 
-        <div className="glass mt-6 space-y-3 rounded-3xl p-5">
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What was it for?"
-            className={inputClass}
-            aria-label="Description"
-          />
-          <div className="flex gap-2">
-            <input
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              inputMode="decimal"
-              className={inputClass}
-              aria-label="Amount"
-            />
-            <select
-              value={method}
-              onChange={(e) => setMethod(e.target.value as SplitMethod)}
-              className={inputClass}
-              aria-label="Split method"
-            >
-              {METHODS.map((m) => (
-                <option key={m.value} value={m.value}>
-                  Split {m.label.toLowerCase()}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            {people.map((person, index) => (
-              <div key={person.id} className="flex items-center gap-2">
+        {/* People — shared across every item */}
+        <div className="glass mt-6 space-y-2 rounded-3xl p-5">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">Who's splitting</h2>
+          {people.map((person, index) => (
+            <div key={person.id} className="flex items-center gap-2">
+              <input
+                value={person.name}
+                onChange={(e) => updatePerson(person.id, { name: e.target.value })}
+                placeholder={`Person ${index + 1}`}
+                className={inputClass}
+                aria-label={`Person ${index + 1} name`}
+              />
+              <label className="flex items-center gap-1 text-xs text-muted">
                 <input
-                  value={person.name}
-                  onChange={(e) => updatePerson(person.id, { name: e.target.value })}
-                  placeholder={`Person ${index + 1}`}
-                  className={inputClass}
-                  aria-label={`Person ${index + 1} name`}
+                  type="radio"
+                  name="payer"
+                  checked={effectivePayerId === person.id}
+                  onChange={() => setPayerId(person.id)}
                 />
-                {method !== 'EQUAL' && (
-                  <div className="flex items-center gap-1">
-                    <input
-                      value={person.value}
-                      onChange={(e) => updatePerson(person.id, { value: e.target.value })}
-                      placeholder="0"
-                      inputMode="decimal"
-                      className="w-20 rounded-lg border border-line bg-field px-2 py-1.5 text-right outline-none focus:border-accent"
-                      aria-label={`Person ${index + 1} value`}
-                    />
-                    <span className="w-10 text-xs text-muted">{VALUE_HINT[method]}</span>
-                  </div>
-                )}
-                <label className="flex items-center gap-1 text-xs text-muted">
-                  <input
-                    type="radio"
-                    name="payer"
-                    checked={effectivePayerId === person.id}
-                    onChange={() => setPayerId(person.id)}
-                  />
-                  paid
-                </label>
-                {people.length > 2 && (
-                  <button
-                    type="button"
-                    onClick={() => removePerson(person.id)}
-                    className="rounded-lg border border-line px-2 text-muted transition hover:bg-canvas"
-                    aria-label={`Remove person ${index + 1}`}
-                  >
-                    &times;
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={addPerson}
-              className="text-sm font-medium text-accent transition hover:underline"
-            >
-              + Add person
-            </button>
-          </div>
+                paid
+              </label>
+              {people.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => removePerson(person.id)}
+                  className="rounded-lg border border-line px-2 text-muted transition hover:bg-canvas"
+                  aria-label={`Remove person ${index + 1}`}
+                >
+                  &times;
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addPerson}
+            className="text-sm font-medium text-accent transition hover:underline"
+          >
+            + Add person
+          </button>
 
-          <label className="block text-sm">
-            <span className="mb-1 block text-xs font-medium text-muted">
-              Which one is you? (for saving)
-            </span>
+          <label className="block pt-2 text-sm">
+            <span className="mb-1 block text-xs font-medium text-muted">Which one is you? (for saving)</span>
             <select
               value={effectiveYouId}
               onChange={(e) => setYouId(e.target.value)}
@@ -298,23 +296,99 @@ export function QuickSplitPage(): ReactNode {
               aria-label="Which one is you"
             >
               <option value="">Not in this split</option>
-              {people
-                .filter((p) => p.name.trim())
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name.trim()}
-                  </option>
-                ))}
+              {named.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name.trim()}
+                </option>
+              ))}
             </select>
           </label>
         </div>
 
+        {/* Items — one expense per row, each split its own way among everyone above */}
+        <div className="mt-6 space-y-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">What you spent</h2>
+          {items.map((item, index) => (
+            <div key={item.id} className="glass space-y-3 rounded-2xl p-4">
+              <div className="flex items-center gap-2">
+                <input
+                  value={item.description}
+                  onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                  placeholder={`Item ${index + 1} (e.g. Dinner)`}
+                  className={inputClass}
+                  aria-label={`Item ${index + 1} description`}
+                />
+                {items.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeItem(item.id)}
+                    className="rounded-lg border border-line px-2 text-muted transition hover:bg-canvas"
+                    aria-label={`Remove item ${index + 1}`}
+                  >
+                    &times;
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  value={item.amount}
+                  onChange={(e) => updateItem(item.id, { amount: e.target.value })}
+                  placeholder="0.00"
+                  inputMode="decimal"
+                  className={inputClass}
+                  aria-label={`Item ${index + 1} amount`}
+                />
+                <select
+                  value={item.method}
+                  onChange={(e) => updateItem(item.id, { method: e.target.value as SplitMethod })}
+                  className={inputClass}
+                  aria-label={`Item ${index + 1} split method`}
+                >
+                  {METHODS.map((m) => (
+                    <option key={m.value} value={m.value}>
+                      Split {m.label.toLowerCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {item.method !== 'EQUAL' && named.length > 0 && (
+                <div className="space-y-1.5 border-t border-line pt-2">
+                  {named.map((p) => (
+                    <div key={p.id} className="flex items-center gap-2 text-sm">
+                      <span className="flex-1 truncate text-muted">{p.name.trim()}</span>
+                      <input
+                        value={item.values[p.id] ?? ''}
+                        onChange={(e) => updateItemValue(item.id, p.id, e.target.value)}
+                        placeholder="0"
+                        inputMode="decimal"
+                        className="w-20 rounded-lg border border-line bg-field px-2 py-1.5 text-right outline-none focus:border-accent"
+                        aria-label={`${p.name.trim()} ${VALUE_HINT[item.method]} for item ${index + 1}`}
+                      />
+                      <span className="w-10 text-xs text-muted">{VALUE_HINT[item.method]}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addItem}
+            className="text-sm font-medium text-accent transition hover:underline"
+          >
+            + Add item
+          </button>
+        </div>
+
         <section className="mt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Who owes what</h2>
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Who owes what</h2>
+            {owed && <span className="text-sm text-muted">total {Money.fromCents(grandTotal).format()}</span>}
+          </div>
           {owed ? (
             <ul className="mt-3 space-y-2">
-              {people
-                .filter((p) => p.name.trim() && p.id !== effectivePayerId && owed)
+              {named
+                .filter((p) => p.id !== effectivePayerId && owed)
                 .map((p) => (
                   <li
                     key={p.id}
@@ -331,7 +405,7 @@ export function QuickSplitPage(): ReactNode {
             </ul>
           ) : (
             <p className="mt-3 text-sm text-muted">
-              Add a total and a couple of names. The math is on us.
+              Add a couple of names and at least one item with an amount. The math is on us.
             </p>
           )}
         </section>
@@ -355,8 +429,8 @@ export function QuickSplitPage(): ReactNode {
           <section className="mt-12 grid gap-4 sm:grid-cols-3">
             {[
               { icon: '🧮', title: 'Split any way', body: 'Evenly, by shares, percent, or exact amounts.' },
+              { icon: '🧾', title: 'Itemize it', body: 'List each expense and split them however you like.' },
               { icon: '🤝', title: 'Settle simply', body: 'We boil tangled debts down to the fewest payments.' },
-              { icon: '🧾', title: 'Itemize receipts', body: 'Snap a photo, assign items, skip the squinting.' },
             ].map((f) => (
               <div key={f.title} className="glass rounded-2xl p-4">
                 <span className="text-2xl" aria-hidden>

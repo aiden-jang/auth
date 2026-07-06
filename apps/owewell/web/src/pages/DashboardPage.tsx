@@ -125,7 +125,12 @@ export function DashboardPage(): ReactNode {
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-accent/30 bg-accent-soft px-4 py-3">
             <span className="flex items-center gap-2 text-sm">
               <Icon name="sparkles" size={16} className="text-accent" />
-              You left a split lying around: <span className="font-medium">{pending.description}</span>.
+              You left a split lying around:{' '}
+              <span className="font-medium">
+                {pending.items[0]?.description || 'Quick split'}
+                {pending.items.length > 1 ? ` +${pending.items.length - 1} more` : ''}
+              </span>
+              .
             </span>
             <div className="flex items-center gap-2">
               <button

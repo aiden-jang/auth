@@ -308,32 +308,43 @@ app.post('/owewell/invites/:token/accept', async (c) => {
 });
 
 const quickSplitBody = z.object({
-  description: z.string().trim().max(140).default(''),
-  amountCents: z.number().int().positive(),
-  splitMethod: z.enum(['EQUAL', 'EXACT', 'PERCENT', 'SHARES']),
-  participants: z
+  people: z
     .array(
       z.object({
         name: z.string().trim().min(1).max(80),
-        value: z.number().int().optional(),
         isPayer: z.boolean().optional(),
         isYou: z.boolean().optional(),
       }),
     )
-    .min(1),
+    .min(2)
+    .max(50),
+  items: z
+    .array(
+      z.object({
+        description: z.string().trim().max(140).default(''),
+        amountCents: z.number().int().positive(),
+        splitMethod: z.enum(['EQUAL', 'EXACT', 'PERCENT', 'SHARES']),
+        // Per-person values aligned to `people`; null for EQUAL / no value.
+        values: z.array(z.number().int().nullable()).optional(),
+      }),
+    )
+    .min(1)
+    .max(50),
 });
 app.post('/owewell/quick-splits', async (c) => {
   const parsed = quickSplitBody.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
   const result = await createQuickSplit(createDb(c.env), c.get('person').id, {
-    description: parsed.data.description,
-    amountCents: parsed.data.amountCents,
-    splitMethod: parsed.data.splitMethod,
-    participants: parsed.data.participants.map((p) => ({
+    people: parsed.data.people.map((p) => ({
       name: p.name,
-      ...(p.value === undefined ? {} : { value: p.value }),
       isPayer: Boolean(p.isPayer),
       isYou: Boolean(p.isYou),
+    })),
+    items: parsed.data.items.map((it) => ({
+      description: it.description,
+      amountCents: it.amountCents,
+      splitMethod: it.splitMethod,
+      ...(it.values === undefined ? {} : { values: it.values }),
     })),
   });
   return c.json(result, 201);

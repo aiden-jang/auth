@@ -13,16 +13,10 @@ beforeEach(async () => {
 });
 
 describe('quick-split', () => {
-  test('creates an owned group, placeholders, and the first expense', async () => {
+  test('creates an owned group, placeholders, and one expense', async () => {
     const { groupId } = await createQuickSplit(db, alice, {
-      description: 'Tacos',
-      amountCents: 3000,
-      splitMethod: 'EQUAL',
-      participants: [
-        { name: 'You', isPayer: true, isYou: true },
-        { name: 'Sam' },
-        { name: 'Kai' },
-      ],
+      people: [{ name: 'You', isPayer: true, isYou: true }, { name: 'Sam' }, { name: 'Kai' }],
+      items: [{ description: 'Tacos', amountCents: 3000, splitMethod: 'EQUAL' }],
     });
 
     const group = await getGroup(db, alice, groupId);
@@ -39,13 +33,36 @@ describe('quick-split', () => {
     expect(balances.reduce((sum, b) => sum + b.netCents, 0)).toBe(0);
   });
 
+  test('creates one expense per item and nets them across a single payer', async () => {
+    // You paid everything: Dinner 30 equally (3 ways) + Drinks 20 all to Sam (exact).
+    const { groupId } = await createQuickSplit(db, alice, {
+      people: [{ name: 'You', isPayer: true, isYou: true }, { name: 'Sam' }, { name: 'Kai' }],
+      items: [
+        { description: 'Dinner', amountCents: 3000, splitMethod: 'EQUAL' },
+        { description: 'Drinks', amountCents: 2000, splitMethod: 'EXACT', values: [0, 2000, 0] },
+      ],
+    });
+
+    const group = await getGroup(db, alice, groupId);
+    expect(group.name).toBe('Dinner'); // group name comes from the first item
+
+    const expenses = await listExpenses(db, alice, groupId);
+    expect(expenses).toHaveLength(2);
+
+    // You are owed both expenses' non-payer shares: Dinner (2000) + Drinks (2000) = 4000.
+    const balances = await getBalances(db, alice, groupId);
+    expect(balances.find((b) => b.userId === alice)?.netCents).toBe(4000);
+    // Sam owes their dinner third (1000) + all the drinks (2000) = 3000.
+    const sam = group.members.find((m) => m.displayName === 'Sam')?.userId;
+    expect(balances.find((b) => b.userId === sam)?.netCents).toBe(-3000);
+    expect(balances.reduce((sum, b) => sum + b.netCents, 0)).toBe(0);
+  });
+
   test('requires exactly one payer', async () => {
     await expect(
       createQuickSplit(db, alice, {
-        description: 'X',
-        amountCents: 1000,
-        splitMethod: 'EQUAL',
-        participants: [{ name: 'You', isYou: true }, { name: 'Sam' }],
+        people: [{ name: 'You', isYou: true }, { name: 'Sam' }],
+        items: [{ description: 'X', amountCents: 1000, splitMethod: 'EQUAL' }],
       }),
     ).rejects.toMatchObject({ code: 'NO_PAYER' });
   });
@@ -53,27 +70,29 @@ describe('quick-split', () => {
   test('rejects more than one "you"', async () => {
     await expect(
       createQuickSplit(db, alice, {
-        description: 'X',
-        amountCents: 1000,
-        splitMethod: 'EQUAL',
-        participants: [
+        people: [
           { name: 'You', isPayer: true, isYou: true },
           { name: 'Also you', isYou: true },
         ],
+        items: [{ description: 'X', amountCents: 1000, splitMethod: 'EQUAL' }],
       }),
     ).rejects.toBeInstanceOf(QuickSplitError);
   });
 
-  test('rejects a split whose math is invalid', async () => {
+  test('rejects when there are no items', async () => {
     await expect(
       createQuickSplit(db, alice, {
-        description: 'X',
-        amountCents: 1000,
-        splitMethod: 'PERCENT',
-        participants: [
-          { name: 'You', value: 3000, isPayer: true, isYou: true },
-          { name: 'Sam', value: 3000 },
-        ],
+        people: [{ name: 'You', isPayer: true, isYou: true }, { name: 'Sam' }],
+        items: [],
+      }),
+    ).rejects.toMatchObject({ code: 'NO_ITEMS' });
+  });
+
+  test('rejects an item whose math is invalid', async () => {
+    await expect(
+      createQuickSplit(db, alice, {
+        people: [{ name: 'You', isPayer: true, isYou: true }, { name: 'Sam' }],
+        items: [{ description: 'X', amountCents: 1000, splitMethod: 'PERCENT', values: [3000, 3000] }],
       }),
     ).rejects.toMatchObject({ code: 'INVALID_SPLIT' });
   });
