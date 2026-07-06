@@ -444,7 +444,7 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
         trackGardenCanceled()
         return
       }
-      const msg = err instanceof Error ? err.message : 'Something went wrong.'
+      const msg = err instanceof Error ? err.message : 'something went wrong.'
       withViewTransition(() => {
         setErrorText(msg)
         setPhase('idle')
@@ -538,7 +538,7 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
       setFlowers(prevFlowers)
       setShareUrl(prevShareUrl)
       setGardenId(prevGardenId)
-      const msg = err instanceof Error ? err.message : 'Something went wrong.'
+      const msg = err instanceof Error ? err.message : 'something went wrong.'
       setErrorText(msg)
       setStatusText('')
       trackGardenError(classifyError(err))
@@ -739,20 +739,20 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
         <>
           <div className={styles.nameRow}>
             <section className={styles.section}>
-              <label className={styles.label}>From</label>
+              <label className={styles.label}>from</label>
               <input
                 className={styles.input}
-                placeholder="Your name"
+                placeholder="your name"
                 value={from}
                 onChange={e => setFrom(e.target.value)}
                 maxLength={60}
               />
             </section>
             <section className={styles.section}>
-              <label className={styles.label}>To</label>
+              <label className={styles.label}>to</label>
               <input
                 className={styles.input}
-                placeholder="Their name"
+                placeholder="their name"
                 value={recipient}
                 onChange={e => setRecipient(e.target.value)}
                 maxLength={60}
@@ -767,7 +767,7 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
               so the AI gets the full signal. */}
           <div className={styles.pickerRow}>
             <section className={styles.section}>
-              <label className={styles.label} htmlFor="occasion-select">Occasion</label>
+              <label className={styles.label} htmlFor="occasion-select">occasion</label>
               <select
                 id="occasion-select"
                 className={styles.select}
@@ -780,7 +780,7 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
               </select>
             </section>
             <section className={styles.section}>
-              <label className={styles.label} htmlFor="mood-select">Mood</label>
+              <label className={styles.label} htmlFor="mood-select">mood</label>
               <select
                 id="mood-select"
                 className={styles.select}
@@ -795,7 +795,7 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
           </div>
 
           <section className={styles.section}>
-            <label className={styles.label}>Your message</label>
+            <label className={styles.label}>your message</label>
             <textarea
               ref={messageRef}
               className={styles.textarea}
@@ -999,7 +999,7 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
 }
 
 // On-brand loading indicator. Stem grows up, a small leaf unfurls at
-// the top, both retract, loops. Way more "Blossom" than a generic
+// the top, both retract, loops. Way more "bloomnote" than a generic
 // rotating arc. Two simple keyframe animations with offset timing
 // give it a breathing rhythm.
 function Spinner() {
