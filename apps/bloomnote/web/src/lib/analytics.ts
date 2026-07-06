@@ -1,6 +1,6 @@
-// Typed wrapper around Vercel Analytics's `track()` function.
+// Typed wrapper for the app's custom analytics events (see emit() below).
 //
-// Why a wrapper instead of calling track() directly:
+// Why a wrapper instead of emitting inline:
 //   1. Event names are a closed enum — typos become type errors at the
 //      call site instead of mystery splits in the dashboard between
 //      e.g. `garden_generated` and `garden_genrated`.
@@ -10,21 +10,28 @@
 //      Composer.tsx and RecipientView.tsx to remember what we already
 //      named things.
 //
-// Privacy posture: no PII. We deliberately do NOT log message text,
+// Privacy posture: no PII. We deliberately do NOT send message text,
 // sender/recipient names, or anything from the garden contents — only
-// structural metadata (counts, types, flags). The free Vercel
-// Analytics tier is cookie-less and anonymizes IP + UA at the edge,
-// so no cookie consent banner is required.
+// structural metadata (counts, types, flags). Events are recorded to
+// Workers Logs with no cookie and no identifier, so no consent banner
+// is required.
 
 // Event property value types.
 type EventProps = Record<string, string | number | boolean | null>
 
-// All custom events flow through here. Analytics used to be Vercel's `track()`; that's been
-// removed with the rest of the Vercel coupling, so emit() is a no-op for now. The typed event
-// API below is intact, so wiring a new provider later (Cloudflare Web Analytics, or a POST to
-// a Worker) is a one-function change with zero call-site churn.
-function emit(_name: string, _props?: EventProps): void {
-  // intentionally empty — no analytics provider is wired right now
+// All custom events flow through here: a fire-and-forget POST to the Worker's /api/event, which
+// records them to Workers Logs. sendBeacon is used first because it survives page unload (e.g.
+// garden_opened as the tab closes); fetch+keepalive is the fallback. Props carry structural
+// metadata only — never note text, names, or garden contents.
+function emit(name: string, props?: EventProps): void {
+  if (typeof navigator === 'undefined') return
+  const body = JSON.stringify({ name, meta: props ?? {} })
+  try {
+    if (navigator.sendBeacon?.('/api/event', body)) return
+  } catch {
+    // sendBeacon unavailable or threw — fall through to fetch.
+  }
+  void fetch('/api/event', { method: 'POST', body, keepalive: true }).catch(() => undefined)
 }
 
 // --- Composer side -------------------------------------------------------
