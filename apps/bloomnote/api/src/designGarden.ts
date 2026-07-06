@@ -97,22 +97,33 @@ interface GeminiResponse {
 }
 
 /** Call Gemini via the REST API (no SDK) with forced function-calling, and validate the result. */
+// Gemini intermittently returns 503 "model overloaded" (and occasional 429/5xx) under load, so a
+// single attempt surfaces a spurious error to the user. Retry these a couple times with a short
+// backoff; anything else (or a persistent failure) still throws.
+const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
+const MAX_ATTEMPTS = 3;
+
 export async function generateGarden(apiKey: string, userPrompt: string): Promise<ValidatedGarden> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-      tools: [{ functionDeclarations: [FLOWER_DESIGN_FUNCTION] }],
-      toolConfig: { functionCallingConfig: { mode: 'ANY', allowedFunctionNames: ['design_garden'] } },
-    }),
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+    tools: [{ functionDeclarations: [FLOWER_DESIGN_FUNCTION] }],
+    toolConfig: { functionCallingConfig: { mode: 'ANY', allowedFunctionNames: ['design_garden'] } },
   });
-  if (!res.ok) throw new Error(`The garden service is busy (${res.status}). Please try again.`);
-  const data = (await res.json()) as GeminiResponse;
-  const parts = data.candidates?.[0]?.content?.parts ?? [];
-  const call = parts.map((p) => p.functionCall).find((fc) => fc?.name === 'design_garden');
-  if (!call) throw new Error('The model did not return a garden. Please try again.');
-  return validateGarden(call.args);
+
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+    if (res.ok) {
+      const data = (await res.json()) as GeminiResponse;
+      const parts = data.candidates?.[0]?.content?.parts ?? [];
+      const call = parts.map((p) => p.functionCall).find((fc) => fc?.name === 'design_garden');
+      if (!call) throw new Error('The model did not return a garden. Please try again.');
+      return validateGarden(call.args);
+    }
+    if (attempt >= MAX_ATTEMPTS - 1 || !RETRYABLE_STATUS.has(res.status)) {
+      throw new Error(`The garden service is busy (${res.status}). Please try again.`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+  }
 }

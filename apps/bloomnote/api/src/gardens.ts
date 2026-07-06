@@ -101,17 +101,22 @@ export async function readGarden(env: Env, id: string): Promise<unknown | null> 
   return raw === null ? null : (JSON.parse(raw) as unknown);
 }
 
-/** Record that a signed-in user opened someone else's garden (adds it to their Received list). */
-export async function recordReceived(env: Env, userId: string, id: string): Promise<void> {
-  if (!ID_RE.test(id)) return;
+/**
+ * Record that a signed-in user opened someone else's garden (adds it to their Received list).
+ * Returns whether it was actually saved — false for your own gardens or an unknown id — so the
+ * UI can show a "saved to your gardens" confirmation only when something really happened.
+ */
+export async function recordReceived(env: Env, userId: string, id: string): Promise<boolean> {
+  if (!ID_RE.test(id)) return false;
   const raw = await env.GARDENS.get(`g:${id}`);
-  if (raw === null) return;
+  if (raw === null) return false;
   const garden = JSON.parse(raw) as Record<string, unknown>;
-  if (garden.ownerId === userId) return; // your own garden isn't "received"
+  if (garden.ownerId === userId) return false; // your own garden isn't "received"
   await env.GARDENS.put(
     `recv:${userId}:${id}`,
     JSON.stringify({ ...summarize(id, garden), receivedAt: new Date().toISOString() }),
   );
+  return true;
 }
 
 /**

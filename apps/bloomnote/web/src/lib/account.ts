@@ -32,9 +32,18 @@ export async function claimGardens(ids: string[]): Promise<number> {
   return ((await r.json()) as { claimed: number }).claimed;
 }
 
-/** Best-effort: add a garden the signed-in user opened to their Received list. */
-export async function recordReceived(id: string): Promise<void> {
-  await fetch(`/api/garden/${id}/receive`, { method: 'POST', credentials: 'include' }).catch(() => undefined);
+/**
+ * Best-effort: add a garden the signed-in user opened to their Received list. Resolves to whether
+ * it was newly saved (false for your own garden), so the view can confirm it discoverably.
+ */
+export async function recordReceived(id: string): Promise<boolean> {
+  try {
+    const r = await fetch(`/api/garden/${id}/receive`, { method: 'POST', credentials: 'include' });
+    if (!r.ok) return false;
+    return ((await r.json()) as { saved?: boolean }).saved === true;
+  } catch {
+    return false;
+  }
 }
 
 /** Remove a garden from the signed-in user's Sent/Received lists (persists across devices). */

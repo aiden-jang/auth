@@ -36,7 +36,12 @@ export default function MyGardens() {
 function AccountGardens() {
   const [sent, setSent] = useState<GardenSummary[]>([])
   const [received, setReceived] = useState<GardenSummary[]>([])
-  const [tab, setTab] = useState<Tab>('sent')
+  // Open the tab named in ?tab= (the "saved to your gardens" link lands on Received); default Sent.
+  const [tab, setTab] = useState<Tab>(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'received'
+      ? 'received'
+      : 'sent',
+  )
   const [busy, setBusy] = useState(true)
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
@@ -87,7 +92,7 @@ function AccountGardens() {
           className={tab === 'sent' ? styles.tabActive : styles.tab}
           onClick={() => setTab('sent')}
         >
-          Sent{sent.length ? ` (${sent.length})` : ''}
+          sent{sent.length ? ` (${sent.length})` : ''}
         </button>
         <button
           type="button"
@@ -96,7 +101,7 @@ function AccountGardens() {
           className={tab === 'received' ? styles.tabActive : styles.tab}
           onClick={() => setTab('received')}
         >
-          Received{received.length ? ` (${received.length})` : ''}
+          received{received.length ? ` (${received.length})` : ''}
         </button>
       </div>
 
