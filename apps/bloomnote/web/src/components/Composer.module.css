@@ -161,11 +161,16 @@
   background: white;
   color: var(--text-mid);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, transform 0.1s;
 }
 
 .chip:hover {
   border-color: var(--green-light);
+  background: #f6faf2;
+}
+
+.chip:active {
+  transform: scale(0.96);
 }
 
 .chip:focus-visible {
@@ -507,20 +512,30 @@
   padding: 14px 24px;
   border-radius: 26px;
   border: none;
-  background: var(--green-mid);
+  /* Green gradient + soft drop shadow so the primary action reads as a
+     lifted, tappable surface rather than a flat fill. */
+  background: linear-gradient(135deg, var(--green-mid), var(--green-deep));
   color: white;
   font-size: 15px;
   font-weight: 500;
-  transition: all 0.15s;
+  box-shadow: 0 4px 14px rgba(45, 90, 27, 0.22);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
 }
 
 .generateBtn:hover:not(:disabled) {
-  background: var(--green-deep);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(45, 90, 27, 0.28);
+}
+
+.generateBtn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(45, 90, 27, 0.2);
 }
 
 .generateBtn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* Inline hint explaining a disabled submit button. Sits just under the
