@@ -12,6 +12,7 @@ export function SignupPage(): ReactNode {
   const [email, setEmail] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -25,6 +26,10 @@ export function SignupPage(): ReactNode {
     // normalizes email.
     if (email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase()) {
       setError('Those emails do not match. Check for a typo.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Those passwords do not match.');
       return;
     }
     setError(null);
@@ -104,6 +109,22 @@ export function SignupPage(): ReactNode {
             placeholder="8+ characters"
             value={password}
             onChange={setPassword}
+            required
+            minLength={8}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="confirm-password" className={labelClass}>
+            Confirm password
+          </label>
+          <PasswordInput
+            id="confirm-password"
+            name="confirm-password"
+            autoComplete="new-password"
+            placeholder="Re-enter password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
             required
             minLength={8}
           />
