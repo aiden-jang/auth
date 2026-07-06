@@ -50,7 +50,7 @@ function serverValue(method: SplitMethod, raw: string): number | undefined {
 }
 
 function PublicHeader(): ReactNode {
-  const { login } = useAuth();
+  const { login, signup } = useAuth();
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-card/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3.5">
@@ -67,7 +67,7 @@ function PublicHeader(): ReactNode {
           </button>
           <button
             type="button"
-            onClick={() => login(window.location.origin)}
+            onClick={() => signup(window.location.origin)}
             className="btn-gradient rounded-full px-4 py-1.5 font-semibold transition active:scale-[0.98]"
           >
             Sign up
@@ -79,7 +79,7 @@ function PublicHeader(): ReactNode {
 }
 
 export function QuickSplitPage(): ReactNode {
-  const { user, login } = useAuth();
+  const { user, signup } = useAuth();
   const navigate = useNavigate();
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -174,9 +174,9 @@ export function QuickSplitPage(): ReactNode {
     stashPendingSplit(split);
 
     if (!user) {
-      // Stash it, sign in on the shared auth service, and land back on the dashboard,
+      // Stash it, send them to sign up on the shared auth service, and land back on the dashboard,
       // which offers to save the pending split once they're signed in.
-      login(window.location.origin);
+      signup(window.location.origin);
       return;
     }
 

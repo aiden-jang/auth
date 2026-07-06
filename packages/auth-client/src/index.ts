@@ -29,6 +29,13 @@ export function loginUrl(authBaseUrl: string, returnTo: string): string {
   return u.toString();
 }
 
+/** URL of the central sign-up page, returning the user to `returnTo` after they register. */
+export function signupUrl(authBaseUrl: string, returnTo: string): string {
+  const u = new URL('/signup', authBaseUrl);
+  u.searchParams.set('return_to', returnTo);
+  return u.toString();
+}
+
 /** URL of the central logout, returning the user to `returnTo` afterward. */
 export function logoutUrl(authBaseUrl: string, returnTo: string): string {
   const u = new URL('/logout', authBaseUrl);
