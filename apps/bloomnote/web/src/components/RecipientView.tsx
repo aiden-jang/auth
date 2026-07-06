@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import BouquetNote from './BouquetNote'
 import GardenScene from './GardenScene'
 import FlowerLegend from './FlowerLegend'
@@ -85,9 +85,12 @@ export default function RecipientView({ gardenData, gardenId }: Props) {
     // it survives the navigation.
   }
 
-  function handleAllBloomed(): void {
+  // Stable across re-renders so GardenScene's bloom effect (which lists onAllBloomed as a dep)
+  // doesn't re-fire and replay the whole animation when unrelated state changes — e.g. the
+  // "saved to your gardens" pill flipping on after recordReceived resolves.
+  const handleAllBloomed = useCallback((): void => {
     setTimeout(() => setMsgVisible(true), 300)
-  }
+  }, [])
 
   // The reply URL points at the SAME short ID — `/g/abc123` and
   // `/r/abc123` are two views of one KV record. No duplicate writes.
