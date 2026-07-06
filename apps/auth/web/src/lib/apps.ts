@@ -14,6 +14,8 @@ export interface AppLink {
   /** Local dev URL (the app's vite dev port), used when the account UI is
    *  itself being served from localhost. */
   devUrl: string;
+  /** Accent color (a small dot in the launcher + branded panel). */
+  accent: string;
 }
 
 export const APPS: AppLink[] = [
@@ -22,24 +24,28 @@ export const APPS: AppLink[] = [
     tagline: 'split bills, keep friends',
     url: 'https://owewell.aidenjang.com',
     devUrl: 'http://localhost:30001',
+    accent: '#34d399',
   },
   {
     name: 'bloomnote',
     tagline: 'say it with a garden',
     url: 'https://bloomnote.aidenjang.com',
     devUrl: 'http://localhost:32100',
+    accent: '#f472b6',
   },
   {
     name: 'wherever',
     tagline: 'everyone swipes, majority wins',
     url: 'https://wherever.aidenjang.com',
     devUrl: 'http://localhost:5173',
+    accent: '#fbbf24',
   },
   {
     name: 'is-it-a-dog',
     tagline: 'draw it, an AI guesses',
     url: 'https://is-it-a-dog.aidenjang.com',
     devUrl: 'http://localhost:33100',
+    accent: '#38bdf8',
   },
 ];
 
