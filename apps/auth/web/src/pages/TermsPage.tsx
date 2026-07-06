@@ -3,34 +3,35 @@ import { LegalLayout, Section } from '../components/LegalLayout';
 
 export function TermsPage(): ReactNode {
   return (
-    <LegalLayout title="Terms of Service" updated="July 3, 2026">
+    <LegalLayout title="Terms of Service" updated="July 6, 2026">
       <p>
-        By using aidenjang's apps (owewell, bloomnote, and the shared account), you agree to these
-        terms. They are short on purpose.
+        By using aidenjang&rsquo;s apps (owewell, bloomnote, wherever, and is-it-a-dog), you agree to
+        these terms. They are short on purpose.
       </p>
 
       <Section heading="The deal">
         These are free, personal apps offered as-is. They may change, break, or disappear without
-        notice, and there is no uptime promise. Do not build anything you cannot afford to lose on
-        top of them.
+        notice, and there is no uptime promise. Do not build anything you cannot afford to lose on top
+        of them.
       </Section>
 
       <Section heading="Your account">
-        You are responsible for what happens under your login, so keep your password to yourself.
-        You need to be at least 13 to use these apps. One human, one account, no impersonating
-        anyone else.
+        owewell and bloomnote use one shared login; wherever and is-it-a-dog need no account at all.
+        Where you do have a login, you are responsible for what happens under it, so keep your password
+        to yourself. You need to be at least 13. One human, one account, no impersonating anyone else.
       </Section>
 
       <Section heading="Your content is yours">
-        You keep ownership of what you put in (expenses, notes, gardens, names). You grant us only
-        the permission needed to store and display it back to you and to the people you share it
-        with. We do not claim it, sell it, or train anything on it.
+        You keep ownership of what you put in: expenses, notes, gardens, names, drawings, guesses,
+        votes. You grant us only the permission needed to store it and show it back to you and to the
+        people you share a link or a room with. We do not claim it, sell it, or train anything on it.
       </Section>
 
       <Section heading="Play nice">
-        Do not use the apps to break the law, harass people, upload other people's private
-        information without permission, attack the service, or try to knock it over. Doing so is a
-        quick way to lose access.
+        Do not use the apps to break the law, harass people, upload other people&rsquo;s private
+        information without permission, or attack the service. The multiplayer apps (wherever and
+        is-it-a-dog) put your drawings, guesses, and votes in front of everyone in the room, so keep it
+        to something you would happily show a stranger. Misbehaving is a quick way to lose access.
       </Section>
 
       <Section heading="On the math (owewell)">
@@ -47,13 +48,14 @@ export function TermsPage(): ReactNode {
 
       <Section heading="No warranty, limited liability">
         The apps come with no warranties of any kind. To the extent the law allows, aidenjang is not
-        liable for any losses arising from using (or being unable to use) them. If some part of this
-        is unenforceable where you live, the rest still stands.
+        liable for any losses arising from using (or being unable to use) them. If some part of this is
+        unenforceable where you live, the rest still stands.
       </Section>
 
       <Section heading="Ending things">
-        You can stop using the apps and delete your account any time. We can suspend access if these
-        terms are broken or if a feature is retired.
+        You can stop using the apps and delete your account any time. The room-based apps end on their
+        own once everyone leaves. We can suspend access if these terms are broken or if a feature is
+        retired.
       </Section>
 
       <Section heading="Questions">
