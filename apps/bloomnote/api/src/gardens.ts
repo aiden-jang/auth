@@ -14,6 +14,10 @@ const ID_RE = /^[A-Za-z0-9]{4,12}$/;
 //   sent:<userId>:<id>  -> GardenSummary   (the user's outbox; listable by prefix)
 //   recv:<userId>:<id>  -> GardenSummary   (gardens a signed-in user opened; receivedAt set)
 // Prefix-keyed indexes avoid read-modify-write races on a single list blob.
+//
+// Deliberately no expirationTtl: a garden is a keepsake, so a shared link must keep working
+// indefinitely. Auto-expiry would break links already sent, and KV's free tier (1 GB) holds
+// far more gardens than this ever needs. Users prune their own lists via removeFromAccount.
 
 /** Thin per-garden card data for /mine, so listing never reads every full garden. */
 export interface GardenSummary {
