@@ -43,6 +43,16 @@ import styles from './Composer.module.css'
 // because the message is already there.
 type Phase = 'idle' | 'designing' | 'designed'
 
+// Rotated through while the model is thinking (the longest part of the wait), so a multi-second
+// generation feels like the garden is being made rather than a spinner hanging. Lowercase to match.
+const THINKING_MESSAGES = [
+  'reading between the lines…',
+  'choosing flowers…',
+  'mixing the palette…',
+  'arranging the bouquet…',
+  'writing the note…',
+]
+
 // Snapshot shape used by the clear-draft undo toast. Session-local
 // only — the form deliberately doesn't persist across refresh. Captures
 // the schedule state too, so clearing collapses the picker and undo can
@@ -175,8 +185,27 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
 
   // Streaming progress.
   const [statusText, setStatusText] = useState<string>('')
+  const [thinking, setThinking] = useState(false)
   const [errorText, setErrorText] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+
+  // While the model is thinking, cycle the status line so the wait feels alive. Cleanup stops it
+  // when thinking ends (or the component unmounts).
+  useEffect(() => {
+    if (!thinking) return
+    let i = 0
+    setStatusText(THINKING_MESSAGES[0]!)
+    const id = setInterval(() => {
+      i = (i + 1) % THINKING_MESSAGES.length
+      setStatusText(THINKING_MESSAGES[i]!)
+    }, 2500)
+    return () => clearInterval(id)
+  }, [thinking])
+
+  // Safety net: any exit from the designing phase (success, error, cancel) stops the rotation.
+  useEffect(() => {
+    if (phase !== 'designing') setThinking(false)
+  }, [phase])
 
   // Re-roll state. Counts how many times the user regenerated the
   // current garden — feeds the analytics event and (when truthy)
@@ -374,7 +403,7 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
         },
         {
           signal: ctrl.signal,
-          onThinking: () => setStatusText('cooking…'),
+          onThinking: () => setThinking(true),
         },
       )
       setGarden(result)
@@ -392,6 +421,7 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
       // 450-char URL. The garden the user just spent 5 seconds
       // designing is wasted in that scenario, which is unfortunate —
       // but a broken share experience is worse than a clear failure.
+      setThinking(false)
       setStatusText('wrapping it up…')
 
       const SHORTEN_TIMEOUT_MS = 3000
