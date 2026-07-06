@@ -3,7 +3,7 @@ import { isSoundEnabled, toggleSound } from '../sound'
 import styles from './SoundToggle.module.css'
 
 /**
- * A small fixed speaker button that mutes/unmutes all of Blossom's
+ * A small fixed speaker button that mutes/unmutes all of bloomnote's
  * audio (bloom chimes, the success melody, the whoosh) plus the bloom
  * haptic. The on/off state lives in the sound module and persists to
  * localStorage, so this component only mirrors it locally for the icon.

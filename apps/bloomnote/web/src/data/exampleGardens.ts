@@ -1,6 +1,6 @@
 // Curated example gardens shown on the homepage to onboard first-time
 // visitors. Three examples covering meaningfully different moods +
-// occasions so the visitor sees the range of what Blossom can produce
+// occasions so the visitor sees the range of what bloomnote can produce
 // before being asked to write anything themselves.
 //
 // Why hardcoded instead of pulled from the public wall: we control the

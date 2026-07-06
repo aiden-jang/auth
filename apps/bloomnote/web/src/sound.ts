@@ -13,12 +13,14 @@ let unlockInstalled = false
 // and is absent under SSR. A failure just means the preference doesn't
 // persist — sound still works, it's never load-bearing.
 
-const MUTE_KEY = 'blossom:muted'
+const MUTE_KEY = 'bloomnote:muted'
+const LEGACY_MUTE_KEY = 'blossom:muted' // pre-rename; read as a fallback so the setting carries over
 
 function readMuted(): boolean {
 	if (typeof window === 'undefined') return false
 	try {
-		return window.localStorage.getItem(MUTE_KEY) === '1'
+		const v = window.localStorage.getItem(MUTE_KEY) ?? window.localStorage.getItem(LEGACY_MUTE_KEY)
+		return v === '1'
 	} catch {
 		return false
 	}
