@@ -11,11 +11,50 @@ export interface AppLink {
   tagline: string;
   /** Production URL (custom domain). */
   url: string;
+  /** Local dev URL (the app's vite dev port), used when the account UI is
+   *  itself being served from localhost. */
+  devUrl: string;
 }
 
 export const APPS: AppLink[] = [
-  { name: 'owewell', tagline: 'split bills, keep friends', url: 'https://owewell.aidenjang.com' },
-  { name: 'bloomnote', tagline: 'say it with a garden', url: 'https://bloomnote.aidenjang.com' },
-  { name: 'wherever', tagline: 'everyone swipes, majority wins', url: 'https://wherever.aidenjang.com' },
-  { name: 'is-it-a-dog', tagline: 'draw it, an AI guesses', url: 'https://is-it-a-dog.aidenjang.com' },
+  {
+    name: 'owewell',
+    tagline: 'split bills, keep friends',
+    url: 'https://owewell.aidenjang.com',
+    devUrl: 'http://localhost:30001',
+  },
+  {
+    name: 'bloomnote',
+    tagline: 'say it with a garden',
+    url: 'https://bloomnote.aidenjang.com',
+    devUrl: 'http://localhost:32100',
+  },
+  {
+    name: 'wherever',
+    tagline: 'everyone swipes, majority wins',
+    url: 'https://wherever.aidenjang.com',
+    devUrl: 'http://localhost:5173',
+  },
+  {
+    name: 'is-it-a-dog',
+    tagline: 'draw it, an AI guesses',
+    url: 'https://is-it-a-dog.aidenjang.com',
+    devUrl: 'http://localhost:33100',
+  },
 ];
+
+/** True when the account UI is being served from a local dev origin. */
+export function isLocalHost(): boolean {
+  if (typeof window === 'undefined') return false;
+  const h = window.location.hostname;
+  return h === 'localhost' || h === '127.0.0.1';
+}
+
+/**
+ * URL to open for an app. When the account page is itself running locally we
+ * link to the app's local dev server, so clicking through keeps you in your
+ * local environment instead of jumping to production.
+ */
+export function appHref(app: AppLink): string {
+  return isLocalHost() ? app.devUrl : app.url;
+}
