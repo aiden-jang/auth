@@ -102,9 +102,13 @@ export function QuickSplitPage(): ReactNode {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Default the payer/you to the first person until they choose.
+  const named = people.filter((p) => p.name.trim());
+
+  // Default the payer/you to the first person until they choose. Everyone using owewell is in
+  // the split, so "you" always resolves to a named person (falling back to the first).
   const effectivePayerId = payerId || people[0]?.id || '';
-  const effectiveYouId = youId === '' && payerId === '' ? (people[0]?.id ?? '') : youId;
+  const effectiveYouId =
+    youId && named.some((p) => p.id === youId) ? youId : (named[0]?.id ?? people[0]?.id ?? '');
 
   function updatePerson(id: string, patch: Partial<Person>): void {
     setPeople((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
@@ -130,8 +134,6 @@ export function QuickSplitPage(): ReactNode {
   function removeItem(id: string): void {
     setItems((prev) => (prev.length <= 1 ? prev : prev.filter((it) => it.id !== id)));
   }
-
-  const named = people.filter((p) => p.name.trim());
 
   // Live combined breakdown: each person's total share summed across every valid item, or null
   // until at least one item has a usable amount + valid per-person values.
@@ -289,14 +291,13 @@ export function QuickSplitPage(): ReactNode {
           </button>
 
           <label className="block pt-2 text-sm">
-            <span className="mb-1 block text-xs font-medium text-muted">Which one is you? (for saving)</span>
+            <span className="mb-1 block text-xs font-medium text-muted">Which one are you?</span>
             <select
               value={effectiveYouId}
               onChange={(e) => setYouId(e.target.value)}
               className={inputClass}
-              aria-label="Which one is you"
+              aria-label="Which one are you"
             >
-              <option value="">Not in this split</option>
               {named.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name.trim()}
