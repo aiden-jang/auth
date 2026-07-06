@@ -3,6 +3,10 @@ main = "src/worker.ts"
 compatibility_date = "2024-12-30"
 compatibility_flags = ["nodejs_compat"]
 
+# Local dev port — the game-server points AI_WORKER_URL here in dev (--var AI_WORKER_URL:http://localhost:33400).
+[dev]
+port = 33400
+
 # Provider keys are secrets (wrangler secret put OPENAI_API_KEY / ANTHROPIC_API_KEY). With none
 # set, the worker uses the mock provider. VISION_PROVIDER can force one ("mock"|"openai"|"anthropic").
 

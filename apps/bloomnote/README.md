@@ -119,8 +119,9 @@ Requires **Node 22** (repo `.nvmrc`) and pnpm.
 ```bash
 pnpm install
 
-# API Worker (Hono + local KV via Miniflare). Point it at the local auth service:
-pnpm --filter @bloomnote/api dev -- --var AUTH_URL:http://localhost:34100
+# API Worker on :32200 (Hono + local KV via Miniflare); validates sessions against production
+# auth by default. To use a locally-running auth instead: append `-- --var AUTH_URL:http://localhost:34100`.
+pnpm --filter @bloomnote/api dev
 
 # web SPA — http://localhost:32100
 pnpm --filter @bloomnote/web dev

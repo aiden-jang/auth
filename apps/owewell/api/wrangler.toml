@@ -5,6 +5,10 @@ compatibility_flags = ["nodejs_compat"]
 # Served only on the custom domain (owewell.aidenjang.com), not a *.workers.dev route.
 workers_dev = false
 
+# Local dev port — matches the owewell-web Vite proxy target (apps/owewell/web/vite.config.ts).
+[dev]
+port = 34200
+
 # Base URL of the shared auth service, used server-side to validate sessions. Local dev
 # overrides this with `--var AUTH_URL:http://localhost:34100`.
 [vars]

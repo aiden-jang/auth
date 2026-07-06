@@ -5,6 +5,10 @@ compatibility_flags = ["nodejs_compat"]
 # Served only on the custom domain, not a *.workers.dev route.
 workers_dev = false
 
+# Local dev port — matches the client Vite proxy target (apps/is-it-a-dog/packages/client/vite.config.ts).
+[dev]
+port = 33300
+
 # The ai-worker's URL (set after `is-it-a-dog-ai` deploys). Empty = AI modes degrade gracefully
 # (no guesses/draws); classic mode is unaffected.
 [vars]

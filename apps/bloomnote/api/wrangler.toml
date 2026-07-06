@@ -5,6 +5,10 @@ compatibility_flags = ["nodejs_compat"]
 # Served only on the custom domain (bloomnote.aidenjang.com), not a *.workers.dev route.
 workers_dev = false
 
+# Local dev port — matches the bloomnote-web Vite proxy target (apps/bloomnote/web/vite.config.ts).
+[dev]
+port = 32200
+
 # Shared auth service, used server-side to validate sessions. Local dev overrides with
 # `--var AUTH_URL:http://localhost:34100`.
 [vars]
