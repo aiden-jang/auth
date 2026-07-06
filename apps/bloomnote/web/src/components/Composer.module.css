@@ -82,11 +82,15 @@
   /* Soft green-tinted lift so the field reads as a raised surface on
      the warm page gradient rather than a flat cutout. */
   box-shadow: 0 1px 3px rgba(45, 90, 27, 0.05);
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .textarea:focus {
   border-color: var(--green-mid);
+  /* Soft green focus ring (over the resting lift) — clearer focus
+     target than a border shift alone, consistent with the
+     lifted-surface language. */
+  box-shadow: 0 0 0 3px rgba(74, 124, 63, 0.12), 0 1px 3px rgba(45, 90, 27, 0.05);
 }
 
 .helperRow {
@@ -134,11 +138,12 @@
   color: var(--text-dark);
   background: white;
   box-shadow: 0 1px 3px rgba(45, 90, 27, 0.05);
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .input:focus {
   border-color: var(--green-mid);
+  box-shadow: 0 0 0 3px rgba(74, 124, 63, 0.12), 0 1px 3px rgba(45, 90, 27, 0.05);
 }
 
 /* Occasion + mood as pill chips instead of dropdowns — every option is
