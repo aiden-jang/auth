@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { authApi, type AuthUser } from '../lib/api';
 import { AuthCard, buttonClass } from '../components/AuthCard';
+import { APPS } from '../lib/apps';
 
 export function AccountPage(): ReactNode {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -33,6 +34,36 @@ export function AccountPage(): ReactNode {
 
   return (
     <AuthCard title="Your account" subtitle="One login for all of aidenjang's apps.">
+      {/* App launcher — this is the landing when a visitor signs in at
+          aidenjang.com without being sent back to a specific app, so lead
+          with somewhere to go. Sourced from lib/apps.ts. */}
+      <section aria-label="Apps">
+        <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Jump into an app</h2>
+        <ul className="mt-3 space-y-2">
+          {APPS.map((app) => (
+            <li key={app.name}>
+              <a
+                href={app.url}
+                className="group flex items-center justify-between rounded-xl border border-line bg-field px-4 py-3 transition hover:border-accent"
+              >
+                <span>
+                  <span className="font-medium text-ink">{app.name}</span>
+                  <span className="block text-xs text-muted">{app.tagline}</span>
+                </span>
+                <span
+                  aria-hidden
+                  className="text-muted transition group-hover:translate-x-0.5 group-hover:text-accent"
+                >
+                  &rarr;
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <hr className="my-6 border-line" />
+
       <dl className="space-y-3 text-sm">
         <div className="flex justify-between gap-4">
           <dt className="text-muted">Name</dt>
