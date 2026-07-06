@@ -236,6 +236,38 @@ app.post('/auth/update-profile', async (c) => {
   return c.json({ user: publicUser({ ...user, displayName }) });
 });
 
+// Change the password for the signed-in user. Requires the current password
+// (so a hijacked-but-idle session can't silently lock the owner out), then
+// rotates every session and re-establishes this device — signing the user out
+// everywhere else, same as a reset.
+app.post('/auth/change-password', async (c) => {
+  if (await overLimit(c, 'change-password', 10, 5 * MIN))
+    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  const cookie = getCookie(c, SESSION_COOKIE);
+  const db = createDb(c.env);
+  const sessionUser = cookie ? await validateSession(db, cookie) : null;
+  if (!sessionUser) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+
+  const parsed = z
+    .object({ currentPassword: z.string().min(1), newPassword: z.string().min(8).max(200) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+
+  const row = await db.select().from(users).where(eq(users.id, sessionUser.id)).get();
+  if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!(await verifyPassword(row.passwordHash, parsed.data.currentPassword)))
+    return c.json({ error: 'INVALID_CREDENTIALS', message: 'Your current password is wrong.' }, 400);
+
+  await db
+    .update(users)
+    .set({ passwordHash: await hashPassword(parsed.data.newPassword), updatedAt: new Date() })
+    .where(eq(users.id, row.id));
+  await revokeAllSessions(db, row.id); // sign out everywhere...
+  const { token, expiresAt } = await createSession(db, row.id); // ...then keep this device
+  setSessionCookie(c, token, expiresAt);
+  return c.json({ ok: true });
+});
+
 // Everything that isn't an API route: serve the login/account UI (SPA fallback via assets).
 app.all('*', (c) => c.env.ASSETS.fetch(c.req.raw));
 

@@ -182,6 +182,43 @@ describe('password reset tokens', () => {
   });
 });
 
+describe('change password (logged in)', () => {
+  it('changes with the correct current password, rotating sessions but keeping this device', async () => {
+    const { email, password, cookie } = await register();
+    const res = await post(
+      '/auth/change-password',
+      { currentPassword: password, newPassword: 'a-fresh-password' },
+      cookie,
+    );
+    expect(res.status).toBe(200);
+    const newCookie = sessionCookie(res);
+    expect(newCookie).toBeTruthy();
+
+    // Old session is revoked; the freshly issued one keeps this device signed in.
+    expect((await get('/auth/me', cookie)).status).toBe(401);
+    expect((await get('/auth/me', newCookie!)).status).toBe(200);
+
+    // New password logs in; the old one no longer does.
+    expect((await post('/auth/login', { email, password })).status).toBe(401);
+    expect((await post('/auth/login', { email, password: 'a-fresh-password' })).status).toBe(200);
+  });
+
+  it('rejects a wrong current password', async () => {
+    const { cookie } = await register();
+    const res = await post(
+      '/auth/change-password',
+      { currentPassword: 'not-my-password', newPassword: 'a-fresh-password' },
+      cookie,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  it('requires authentication', async () => {
+    const res = await post('/auth/change-password', { currentPassword: 'x', newPassword: 'a-fresh-password' });
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('abuse controls', () => {
   it('rate-limits repeated login attempts with 429', async () => {
     const { email } = await register();

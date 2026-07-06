@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { authApi, type AuthUser } from '../lib/api';
-import { AuthCard, buttonClass, inputClass } from '../components/AuthCard';
+import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
+import { PasswordInput } from '../components/PasswordInput';
 import { APPS, appHref } from '../lib/apps';
 
 export function AccountPage(): ReactNode {
@@ -11,6 +12,40 @@ export function AccountPage(): ReactNode {
   const [nameDraft, setNameDraft] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [changingPw, setChangingPw] = useState(false);
+  const [curPw, setCurPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState<string | null>(null);
+  const [pwDone, setPwDone] = useState(false);
+
+  function resetPwForm(): void {
+    setCurPw('');
+    setNewPw('');
+    setConfirmPw('');
+    setPwError(null);
+  }
+
+  async function submitPassword(e: FormEvent): Promise<void> {
+    e.preventDefault();
+    if (newPw !== confirmPw) {
+      setPwError('Those passwords do not match.');
+      return;
+    }
+    setPwSaving(true);
+    setPwError(null);
+    try {
+      await authApi.changePassword(curPw, newPw);
+      setChangingPw(false);
+      resetPwForm();
+      setPwDone(true);
+    } catch (err) {
+      setPwError(err instanceof Error ? err.message : 'Could not change your password.');
+    } finally {
+      setPwSaving(false);
+    }
+  }
 
   function startEditName(): void {
     if (!user) return;
@@ -180,6 +215,95 @@ export function AccountPage(): ReactNode {
           {resent ? 'Verification email sent' : 'Resend verification email'}
         </button>
       )}
+
+      <hr className="my-6 border-line" />
+
+      <section aria-label="Security">
+        {changingPw ? (
+          <form onSubmit={(e) => void submitPassword(e)} className="space-y-3">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Change password</h2>
+            <div>
+              <label htmlFor="current-password" className={labelClass}>
+                Current password
+              </label>
+              <PasswordInput
+                id="current-password"
+                autoComplete="current-password"
+                placeholder="Current password"
+                value={curPw}
+                onChange={setCurPw}
+                required
+                autoFocus
+              />
+            </div>
+            <div>
+              <label htmlFor="new-password" className={labelClass}>
+                New password
+              </label>
+              <PasswordInput
+                id="new-password"
+                autoComplete="new-password"
+                placeholder="8+ characters"
+                value={newPw}
+                onChange={setNewPw}
+                required
+                minLength={8}
+              />
+            </div>
+            <div>
+              <label htmlFor="confirm-new-password" className={labelClass}>
+                Confirm new password
+              </label>
+              <PasswordInput
+                id="confirm-new-password"
+                autoComplete="new-password"
+                placeholder="Re-enter password"
+                value={confirmPw}
+                onChange={setConfirmPw}
+                required
+                minLength={8}
+              />
+            </div>
+            {pwError && (
+              <p role="alert" className="rounded-lg border border-neg/30 bg-neg/10 px-3 py-2 text-sm font-medium text-neg">
+                {pwError}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button
+                className="btn-gradient cursor-pointer rounded-full px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={pwSaving}
+              >
+                {pwSaving ? 'Saving...' : 'Update password'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setChangingPw(false);
+                  resetPwForm();
+                }}
+                className="cursor-pointer rounded-full border border-line px-4 py-2.5 text-sm text-muted transition hover:text-ink"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setPwDone(false);
+              setChangingPw(true);
+            }}
+            className="cursor-pointer text-sm font-medium text-accent hover:underline"
+          >
+            Change password
+          </button>
+        )}
+        {pwDone && !changingPw && (
+          <p className="mt-2 text-sm text-pos">Password changed. You've been signed out on other devices.</p>
+        )}
+      </section>
 
       <button type="button" onClick={() => void logout()} className={`${buttonClass} mt-6`}>
         Log out
