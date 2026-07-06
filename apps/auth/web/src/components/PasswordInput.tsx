@@ -11,6 +11,7 @@ interface PasswordInputProps {
   placeholder?: string;
   required?: boolean;
   autoFocus?: boolean;
+  minLength?: number;
 }
 
 /**
@@ -27,6 +28,7 @@ export function PasswordInput({
   placeholder = 'Password',
   required,
   autoFocus,
+  minLength,
 }: PasswordInputProps): ReactNode {
   const [show, setShow] = useState(false);
 
@@ -43,6 +45,7 @@ export function PasswordInput({
         placeholder={placeholder}
         required={required}
         autoFocus={autoFocus}
+        minLength={minLength}
       />
       <button
         type="button"
