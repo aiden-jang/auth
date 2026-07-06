@@ -6,8 +6,9 @@ import { useAuth } from '../auth/AuthContext';
 // signed in. Copy is lowercase to match bloomnote's aesthetic.
 const wrap: CSSProperties = {
   position: 'fixed',
-  top: 12,
-  right: 16,
+  top: 18,
+  // Sit to the left of the fixed sound toggle (top-right, ~52px wide) so they don't overlap.
+  right: 64,
   zIndex: 50,
   display: 'flex',
   gap: 14,
