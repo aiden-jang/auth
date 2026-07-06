@@ -243,7 +243,8 @@ export function QuickSplitPage(): ReactNode {
       <main className="mx-auto max-w-xl animate-rise px-4 py-10">
         <h1 className="font-display text-4xl font-semibold tracking-tight">Split a bill</h1>
         <p className="mt-2 text-base text-muted">
-          Add everyone once, then list what you spent. No login required, save it if you get attached.
+          Somebody paid, everybody forgot. Add the group, drop in the damage, and find out who owes
+          who. No account unless you get attached.
         </p>
 
         {/* People — shared across every item */}
@@ -405,7 +406,7 @@ export function QuickSplitPage(): ReactNode {
             </ul>
           ) : (
             <p className="mt-3 text-sm text-muted">
-              Add a couple of names and at least one item with an amount. The math is on us.
+              Names up top, numbers in the middle. We&rsquo;ll handle the part that ends friendships.
             </p>
           )}
         </section>
@@ -417,7 +418,7 @@ export function QuickSplitPage(): ReactNode {
           disabled={saving}
           className="btn-gradient mt-5 w-full rounded-full px-5 py-3 font-semibold transition active:scale-[0.98] disabled:opacity-60"
         >
-          {saving ? 'Saving...' : user ? 'Save to my account' : 'Sign up to keep this'}
+          {saving ? 'Saving...' : user ? 'Save to my account' : "Save it before someone 'forgets'"}
         </button>
         {user && (
           <Link to="/" className="mt-3 block text-center text-sm font-medium text-accent">
@@ -428,9 +429,9 @@ export function QuickSplitPage(): ReactNode {
         {!user && (
           <section className="mt-12 grid gap-4 sm:grid-cols-3">
             {[
-              { icon: '🧮', title: 'Split any way', body: 'Evenly, by shares, percent, or exact amounts.' },
-              { icon: '🧾', title: 'Itemize it', body: 'List each expense and split them however you like.' },
-              { icon: '🤝', title: 'Settle simply', body: 'We boil tangled debts down to the fewest payments.' },
+              { icon: '🧮', title: 'Split it any way', body: 'Evenly, by shares, by percent, or exact. However the argument shakes out.' },
+              { icon: '🧾', title: 'Itemize the chaos', body: "Separate line items, because you didn't touch the calamari." },
+              { icon: '🤝', title: 'Settle up', body: 'We boil tangled debts down to the fewest Venmos humanly possible.' },
             ].map((f) => (
               <div key={f.title} className="glass rounded-2xl p-4">
                 <span className="text-2xl" aria-hidden>
