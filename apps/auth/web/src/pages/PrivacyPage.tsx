@@ -5,9 +5,9 @@ export function PrivacyPage(): ReactNode {
   return (
     <LegalLayout title="Privacy Policy" updated="July 3, 2026">
       <p>
-        aidenjang is a small collection of personal apps (owewell, bloomnote, and friends) that
-        share one login. This explains what those apps store, why, and who else sees it. Plain
-        language, because a privacy policy nobody reads protects nobody.
+        Aiden Jang builds a small collection of personal apps under the name aidenjang. owewell and
+        bloomnote share one login, and this explains what they store, why, and who else sees it.
+        Plain language, because a privacy policy nobody reads protects nobody.
       </p>
 
       <Section heading="Who runs this">
