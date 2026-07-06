@@ -130,6 +130,37 @@ Apply D1 migrations locally with `pnpm --filter @owewell/api db:migrate:local`. 
 a vision API key set as a `wrangler secret`; without it, the rest of the app works and you itemize
 by hand. See [DEPLOY.md](DEPLOY.md) for the production runbook.
 
+## Data & database access
+
+owewell's data lives in **Cloudflare D1** (SQLite), reached through **Drizzle** (schema in
+`api/src/db/schema.ts`: `people`, `groups`, `group_members`, `expenses`, `expense_splits`,
+`expense_items`, `expense_item_shares`, `settlements`, `invites`). Realtime state is *not* in D1;
+it stays in the in-memory `GroupRoom` Durable Object. Identity (users and sessions) is a separate
+D1 owned by the auth service, not this one.
+
+**Local** — `wrangler dev` uses a Miniflare-managed SQLite file under `api/.wrangler/state`, created
+on first run and seeded by the local migrations. Inspect or edit it:
+
+```bash
+pnpm --filter @owewell/api exec wrangler d1 execute owewell --local \
+  --command "SELECT id, name FROM groups LIMIT 5"
+pnpm --filter @owewell/api exec wrangler d1 migrations apply owewell --local   # or: db:migrate:local
+```
+
+**Production** — the real D1. Same command with `--remote` (this is live user data, so keep it
+read-only unless you mean it):
+
+```bash
+pnpm --filter @owewell/api exec wrangler d1 execute owewell --remote \
+  --command "SELECT count(*) AS expenses FROM expenses"
+pnpm --filter @owewell/api exec wrangler d1 migrations apply owewell --remote
+```
+
+Or use the Cloudflare dashboard: **Workers & Pages → D1 → owewell → Console** for an ad-hoc query UI.
+
+**Changing the schema:** edit `api/src/db/schema.ts`, run `pnpm --filter @owewell/api db:generate`
+(Drizzle writes a new file into `migrations/`), then apply it locally and, on deploy, remotely.
+
 ## Tests
 
 ```bash
