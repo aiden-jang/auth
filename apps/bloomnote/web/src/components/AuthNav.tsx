@@ -2,8 +2,8 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useAuth } from '../auth/AuthContext';
 
 // A quiet corner entry point. Accounts are optional (anonymous create + links always work),
-// so this stays out of the way: "Sign in" when signed out; name + "My gardens" + sign-out when
-// signed in.
+// so this stays out of the way: "sign in" when signed out; name + "your gardens" + sign-out when
+// signed in. Copy is lowercase to match bloomnote's aesthetic.
 const wrap: CSSProperties = {
   position: 'fixed',
   top: 12,
@@ -33,7 +33,7 @@ export function AuthNav(): ReactNode {
     return (
       <div style={wrap}>
         <button type="button" style={link} onClick={() => login()}>
-          Sign in
+          sign in
         </button>
       </div>
     );
@@ -42,13 +42,13 @@ export function AuthNav(): ReactNode {
   return (
     <div style={wrap}>
       <a style={link} href="/mine">
-        My gardens
+        your gardens
       </a>
       <a style={link} href={accountUrl}>
         {user.displayName}
       </a>
       <button type="button" style={link} onClick={() => logout()}>
-        Sign out
+        sign out
       </button>
     </div>
   );
