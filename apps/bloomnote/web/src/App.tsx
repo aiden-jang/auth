@@ -3,6 +3,7 @@ import Composer from './components/Composer'
 import MyGardens from './components/MyGardens'
 import RecipientView from './components/RecipientView'
 import SealedView from './components/SealedView'
+import Footer from './components/Footer'
 import { fetchGarden, isShortId, type GardenData } from './garden'
 
 /**
@@ -103,18 +104,27 @@ export default function App() {
     return () => ctrl.abort()
   }, [parsed])
 
-  if (route.kind === 'mine') return <MyGardens />
-  if (route.kind === 'loading') return <LoadingShell />
-  if (route.kind === 'notfound') return <NotFoundShell />
-  if (route.kind === 'recipient') {
-    return (
-      <RecipientGateway
-        garden={route.garden}
-        gardenId={route.gardenId}
-      />
+  // Every view shares one site footer (made by · privacy · terms), rendered here so it stays
+  // consistent across the composer, recipient, sealed, mine, and error views.
+  const view =
+    route.kind === 'mine' ? (
+      <MyGardens />
+    ) : route.kind === 'loading' ? (
+      <LoadingShell />
+    ) : route.kind === 'notfound' ? (
+      <NotFoundShell />
+    ) : route.kind === 'recipient' ? (
+      <RecipientGateway garden={route.garden} gardenId={route.gardenId} />
+    ) : (
+      <Composer remixSeed={route.seed} />
     )
-  }
-  return <Composer remixSeed={route.seed} />
+
+  return (
+    <>
+      {view}
+      <Footer />
+    </>
+  )
 }
 
 /**
