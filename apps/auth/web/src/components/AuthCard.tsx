@@ -32,6 +32,23 @@ function Wordmark(): ReactNode {
   );
 }
 
+// Credit line linking to the personal site, matching the bloomnote footer.
+function MadeBy({ className }: { className?: string }): ReactNode {
+  return (
+    <p className={className}>
+      made by{' '}
+      <a
+        href="https://www.aidenjang.com"
+        target="_blank"
+        rel="noreferrer"
+        className="hover:text-accent hover:underline"
+      >
+        aiden jang
+      </a>
+    </p>
+  );
+}
+
 // Branded panel shown on the left half at md+. Aurora background, a tagline,
 // and a showcase of the apps this login unlocks. Hidden on small screens,
 // where a compact wordmark sits above the form instead.
@@ -66,7 +83,7 @@ function BrandPanel({ showApps }: { showApps: boolean }): ReactNode {
         )}
       </div>
 
-      <p className="relative z-10 text-xs text-muted">made by aiden jang</p>
+      <MadeBy className="relative z-10 text-xs text-muted" />
     </aside>
   );
 }
@@ -96,6 +113,10 @@ export function AuthCard({
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
           {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
           <div className="mt-6">{children}</div>
+
+          {/* The brand panel (which carries the credit) is hidden below md,
+              so surface the credit under the form on mobile. */}
+          <MadeBy className="mt-8 text-center text-xs text-muted md:hidden" />
         </div>
       </section>
     </main>
