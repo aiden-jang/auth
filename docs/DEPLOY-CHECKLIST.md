@@ -27,7 +27,7 @@ Changed since live: `/logout` route + LogoutPage, reworded account/signup copy, 
 (`/privacy`, `/terms`), **security headers**, favicon, **Workers Logs**.
 
 ```bash
-pnpm --filter @aidenjang/auth-api deploy      # builds auth-web, then wrangler deploy
+pnpm --filter @aidenjang/auth-api run deploy      # builds auth-web, then wrangler deploy
 ```
 
 Verify: `curl -sI https://accounts.aidenjang.com/health` shows the security headers (CSP, HSTS,
@@ -42,7 +42,7 @@ migrations are **not yet applied to prod**.
 
 ```bash
 pnpm --filter @owewell/api exec wrangler d1 migrations apply owewell --remote   # 0001 archived_at, 0002 date
-pnpm --filter @owewell/api deploy
+pnpm --filter @owewell/api run deploy
 ```
 
 Verify: `curl -sI https://owewell.aidenjang.com/health` shows security headers; a cross-origin
@@ -57,7 +57,7 @@ footer, **PWA manifest/SW**, **security headers**, **Workers Logs**.
 
 ```bash
 pnpm --filter @bloomnote/api exec wrangler secret put GEMINI_API_KEY
-pnpm --filter @bloomnote/api deploy
+pnpm --filter @bloomnote/api run deploy
 ```
 
 Verify: `https://bloomnote.aidenjang.com/health`; compose a garden (real Gemini call streams over
@@ -72,8 +72,8 @@ the game-server. Vision keys are optional (mock plays without them).
 ```bash
 # optional real vision model:
 pnpm --filter @is-it-a-dog/ai-worker exec wrangler secret put OPENAI_API_KEY   # or ANTHROPIC_API_KEY
-pnpm --filter @is-it-a-dog/ai-worker deploy      # → is-it-a-dog-ai.<sub>.workers.dev
-pnpm --filter @is-it-a-dog/game-server deploy    # → is-it-a-dog.aidenjang.com (builds client)
+pnpm --filter @is-it-a-dog/ai-worker run deploy      # → is-it-a-dog-ai.<sub>.workers.dev
+pnpm --filter @is-it-a-dog/game-server run deploy    # → is-it-a-dog.aidenjang.com (builds client)
 ```
 
 Verify: `https://is-it-a-dog.aidenjang.com/health`; **two-browser playthrough** — join the same
@@ -86,7 +86,7 @@ without it). Web is a separate deploy (the Worker has no `[assets]`).
 
 ```bash
 pnpm --filter @wherever/worker exec wrangler secret put FOURSQUARE_API_KEY   # optional
-pnpm --filter @wherever/worker deploy
+pnpm --filter @wherever/worker run deploy
 # deploy the web build per apps/wherever/DEPLOY.md
 ```
 
