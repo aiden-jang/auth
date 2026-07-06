@@ -4,7 +4,9 @@ export const inputClass =
   'w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20';
 
 export const buttonClass =
-  'btn-gradient w-full rounded-full px-5 py-3 font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
+  'btn-gradient w-full cursor-pointer rounded-full px-5 py-3 font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
+
+export const labelClass = 'mb-1.5 block text-sm font-medium text-muted';
 
 function BrandMark(): ReactNode {
   return (
