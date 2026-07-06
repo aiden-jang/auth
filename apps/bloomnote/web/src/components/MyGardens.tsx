@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { type CSSProperties, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { loadSentGardens, removeSentGarden, type MineRecord } from '../lib/mine'
 import { claimGardens, fetchMine, removeFromAccount, type GardenSummary } from '../lib/account'
@@ -13,6 +13,36 @@ import styles from './MyGardens.module.css'
  * back to the on-device archive (localStorage) — anonymous use still works, just per-device.
  */
 type Tab = 'sent' | 'received'
+
+// Undo toast (matches the recipient "saved" pill): a quiet cream chip pinned bottom-center.
+const undoToastStyle: CSSProperties = {
+  position: 'fixed',
+  bottom: 20,
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 60,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 12,
+  padding: '9px 10px 9px 16px',
+  borderRadius: 999,
+  background: 'rgba(250, 246, 238, 0.95)',
+  border: '1px solid var(--green-pale, #e2e8dc)',
+  backdropFilter: 'blur(6px)',
+  WebkitBackdropFilter: 'blur(6px)',
+  color: 'var(--color-ink-muted, #6b6963)',
+  fontSize: '0.85rem',
+  boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
+}
+const undoButtonStyle: CSSProperties = {
+  border: 'none',
+  background: 'none',
+  cursor: 'pointer',
+  font: 'inherit',
+  fontWeight: 600,
+  padding: '2px 8px',
+  color: 'var(--color-accent, #c2549c)',
+}
 
 /** Fields GardenRow renders — satisfied by both MineRecord and the server GardenSummary. */
 interface CardData {
@@ -72,18 +102,82 @@ function AccountGardens() {
     })
   }
 
-  // Optimistic: drop it from the list right away, then persist server-side (survives refresh and
-  // syncs across devices). The garden itself is kept, so a link already shared still opens.
-  const handleRemove = (id: string) => {
-    setSent(s => s.filter(g => g.id !== id))
-    setReceived(s => s.filter(g => g.id !== id))
-    void removeFromAccount(id)
+  // Remove with a delayed commit so it can be undone: drop the row immediately, but only fire the
+  // server DELETE after a grace window. Undo cancels the pending delete and restores the row in
+  // place, so nothing was ever deleted. A second remove — or leaving the view — flushes the prior
+  // pending one so its delete isn't lost.
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingCommit = useRef<(() => void) | null>(null)
+  const [pending, setPending] = useState<{ item: GardenSummary; list: Tab; index: number } | null>(null)
+
+  const flushPending = () => {
+    if (undoTimer.current) {
+      clearTimeout(undoTimer.current)
+      undoTimer.current = null
+    }
+    if (pendingCommit.current) {
+      pendingCommit.current()
+      pendingCommit.current = null
+    }
   }
+
+  const handleRemove = (id: string) => {
+    flushPending() // commit any prior pending removal so it isn't dropped
+    const si = sent.findIndex(g => g.id === id)
+    const ri = si < 0 ? received.findIndex(g => g.id === id) : -1
+    if (si >= 0) {
+      const item = sent[si]!
+      setSent(s => s.filter(g => g.id !== id))
+      setPending({ item, list: 'sent', index: si })
+    } else if (ri >= 0) {
+      const item = received[ri]!
+      setReceived(s => s.filter(g => g.id !== id))
+      setPending({ item, list: 'received', index: ri })
+    } else {
+      return
+    }
+    pendingCommit.current = () => void removeFromAccount(id)
+    undoTimer.current = setTimeout(() => {
+      pendingCommit.current?.()
+      pendingCommit.current = null
+      undoTimer.current = null
+      setPending(null)
+    }, 6000)
+  }
+
+  const handleUndo = () => {
+    if (undoTimer.current) {
+      clearTimeout(undoTimer.current)
+      undoTimer.current = null
+    }
+    pendingCommit.current = null
+    if (!pending) return
+    const { item, list, index } = pending
+    const reinsert = (arr: GardenSummary[]) => {
+      const next = [...arr]
+      next.splice(Math.min(index, next.length), 0, item)
+      return next
+    }
+    if (list === 'sent') setSent(reinsert)
+    else setReceived(reinsert)
+    setPending(null)
+  }
+
+  // Commit a still-pending removal if the view unmounts, honoring the user's intent.
+  useEffect(() => () => flushPending(), [])
 
   const list = tab === 'sent' ? sent : received
 
   return (
     <Shell subtitle="the gardens you've grown and kept, on every device.">
+      {pending && (
+        <div style={undoToastStyle} role="status">
+          <span>removed</span>
+          <button type="button" onClick={handleUndo} style={undoButtonStyle}>
+            undo
+          </button>
+        </div>
+      )}
       <div className={styles.tabs} role="tablist">
         <button
           type="button"
