@@ -44,8 +44,8 @@ describe('gardens (KV)', () => {
   test('receive adds to Received for others but not the owner', async () => {
     const r = await createGarden(testEnv, GARDEN, 'owner');
     if (!r.ok) throw new Error('create failed');
-    await recordReceived(testEnv, 'owner', r.id); // your own garden isn't "received"
-    await recordReceived(testEnv, 'bob', r.id);
+    expect(await recordReceived(testEnv, 'owner', r.id)).toBe(false); // your own garden isn't "received"
+    expect(await recordReceived(testEnv, 'bob', r.id)).toBe(true);
     expect((await listMine(testEnv, 'owner')).received).toHaveLength(0);
     const bob = await listMine(testEnv, 'bob');
     expect(bob.received.map((x) => x.id)).toContain(r.id);

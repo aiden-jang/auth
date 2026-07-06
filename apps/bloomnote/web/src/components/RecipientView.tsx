@@ -33,11 +33,26 @@ export default function RecipientView({ gardenData, gardenId }: Props) {
   const grownOn = formatGardenDate(createdAt)
 
   // If a signed-in visitor opens a garden, keep it in their Received list (cross-device).
-  // Best-effort and idempotent; anonymous visitors are unaffected.
+  // Best-effort and idempotent; anonymous visitors are unaffected. When it's newly saved (not
+  // your own garden), surface a quiet confirmation so the Received list is discoverable.
   const { user } = useAuth()
+  const [savedToGardens, setSavedToGardens] = useState(false)
   useEffect(() => {
-    if (user && gardenId) void recordReceived(gardenId)
+    if (!user || !gardenId) return
+    let cancelled = false
+    void recordReceived(gardenId).then(saved => {
+      if (saved && !cancelled) setSavedToGardens(true)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [user, gardenId])
+  // Auto-dismiss the confirmation after a few seconds so it doesn't linger over the garden.
+  useEffect(() => {
+    if (!savedToGardens) return
+    const t = setTimeout(() => setSavedToGardens(false), 5000)
+    return () => clearTimeout(t)
+  }, [savedToGardens])
   // The page lands in 'sealed' state — the garden plot is empty, a
   // "open the garden" button sits below it. Tapping the button
   // transitions to 'blooming' AND fires playChime() from inside the
@@ -82,6 +97,30 @@ export default function RecipientView({ gardenData, gardenId }: Props) {
   return (
     <div className={styles.wrap}>
       <SoundToggle />
+      {savedToGardens && (
+        <a
+          href="/mine?tab=received"
+          style={{
+            position: 'fixed',
+            bottom: 20,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 60,
+            padding: '9px 16px',
+            borderRadius: 999,
+            background: 'rgba(250, 246, 238, 0.92)',
+            border: '1px solid var(--green-pale, #e2e8dc)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            color: 'var(--color-ink-muted, #6b6963)',
+            textDecoration: 'none',
+            fontSize: '0.85rem',
+            boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
+          }}
+        >
+          saved to your gardens →
+        </a>
+      )}
       <div className={styles.topLabel}>
         {from ? (
           <p className={styles.fromText}>

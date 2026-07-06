@@ -51,8 +51,8 @@ app.post('/api/garden', async (c) => {
 app.post('/api/garden/:id/receive', async (c) => {
   const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
   if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
-  await recordReceived(c.env, user.id, c.req.param('id'));
-  return c.json({ ok: true });
+  const saved = await recordReceived(c.env, user.id, c.req.param('id'));
+  return c.json({ saved });
 });
 
 // Remove a garden from the signed-in user's Sent/Received lists. Keeps the garden itself, so a
