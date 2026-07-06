@@ -202,16 +202,6 @@ export default function RecipientView({ gardenData, gardenId }: Props) {
           </a>
         </p>
       </div>
-
-      {/* Author credit. Quieter than Composer's because this is the
-          recipient's emotional moment — they shouldn't feel watermarked.
-          Hidden in print so a physical card doesn't carry attribution. */}
-      <p className={styles.credit}>
-        made by{' '}
-        <a href="https://www.aidenjang.com" target="_blank" rel="noreferrer">
-          aiden jang
-        </a>
-      </p>
     </div>
   )
 }
