@@ -2,7 +2,14 @@ import { Hono } from 'hono';
 import { getSessionUser } from '@aidenjang/auth-client';
 import { harden } from '@aidenjang/http';
 import type { Env } from './env.js';
-import { claimGardens, createGarden, listMine, readGarden, recordReceived } from './gardens.js';
+import {
+  claimGardens,
+  createGarden,
+  listMine,
+  readGarden,
+  recordReceived,
+  removeFromAccount,
+} from './gardens.js';
 import { buildPrompt, checkBudget, generateGarden, validateBody } from './designGarden.js';
 
 const app = new Hono<{ Bindings: Env }>();
@@ -45,6 +52,15 @@ app.post('/api/garden/:id/receive', async (c) => {
   const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
   if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
   await recordReceived(c.env, user.id, c.req.param('id'));
+  return c.json({ ok: true });
+});
+
+// Remove a garden from the signed-in user's Sent/Received lists. Keeps the garden itself, so a
+// link already shared still opens; this just detaches it from this account.
+app.delete('/api/garden/:id', async (c) => {
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
+  if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  await removeFromAccount(c.env, user.id, c.req.param('id'));
   return c.json({ ok: true });
 });
 

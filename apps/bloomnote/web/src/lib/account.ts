@@ -36,3 +36,8 @@ export async function claimGardens(ids: string[]): Promise<number> {
 export async function recordReceived(id: string): Promise<void> {
   await fetch(`/api/garden/${id}/receive`, { method: 'POST', credentials: 'include' }).catch(() => undefined);
 }
+
+/** Remove a garden from the signed-in user's Sent/Received lists (persists across devices). */
+export async function removeFromAccount(id: string): Promise<void> {
+  await fetch(`/api/garden/${id}`, { method: 'DELETE', credentials: 'include' }).catch(() => undefined);
+}

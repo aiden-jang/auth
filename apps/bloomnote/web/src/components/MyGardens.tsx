@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { loadSentGardens, removeSentGarden, type MineRecord } from '../lib/mine'
-import { claimGardens, fetchMine, type GardenSummary } from '../lib/account'
+import { claimGardens, fetchMine, removeFromAccount, type GardenSummary } from '../lib/account'
 import { buildShareUrl } from '../garden'
 import { labelFor as occasionLabel } from '../lib/occasions'
 import { formatGardenDate } from '../lib/formatDate'
@@ -67,6 +67,14 @@ function AccountGardens() {
     })
   }
 
+  // Optimistic: drop it from the list right away, then persist server-side (survives refresh and
+  // syncs across devices). The garden itself is kept, so a link already shared still opens.
+  const handleRemove = (id: string) => {
+    setSent(s => s.filter(g => g.id !== id))
+    setReceived(s => s.filter(g => g.id !== id))
+    void removeFromAccount(id)
+  }
+
   const list = tab === 'sent' ? sent : received
 
   return (
@@ -108,7 +116,13 @@ function AccountGardens() {
       ) : (
         <ul className={styles.list}>
           {list.map(r => (
-            <GardenRow key={r.id} record={r} copied={copiedId === r.id} onCopy={() => handleCopy(r.id)} />
+            <GardenRow
+              key={r.id}
+              record={r}
+              copied={copiedId === r.id}
+              onCopy={() => handleCopy(r.id)}
+              onRemove={() => handleRemove(r.id)}
+            />
           ))}
         </ul>
       )}
