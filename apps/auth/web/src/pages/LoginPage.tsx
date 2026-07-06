@@ -28,7 +28,7 @@ export function LoginPage(): ReactNode {
   }
 
   return (
-    <AuthCard title="Welcome back" subtitle="Sign in to your aidenjang account.">
+    <AuthCard title="Welcome back" subtitle="One login for all of aidenjang's apps.">
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-3.5">
         <input className={inputClass} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
         <input className={inputClass} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
