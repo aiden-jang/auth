@@ -631,27 +631,8 @@
   border-top: 1px solid var(--green-pale);
 }
 
-/* Single quiet line: "made by aiden jang · privacy".
-   The privacy <details> expands inline on tap. */
-.credit {
-  text-align: center;
-  font-size: 11px;
-  color: var(--text-light);
-  letter-spacing: 0.04em;
-}
-
-.credit a {
-  color: var(--text-mid);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.credit a:hover {
-  color: var(--green-mid);
-}
-
-/* "your gardens" nav link — its own line, set apart from the credit
-   above it so the attribution and the navigation don't blur together. */
+/* "your gardens" nav link — the footer's single nav affordance
+   (attribution + legal moved to the shared site Footer). */
 .footerNav {
   margin-top: 12px;
   text-align: center;
@@ -669,44 +650,6 @@
   color: var(--green-mid);
 }
 
-/* Inline <details> styled to fit on the same line as the credit.
-   Default browser styling for <details> is a block element with a
-   ▶/▼ triangle; we reset both. */
-.privacyDetails {
-  display: inline;
-}
-
-.privacySummary {
-  display: inline;
-  cursor: pointer;
-  color: var(--text-mid);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  /* Hide the default disclosure triangle (Chrome / Firefox / Safari). */
-  list-style: none;
-}
-
-.privacySummary::-webkit-details-marker {
-  display: none;
-}
-
-.privacySummary:hover {
-  color: var(--green-mid);
-}
-
-/* The expanded body renders below the credit line as a small block.
-   Slightly indented so it doesn't visually compete with the credit. */
-.privacyBody {
-  display: block;
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--text-light);
-  letter-spacing: 0.02em;
-  line-height: 1.5;
-  max-width: 360px;
-  margin-inline: auto;
-}
-
 /* Mobile responsive — primary breakpoint at 480px (between large
    phone landscape and tablet portrait). Catches iPhone 12/13/14/15
    widths (390px), Pixel widths (393px), and most Android phones. */
@@ -717,7 +660,7 @@
 
   /* Wordmark dominates the page at desktop size; bring it down on
      small viewports so it doesn't take a full screen-height to
-     display "blossom." */
+     display "bloomnote." */
   .title {
     font-size: 36px;
     letter-spacing: -0.5px;

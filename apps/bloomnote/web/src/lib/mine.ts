@@ -13,7 +13,8 @@
 // — enough to render a recognizable card and a working link, without
 // duplicating the full garden that already lives server-side.
 
-const STORAGE_KEY = 'blossom:mine'
+const STORAGE_KEY = 'bloomnote:mine'
+const LEGACY_KEY = 'blossom:mine' // pre-rename; read as a fallback so on-device archives carry over
 const MAX_ENTRIES = 50
 
 export interface MineRecord {
@@ -43,7 +44,7 @@ export interface MineRecord {
 function read(): MineRecord[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_KEY)
     if (!raw) return []
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []

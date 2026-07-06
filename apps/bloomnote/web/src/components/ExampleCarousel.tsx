@@ -26,7 +26,7 @@ interface Props {
  *   - the user is on a fresh route (no remix seed), and
  *   - the form is still empty (no draft being typed).
  *
- * The goal is to show what Blossom *produces* before asking the user
+ * The goal is to show what bloomnote *produces* before asking the user
  * to produce input. Most first-time visitors don't know what to write
  * because they can't see the output yet — examples close that loop.
  *
