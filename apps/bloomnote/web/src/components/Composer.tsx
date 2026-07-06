@@ -36,7 +36,13 @@ import { DEFAULT_MOOD, MOODS } from '../lib/moods'
 import { DEFAULT_OCCASION, OCCASIONS } from '../lib/occasions'
 import { withViewTransition } from '../lib/viewTransition'
 import { playSuccess, playWhoosh } from '../sound'
+import { AUTH_ORIGIN } from '../auth/AuthContext'
 import styles from './Composer.module.css'
+
+// Privacy + Terms live once on the shared account app; build the URLs from AUTH_ORIGIN so dev
+// points at the local auth service.
+const privacyUrl = new URL('/privacy', AUTH_ORIGIN).toString()
+const termsUrl = new URL('/terms', AUTH_ORIGIN).toString()
 
 // Two phases instead of four. The message is the input; the garden +
 // share link are the output. No second-phase "now add a message" step,
@@ -975,13 +981,9 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
             aiden jang
           </a>
           {' · '}
-          <details className={styles.privacyDetails}>
-            <summary className={styles.privacySummary}>privacy</summary>
-            <span className={styles.privacyBody}>
-              your note goes to gemini and sits behind your share link.
-              i don't track what you wrote or who you sent it to.
-            </span>
-          </details>
+          <a href={privacyUrl}>privacy</a>
+          {' · '}
+          <a href={termsUrl}>terms</a>
         </p>
         {/* "your gardens" gets its own line below the credit — it's a
             navigation link, not attribution, so the extra space keeps
