@@ -159,10 +159,11 @@ server, the Durable Object, and the AI worker all run under `wrangler dev`
 ```bash
 pnpm install
 
-# terminal 1 — game-server Worker + GameRoom Durable Object
-pnpm --filter @is-it-a-dog/game-server dev
+# terminal 1 — game-server on :33300 + GameRoom Durable Object. For AI modes, point it at the
+# local ai-worker (terminal 2); classic mode works without this override.
+pnpm --filter @is-it-a-dog/game-server dev -- --var AI_WORKER_URL:http://localhost:33400
 
-# terminal 2 — ai-worker (vision)
+# terminal 2 — ai-worker (vision) on :33400
 pnpm --filter @is-it-a-dog/ai-worker dev
 
 # terminal 3 — client (http://localhost:33100, proxies /rooms to the game server)

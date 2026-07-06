@@ -118,8 +118,9 @@ Requires **Node 22** (repo `.nvmrc`) and pnpm.
 ```bash
 pnpm install
 
-# API Worker (Hono + local D1/DO via Miniflare). Point it at the local auth service:
-pnpm --filter @owewell/api dev -- --var AUTH_URL:http://localhost:34100
+# API Worker on :34200 (Hono + local D1/DO via Miniflare); validates sessions against production
+# auth by default. To use a locally-running auth instead: append `-- --var AUTH_URL:http://localhost:34100`.
+pnpm --filter @owewell/api dev
 
 # web SPA (proxies /owewell to the Worker) — http://localhost:30001
 pnpm --filter @owewell/web dev
