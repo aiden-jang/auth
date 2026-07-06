@@ -5,7 +5,7 @@
   "type": "module",
   "description": "bloomnote API on Cloudflare Workers (Hono + KV garden store, serves the SPA).",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --var AUTH_URL:http://localhost:34100",
     "deploy": "pnpm --filter @bloomnote/web build && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"

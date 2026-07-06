@@ -44,14 +44,6 @@ import { notifyGroupChanged } from './realtime.js';
 type Vars = { person: Person };
 const app = new Hono<{ Bindings: Env; Variables: Vars }>();
 
-// Which auth service to validate the session against. In local `wrangler dev` the auth Worker
-// runs on :34100, so a request hitting localhost validates there rather than production —
-// otherwise a local login is checked against the live auth service and never recognized.
-function authBase(req: Request, env: Env): string {
-  const host = new URL(req.url).hostname;
-  return host === 'localhost' || host === '127.0.0.1' ? 'http://localhost:34100' : env.AUTH_URL;
-}
-
 // Security headers on every response + a same-origin CSRF guard on state-changing requests.
 // The GET WebSocket upgrade for realtime is a safe method, so it passes through untouched.
 app.use('*', harden());
@@ -62,7 +54,7 @@ app.get('/health', (c) => c.json({ status: 'ok', service: 'owewell' }));
 // talk to the auth service cross-origin. Returns { user: null } when signed out (not 401),
 // since owewell is usable signed-out (quick split). Registered before the auth guard below.
 app.get('/owewell/me', async (c) => {
-  const user = await getSessionUser(c.req.raw, authBase(c.req.raw, c.env));
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
   if (!user) return c.json({ user: null });
   const person = await getOrCreatePerson(createDb(c.env), user);
   return c.json({
@@ -80,7 +72,7 @@ app.get('/owewell/invites/:token', async (c) => {
 // Everything else under /owewell requires a signed-in user (validated against the shared
 // auth service), resolved to this app's local person.
 app.use('/owewell/*', async (c, next) => {
-  const user = await getSessionUser(c.req.raw, authBase(c.req.raw, c.env));
+  const user = await getSessionUser(c.req.raw, c.env.AUTH_URL);
   if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
   c.set('person', await getOrCreatePerson(createDb(c.env), user));
   await next();

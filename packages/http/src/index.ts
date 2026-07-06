@@ -75,19 +75,25 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  * Origin, so legitimate traffic passes, while requests that genuinely omit Origin (rare, and
  * cookie-less cross-site anyway) are left to the SameSite gate rather than being hard-blocked.
  *
+ * Localhost origins are always allowed: in `wrangler dev` a Worker with a custom-domain route sees
+ * every request as that production host, so a genuine same-origin call from the local web app
+ * (Origin `http://localhost:PORT`) would never match. A browser only sends a localhost Origin from
+ * a page actually on localhost — an attacker's page can't forge it — so allowing it is safe.
+ *
  * @returns a 403 Response to short-circuit with, or null when the request is allowed.
  */
 export function enforceSameOrigin(request: Request): Response | null {
   if (SAFE_METHODS.has(request.method)) return null;
   const origin = request.headers.get('Origin');
   if (origin === null) return null;
-  let originHost: string;
+  let originUrl: URL;
   try {
-    originHost = new URL(origin).host;
+    originUrl = new URL(origin);
   } catch {
     return forbidden();
   }
-  if (originHost !== new URL(request.url).host) return forbidden();
+  if (originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1') return null;
+  if (originUrl.host !== new URL(request.url).host) return forbidden();
   return null;
 }
 

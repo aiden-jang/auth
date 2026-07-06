@@ -5,7 +5,7 @@
   "type": "module",
   "description": "owewell API on Cloudflare Workers (Hono + D1 + Durable Object realtime).",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --var AUTH_URL:http://localhost:34100",
     "deploy": "pnpm --filter @owewell/web build && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
