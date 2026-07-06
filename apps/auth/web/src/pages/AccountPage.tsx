@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { authApi, type AuthUser } from '../lib/api';
 import { AuthCard, buttonClass, inputClass } from '../components/AuthCard';
-import { APPS } from '../lib/apps';
+import { APPS, appHref } from '../lib/apps';
 
 export function AccountPage(): ReactNode {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -79,7 +79,7 @@ export function AccountPage(): ReactNode {
           {APPS.map((app) => (
             <li key={app.name}>
               <a
-                href={app.url}
+                href={appHref(app)}
                 className="group flex items-center justify-between rounded-xl border border-line bg-field px-4 py-3 transition hover:border-accent"
               >
                 <span>
