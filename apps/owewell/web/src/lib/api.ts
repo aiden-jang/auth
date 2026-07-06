@@ -3,11 +3,12 @@
 export const API_BASE = import.meta.env.VITE_API_URL ?? '/owewell';
 // The shared auth service (login/logout/account pages + session). Sign-in and sign-out are
 // full-page redirects here; the browser never fetches it cross-origin (identity comes from
-// the same-origin /owewell/me instead). In dev the auth web runs on :34110, so default there
-// rather than sending local logins to production. VITE_AUTH_URL overrides either way.
+// the same-origin /owewell/me instead). In dev the auth Worker serves the login UI + API from
+// one origin on :34100 (wrangler dev), so default there rather than sending local logins to
+// production. VITE_AUTH_URL overrides either way.
 export const AUTH_ORIGIN =
   import.meta.env.VITE_AUTH_URL ??
-  (import.meta.env.DEV ? 'http://localhost:34110' : 'https://accounts.aidenjang.com');
+  (import.meta.env.DEV ? 'http://localhost:34100' : 'https://accounts.aidenjang.com');
 
 export class ApiError extends Error {
   constructor(
