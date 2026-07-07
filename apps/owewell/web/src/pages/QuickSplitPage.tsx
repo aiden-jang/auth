@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Money, computeSplit, dollarsToCents, simplifyDebts, type SplitMethod, type Transfer } from '@aidenjang/shared';
+import { normalizeAmountInput } from '../lib/format';
 import { useAuth } from '../auth/AuthContext';
 import { AppHeader } from '../components/AppHeader';
 import { BrandMark } from '../components/BrandMark';
@@ -360,6 +361,7 @@ export function QuickSplitPage(): ReactNode {
                 <input
                   value={item.amount}
                   onChange={(e) => updateItem(item.id, { amount: e.target.value })}
+                  onBlur={() => updateItem(item.id, { amount: normalizeAmountInput(item.amount) })}
                   placeholder="0.00"
                   inputMode="decimal"
                   className={inputClass}

@@ -2,6 +2,7 @@ import { useState, type ChangeEvent, type FormEvent, type ReactNode } from 'reac
 import { dollarsToCents } from '@aidenjang/shared';
 import { expensesApi, ocrReceipt, type Expense } from '../lib/expenses';
 import type { GroupMember } from '../lib/groups';
+import { normalizeAmountInput } from '../lib/format';
 import { Icon } from './Icon';
 
 function centsToInput(cents: number): string {
@@ -211,6 +212,7 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
               <input
                 value={item.amount}
                 onChange={(e) => updateItem(index, { amount: e.target.value })}
+                onBlur={() => updateItem(index, { amount: normalizeAmountInput(item.amount) })}
                 placeholder="0.00"
                 inputMode="decimal"
                 className="w-28 rounded-xl border border-line bg-field px-3 py-2.5 text-right outline-none focus:border-accent"
@@ -269,6 +271,7 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
         <input
           value={tax}
           onChange={(e) => setTax(e.target.value)}
+          onBlur={() => setTax(normalizeAmountInput(tax))}
           placeholder="Tax (optional)"
           inputMode="decimal"
           className={inputClass}
@@ -277,6 +280,7 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
         <input
           value={tip}
           onChange={(e) => setTip(e.target.value)}
+          onBlur={() => setTip(normalizeAmountInput(tip))}
           placeholder="Tip (optional)"
           inputMode="decimal"
           className={inputClass}
