@@ -33,6 +33,31 @@ describe('quick-split', () => {
     expect(balances.reduce((sum, b) => sum + b.netCents, 0)).toBe(0);
   });
 
+  test('routes each item to its own payer', async () => {
+    // You paid Pizza (20, split evenly), Sam paid Drinks (10, split evenly).
+    const { groupId } = await createQuickSplit(db, alice, {
+      people: [{ name: 'You', isPayer: true, isYou: true }, { name: 'Sam' }],
+      items: [
+        { description: 'Pizza', amountCents: 2000, splitMethod: 'EQUAL', payerIndex: 0 },
+        { description: 'Drinks', amountCents: 1000, splitMethod: 'EQUAL', payerIndex: 1 },
+      ],
+    });
+    const group = await getGroup(db, alice, groupId);
+    const sam = group.members.find((m) => m.userId !== alice)!.userId;
+    const net = Object.fromEntries((await getBalances(db, alice, groupId)).map((b) => [b.userId, b.netCents]));
+    expect(net[alice]).toBe(500); // paid 2000, owes 1500
+    expect(net[sam]).toBe(-500); // paid 1000, owes 1500
+  });
+
+  test('rejects an out-of-range item payer', async () => {
+    await expect(
+      createQuickSplit(db, alice, {
+        people: [{ name: 'You', isPayer: true, isYou: true }, { name: 'Sam' }],
+        items: [{ description: 'X', amountCents: 500, splitMethod: 'EQUAL', payerIndex: 5 }],
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_PAYER' });
+  });
+
   test('creates one expense per item and nets them across a single payer', async () => {
     // You paid everything: Dinner 30 equally (3 ways) + Drinks 20 all to Sam (exact).
     const { groupId } = await createQuickSplit(db, alice, {

@@ -3,7 +3,7 @@ import type { DB } from './db/client.js';
 import { addPlaceholderMember, createGroup } from './groups.js';
 import { createExpense } from './expenses.js';
 
-export type QuickSplitErrorCode = 'NO_PAYER' | 'TOO_MANY_YOU' | 'NO_ITEMS' | 'INVALID_SPLIT';
+export type QuickSplitErrorCode = 'NO_PAYER' | 'TOO_MANY_YOU' | 'NO_ITEMS' | 'INVALID_SPLIT' | 'INVALID_PAYER';
 
 export class QuickSplitError extends Error {
   constructor(
@@ -27,6 +27,8 @@ export interface QuickSplitItem {
   splitMethod: SplitMethod;
   /** Per-person values aligned to the `people` array order; null/omitted for EQUAL. */
   values?: (number | null)[];
+  /** Index into `people` of who paid for this item. Omitted → the default payer. */
+  payerIndex?: number;
 }
 
 export interface QuickSplitInput {
@@ -68,6 +70,9 @@ export async function createQuickSplit(
 
   // Validate every item against placeholder ids before touching the database.
   for (const item of input.items) {
+    if (item.payerIndex !== undefined && (item.payerIndex < 0 || item.payerIndex >= input.people.length)) {
+      throw new QuickSplitError('INVALID_PAYER', 'An item payer is not one of the people on the split.');
+    }
     try {
       computeSplit(item.splitMethod, item.amountCents, itemParticipants(input.people, item, (i) => `p${i}`));
     } catch (err) {
@@ -86,13 +91,13 @@ export async function createQuickSplit(
       : (await addPlaceholderMember(db, personId, group.id, p.name)).userId;
     userIds.push(uid);
   }
-  const payerId = userIds[input.people.findIndex((p) => p.isPayer)]!;
+  const defaultPayerId = userIds[input.people.findIndex((p) => p.isPayer)]!;
 
   for (const item of input.items) {
     await createExpense(db, personId, group.id, {
       description: item.description.trim() || 'Quick split',
       amountCents: item.amountCents,
-      payerId,
+      payerId: item.payerIndex !== undefined ? userIds[item.payerIndex]! : defaultPayerId,
       splitMethod: item.splitMethod,
       participants: itemParticipants(input.people, item, (i) => userIds[i]!),
     });

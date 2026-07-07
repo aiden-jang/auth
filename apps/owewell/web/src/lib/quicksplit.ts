@@ -13,6 +13,8 @@ export interface PendingItem {
   splitMethod: SplitMethod;
   /** Per-person values aligned to the `people` array order; null for EQUAL / no value. */
   values?: (number | null)[];
+  /** Index into the `people` array of who paid for this item. Omit to use the default payer. */
+  payerIndex?: number;
 }
 
 /** A quick split is now a set of shared people plus one or more expenses (items). */

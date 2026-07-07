@@ -214,6 +214,7 @@ const itemizedBody = z.object({
         name: z.string().trim().min(1).max(140),
         amountCents: z.number().int().positive(),
         participantIds: z.array(z.string().min(1)).min(1),
+        payerId: z.string().min(1).optional(),
       }),
     )
     .min(1),
@@ -344,6 +345,8 @@ const quickSplitBody = z.object({
         splitMethod: z.enum(['EQUAL', 'EXACT', 'PERCENT', 'SHARES']),
         // Per-person values aligned to `people`; null for EQUAL / no value.
         values: z.array(z.number().int().nullable()).optional(),
+        // Index into `people` of who paid for this item; omitted → default payer.
+        payerIndex: z.number().int().nonnegative().optional(),
       }),
     )
     .min(1)
@@ -363,6 +366,7 @@ app.post('/owewell/quick-splits', async (c) => {
       amountCents: it.amountCents,
       splitMethod: it.splitMethod,
       ...(it.values === undefined ? {} : { values: it.values }),
+      ...(it.payerIndex === undefined ? {} : { payerIndex: it.payerIndex }),
     })),
   });
   return c.json(result, 201);

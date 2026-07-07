@@ -1,4 +1,4 @@
-import { computeItemizedSplit, computeSplit, type SplitMethod } from '@aidenjang/shared';
+import { computeItemizedSplit, computeItemizedPayers, computeSplit, type SplitMethod } from '@aidenjang/shared';
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import type { DB } from './db/client.js';
 import { requireMembership } from './groups.js';
@@ -39,7 +39,7 @@ export interface CreateItemizedExpenseInput {
   payerId: string;
   taxCents: number;
   tipCents: number;
-  items: { name: string; amountCents: number; participantIds: string[] }[];
+  items: { name: string; amountCents: number; participantIds: string[]; payerId?: string | undefined }[];
   date?: Date;
 }
 
@@ -174,6 +174,9 @@ export async function createItemizedExpense(db: DB, personId: string, groupId: s
   if ([...everyone].some((pid) => !members.has(pid))) {
     throw new ExpenseError('INVALID_PARTICIPANT', 'Everyone on an item must be a group member.');
   }
+  if (input.items.some((i) => i.payerId && !members.has(i.payerId))) {
+    throw new ExpenseError('INVALID_PAYER', 'An item payer must be a group member.');
+  }
 
   let shares;
   try {
@@ -205,7 +208,7 @@ export async function createItemizedExpense(db: DB, personId: string, groupId: s
   );
   for (const item of input.items) {
     const itemId = crypto.randomUUID();
-    await db.insert(expenseItems).values({ id: itemId, expenseId: id, name: item.name, amountCents: item.amountCents });
+    await db.insert(expenseItems).values({ id: itemId, expenseId: id, name: item.name, amountCents: item.amountCents, payerId: item.payerId ?? null });
     await db.insert(expenseItemShares).values(
       item.participantIds.map((pid) => ({ id: crypto.randomUUID(), itemId, personId: pid })),
     );
@@ -227,6 +230,9 @@ export async function updateItemizedExpense(db: DB, personId: string, groupId: s
   const everyone = new Set(input.items.flatMap((i) => i.participantIds));
   if ([...everyone].some((pid) => !members.has(pid))) {
     throw new ExpenseError('INVALID_PARTICIPANT', 'Everyone on an item must be a group member.');
+  }
+  if (input.items.some((i) => i.payerId && !members.has(i.payerId))) {
+    throw new ExpenseError('INVALID_PAYER', 'An item payer must be a group member.');
   }
 
   let shares;
@@ -260,7 +266,7 @@ export async function updateItemizedExpense(db: DB, personId: string, groupId: s
   );
   for (const item of input.items) {
     const itemId = crypto.randomUUID();
-    await db.insert(expenseItems).values({ id: itemId, expenseId, name: item.name, amountCents: item.amountCents });
+    await db.insert(expenseItems).values({ id: itemId, expenseId, name: item.name, amountCents: item.amountCents, payerId: item.payerId ?? null });
     await db.insert(expenseItemShares).values(
       item.participantIds.map((pid) => ({ id: crypto.randomUUID(), itemId, personId: pid })),
     );
@@ -285,11 +291,11 @@ export async function listExpenses(db: DB, personId: string, groupId: string): P
   }
 
   // For itemized expenses, attach line items + their participants so the edit form can prefill.
-  const itemsByExpense = new Map<string, { name: string; amountCents: number; participantIds: string[] }[]>();
+  const itemsByExpense = new Map<string, { name: string; amountCents: number; participantIds: string[]; payerId?: string }[]>();
   const itemizedIds = rows.filter((r) => r.splitMethod === 'ITEMIZED').map((r) => r.id);
   if (itemizedIds.length > 0) {
     const itemRows = await db
-      .select({ id: expenseItems.id, expenseId: expenseItems.expenseId, name: expenseItems.name, amountCents: expenseItems.amountCents })
+      .select({ id: expenseItems.id, expenseId: expenseItems.expenseId, name: expenseItems.name, amountCents: expenseItems.amountCents, payerId: expenseItems.payerId })
       .from(expenseItems)
       .where(inArray(expenseItems.expenseId, itemizedIds))
       .all();
@@ -308,7 +314,7 @@ export async function listExpenses(db: DB, personId: string, groupId: string): P
     }
     for (const it of itemRows) {
       const l = itemsByExpense.get(it.expenseId) ?? [];
-      l.push({ name: it.name, amountCents: it.amountCents, participantIds: sharesByItem.get(it.id) ?? [] });
+      l.push({ name: it.name, amountCents: it.amountCents, participantIds: sharesByItem.get(it.id) ?? [], ...(it.payerId ? { payerId: it.payerId } : {}) });
       itemsByExpense.set(it.expenseId, l);
     }
   }
@@ -350,8 +356,38 @@ export async function getBalances(db: DB, personId: string, groupId: string): Pr
     net.set(p, (net.get(p) ?? 0) + d);
   };
 
-  const exps = await db.select({ id: expenses.id, payerId: expenses.payerId, amountCents: expenses.amountCents }).from(expenses).where(and(eq(expenses.groupId, groupId), isNull(expenses.deletedAt))).all();
-  for (const e of exps) bump(e.payerId, e.amountCents);
+  const exps = await db.select({ id: expenses.id, payerId: expenses.payerId, amountCents: expenses.amountCents, splitMethod: expenses.splitMethod, taxCents: expenses.taxCents, tipCents: expenses.tipCents }).from(expenses).where(and(eq(expenses.groupId, groupId), isNull(expenses.deletedAt))).all();
+
+  // Credit side. Non-itemized expenses credit their single payer the full amount.
+  // Itemized expenses credit each line item's payer (falling back to the expense
+  // payer for items with no per-item payer), plus a proportional share of tax + tip.
+  const itemizedIds = exps.filter((e) => e.splitMethod === 'ITEMIZED').map((e) => e.id);
+  const itemsByExpense = new Map<string, { amountCents: number; payerId: string | null }[]>();
+  if (itemizedIds.length) {
+    const itemRows = await db
+      .select({ expenseId: expenseItems.expenseId, amountCents: expenseItems.amountCents, payerId: expenseItems.payerId })
+      .from(expenseItems)
+      .where(inArray(expenseItems.expenseId, itemizedIds))
+      .all();
+    for (const it of itemRows) {
+      const arr = itemsByExpense.get(it.expenseId) ?? [];
+      arr.push({ amountCents: it.amountCents, payerId: it.payerId });
+      itemsByExpense.set(it.expenseId, arr);
+    }
+  }
+  for (const e of exps) {
+    const items = e.splitMethod === 'ITEMIZED' ? itemsByExpense.get(e.id) : undefined;
+    if (items && items.length > 0) {
+      const payers = computeItemizedPayers({
+        items: items.map((it) => ({ amountCents: it.amountCents, payerId: it.payerId ?? e.payerId })),
+        taxCents: e.taxCents,
+        tipCents: e.tipCents,
+      });
+      for (const p of payers) bump(p.userId, p.paidCents);
+    } else {
+      bump(e.payerId, e.amountCents);
+    }
+  }
   if (exps.length) {
     const splitRows = await db.select({ personId: expenseSplits.personId, owedCents: expenseSplits.owedCents }).from(expenseSplits).where(inArray(expenseSplits.expenseId, exps.map((e) => e.id))).all();
     for (const s of splitRows) bump(s.personId, -s.owedCents);

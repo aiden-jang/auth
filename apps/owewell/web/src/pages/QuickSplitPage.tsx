@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Money, computeSplit, dollarsToCents, type SplitMethod } from '@aidenjang/shared';
+import { Money, computeSplit, dollarsToCents, simplifyDebts, type SplitMethod, type Transfer } from '@aidenjang/shared';
 import { useAuth } from '../auth/AuthContext';
 import { AppHeader } from '../components/AppHeader';
 import { BrandMark } from '../components/BrandMark';
@@ -24,6 +24,8 @@ interface Item {
   method: SplitMethod;
   /** Per-person raw value inputs (shares / percent / exact), keyed by person id. */
   values: Record<string, string>;
+  /** Person id of who paid for this item. Empty → the default payer. */
+  payerId: string;
 }
 
 const METHODS: { value: SplitMethod; label: string }[] = [
@@ -45,7 +47,7 @@ function newPerson(name = ''): Person {
 }
 
 function newItem(): Item {
-  return { id: crypto.randomUUID(), description: '', amount: '', method: 'EQUAL', values: {} };
+  return { id: crypto.randomUUID(), description: '', amount: '', method: 'EQUAL', values: {}, payerId: '' };
 }
 
 /** Parse a raw per-person input into the server value for a method, or undefined for EQUAL. */
@@ -137,10 +139,11 @@ export function QuickSplitPage(): ReactNode {
 
   // Live combined breakdown: each person's total share summed across every valid item, or null
   // until at least one item has a usable amount + valid per-person values.
-  let owed: Record<string, number> | null = null;
+  let transfers: Transfer[] | null = null;
   let grandTotal = 0;
   try {
-    const acc: Record<string, number> = Object.fromEntries(named.map((p) => [p.id, 0]));
+    const owedAcc: Record<string, number> = Object.fromEntries(named.map((p) => [p.id, 0]));
+    const paidAcc: Record<string, number> = Object.fromEntries(named.map((p) => [p.id, 0]));
     let any = false;
     for (const item of items) {
       const amountCents = item.amount.trim() ? dollarsToCents(item.amount) : 0;
@@ -153,16 +156,22 @@ export function QuickSplitPage(): ReactNode {
           return value === undefined ? { userId: p.id } : { userId: p.id, value };
         }),
       );
-      for (const s of shares) acc[s.userId] = (acc[s.userId] ?? 0) + s.owedCents;
+      for (const s of shares) owedAcc[s.userId] = (owedAcc[s.userId] ?? 0) + s.owedCents;
+      const itemPayer = item.payerId || effectivePayerId;
+      if (paidAcc[itemPayer] !== undefined) paidAcc[itemPayer] += amountCents;
       grandTotal += amountCents;
       any = true;
     }
-    owed = any ? acc : null;
+    // Net each person (paid across the items they covered, minus what they owe), then reduce to
+    // the fewest transfers — the same math the saved group will show.
+    transfers = any
+      ? simplifyDebts(named.map((p) => ({ userId: p.id, netCents: (paidAcc[p.id] ?? 0) - (owedAcc[p.id] ?? 0) })))
+      : null;
   } catch {
-    owed = null;
+    transfers = null;
   }
 
-  const payerName = people.find((p) => p.id === effectivePayerId)?.name.trim() || 'the payer';
+  const nameById = (id: string): string => people.find((p) => p.id === id)?.name.trim() || 'Someone';
 
   async function onSave(): Promise<void> {
     setError(null);
@@ -196,11 +205,13 @@ export function QuickSplitPage(): ReactNode {
         setError('Check the per-person values on each item.');
         return;
       }
+      const payerIndex = named.findIndex((p) => p.id === (item.payerId || effectivePayerId));
       builtItems.push({
         description: item.description.trim() || 'Quick split',
         amountCents,
         splitMethod: item.method,
         values,
+        ...(payerIndex >= 0 ? { payerIndex } : {}),
       });
     }
     if (builtItems.length === 0) {
@@ -353,6 +364,23 @@ export function QuickSplitPage(): ReactNode {
                   ))}
                 </select>
               </div>
+              {named.length > 0 && (
+                <div className="flex items-center gap-2 text-sm text-muted">
+                  <span>paid by</span>
+                  <select
+                    value={item.payerId || effectivePayerId}
+                    onChange={(e) => updateItem(item.id, { payerId: e.target.value })}
+                    aria-label={`Item ${index + 1} paid by`}
+                    className="flex-1 rounded-lg border border-line bg-field px-2 py-1.5 text-ink outline-none focus:border-accent"
+                  >
+                    {named.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name.trim() || 'Unnamed'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               {item.method !== 'EQUAL' && named.length > 0 && (
                 <div className="space-y-1.5 border-t border-line pt-2">
                   {named.map((p) => (
@@ -385,26 +413,27 @@ export function QuickSplitPage(): ReactNode {
         <section className="mt-6">
           <div className="flex items-baseline justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Who owes what</h2>
-            {owed && <span className="text-sm text-muted">total {Money.fromCents(grandTotal).format()}</span>}
+            {transfers && <span className="text-sm text-muted">total {Money.fromCents(grandTotal).format()}</span>}
           </div>
-          {owed ? (
-            <ul className="mt-3 space-y-2">
-              {named
-                .filter((p) => p.id !== effectivePayerId && owed)
-                .map((p) => (
+          {transfers ? (
+            transfers.length === 0 ? (
+              <p className="mt-3 text-sm text-muted">All square. Nobody owes anybody.</p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {transfers.map((t) => (
                   <li
-                    key={p.id}
+                    key={`${t.fromUserId}-${t.toUserId}`}
                     className="flex items-center justify-between rounded-xl glass px-4 py-3 text-sm"
                   >
                     <span>
-                      <span className="font-medium">{p.name.trim()}</span> owes {payerName}
+                      <span className="font-medium">{nameById(t.fromUserId)}</span> owes{' '}
+                      <span className="font-medium">{nameById(t.toUserId)}</span>
                     </span>
-                    <span className="font-medium tabular-nums">
-                      {Money.fromCents(owed[p.id] ?? 0).format()}
-                    </span>
+                    <span className="font-medium tabular-nums">{Money.fromCents(t.amountCents).format()}</span>
                   </li>
                 ))}
-            </ul>
+              </ul>
+            )
           ) : (
             <p className="mt-3 text-sm text-muted">
               Names up top, numbers in the middle. We&rsquo;ll handle the part that ends friendships.
