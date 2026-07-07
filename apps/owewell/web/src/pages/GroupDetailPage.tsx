@@ -338,6 +338,22 @@ export function GroupDetailPage(): ReactNode {
 
   const nameOf = (userId: string): string =>
     group.members.find((m) => m.userId === userId)?.displayName ?? 'Someone';
+  // Who actually paid an expense. For itemized receipts we read the per-item payers
+  // (falling back to the expense payer), so a split-tab receipt reads honestly instead
+  // of crediting one person.
+  function payerSummary(e: Expense): { avatar: string; label: string } {
+    const payers =
+      e.splitMethod === 'ITEMIZED' && e.items && e.items.length > 0
+        ? [...new Set(e.items.map((i) => i.payerId ?? e.payerId))]
+        : [e.payerId];
+    const label =
+      payers.length === 1
+        ? `${nameOf(payers[0]!)} paid`
+        : payers.length === 2
+          ? `${nameOf(payers[0]!)} & ${nameOf(payers[1]!)} paid`
+          : `${payers.length} people paid`;
+    return { avatar: nameOf(payers[0]!), label };
+  }
   const balanceByUser = Object.fromEntries(balances.map((b) => [b.userId, b.netCents]));
   const isOwner = group.members.find((m) => m.userId === user?.id)?.role === 'OWNER';
   const myNet = balanceByUser[user?.id ?? ''] ?? 0;
@@ -535,11 +551,11 @@ export function GroupDetailPage(): ReactNode {
                   className="group surface flex items-center justify-between gap-3 rounded-2xl px-4 py-3"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <Avatar name={nameOf(item.expense.payerId)} size="sm" />
+                    <Avatar name={payerSummary(item.expense).avatar} size="sm" />
                     <div className="min-w-0">
                       <p className="truncate font-medium">{item.expense.description}</p>
                       <p className="text-sm text-muted">
-                        {nameOf(item.expense.payerId)} paid · {timeAgo(item.expense.date)}
+                        {payerSummary(item.expense).label} · {timeAgo(item.expense.date)}
                       </p>
                     </div>
                   </div>
