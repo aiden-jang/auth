@@ -846,7 +846,8 @@ export function GroupDetailPage(): ReactNode {
                               type="button"
                               onClick={() => void removeFromGroup(member.userId, false)}
                               aria-label={`Remove ${member.displayName}`}
-                              className="grid h-8 w-8 place-items-center rounded-full text-faint transition hover:bg-surface2 hover:text-neg"
+                              title={`Remove ${member.displayName}`}
+                              className="grid h-8 w-8 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-neg"
                             >
                               <Icon name="x" size={16} />
                             </button>
