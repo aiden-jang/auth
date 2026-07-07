@@ -18,6 +18,8 @@ interface ItemDraft {
   name: string;
   amount: string;
   participantIds: Set<string>;
+  /** Who paid for this item. Defaults to the expense payer. */
+  payerId: string;
 }
 
 interface Props {
@@ -30,16 +32,18 @@ interface Props {
 
 export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }: Props): ReactNode {
   const allMemberIds = (): Set<string> => new Set(members.map((m) => m.userId));
+  const defaultPayer = editing?.payerId ?? members[0]?.userId ?? '';
   const initialItems = (): ItemDraft[] =>
     editing?.items && editing.items.length > 0
       ? editing.items.map((it) => ({
           name: it.name,
           amount: centsToInput(it.amountCents),
           participantIds: new Set(it.participantIds),
+          payerId: it.payerId ?? defaultPayer,
         }))
-      : [{ name: '', amount: '', participantIds: allMemberIds() }];
+      : [{ name: '', amount: '', participantIds: allMemberIds(), payerId: defaultPayer }];
   const [description, setDescription] = useState(editing?.description ?? '');
-  const [payerId, setPayerId] = useState(editing?.payerId ?? members[0]?.userId ?? '');
+  const [payerId, setPayerId] = useState(defaultPayer);
   const [tax, setTax] = useState(editing?.taxCents ? centsToInput(editing.taxCents) : '');
   const [tip, setTip] = useState(editing?.tipCents ? centsToInput(editing.tipCents) : '');
   const [items, setItems] = useState<ItemDraft[]>(initialItems);
@@ -62,6 +66,7 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
             name: item.name,
             amount: centsToInput(item.amountCents),
             participantIds: allMemberIds(),
+            payerId,
           })),
         );
       }
@@ -91,7 +96,7 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
   }
 
   function addItem(): void {
-    setItems((prev) => [...prev, { name: '', amount: '', participantIds: allMemberIds() }]);
+    setItems((prev) => [...prev, { name: '', amount: '', participantIds: allMemberIds(), payerId }]);
   }
 
   function removeItem(index: number): void {
@@ -102,14 +107,19 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
     event.preventDefault();
     setError(null);
 
-    let payloadItems: { name: string; amountCents: number; participantIds: string[] }[];
+    let payloadItems: { name: string; amountCents: number; participantIds: string[]; payerId?: string }[];
     try {
       payloadItems = items.map((item) => {
         const amountCents = dollarsToCents(item.amount);
         if (amountCents <= 0 || !item.name.trim() || item.participantIds.size === 0) {
           throw new Error('invalid item');
         }
-        return { name: item.name.trim(), amountCents, participantIds: [...item.participantIds] };
+        return {
+          name: item.name.trim(),
+          amountCents,
+          participantIds: [...item.participantIds],
+          ...(item.payerId ? { payerId: item.payerId } : {}),
+        };
       });
     } catch {
       setError('Each item needs a name, an amount, and at least one person.');
@@ -136,7 +146,7 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
         setDescription('');
         setTax('');
         setTip('');
-        setItems([{ name: '', amount: '', participantIds: allMemberIds() }]);
+        setItems([{ name: '', amount: '', participantIds: allMemberIds(), payerId }]);
       }
       onCreated();
     } catch (err) {
@@ -228,6 +238,21 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
                   <span>{m.displayName}</span>
                 </label>
               ))}
+            </div>
+            <div className="mt-2 flex items-center gap-2 text-sm text-muted">
+              <span>paid by</span>
+              <select
+                value={item.payerId}
+                onChange={(e) => updateItem(index, { payerId: e.target.value })}
+                aria-label={`Item ${index + 1} paid by`}
+                className="rounded-lg border border-line bg-field px-2 py-1 text-sm text-ink outline-none focus:border-accent"
+              >
+                {members.map((m) => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.displayName}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         ))}

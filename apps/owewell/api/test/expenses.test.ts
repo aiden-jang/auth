@@ -152,6 +152,54 @@ describe('expenses — itemized, balances, delete', () => {
     expect(Object.values(await net()).reduce((a, b) => a + b, 0)).toBe(0);
   });
 
+  test('per-item payers credit each item to its own payer', async () => {
+    await createItemizedExpense(db, alice, groupId, {
+      description: 'Split tabs',
+      payerId: alice,
+      taxCents: 0,
+      tipCents: 0,
+      items: [
+        { name: 'Pizza', amountCents: 2000, participantIds: [alice, bob], payerId: alice },
+        { name: 'Drinks', amountCents: 1000, participantIds: [alice, bob], payerId: bob },
+      ],
+    });
+    // owed: alice 1500, bob 1500. paid: alice 2000, bob 1000.
+    const balances = await net();
+    expect(balances[alice]).toBe(500);
+    expect(balances[bob]).toBe(-500);
+    expect(balances[carl]).toBe(0);
+    expect(Object.values(balances).reduce((a, b) => a + b, 0)).toBe(0);
+  });
+
+  test('an item with no payer falls back to the expense payer', async () => {
+    await createItemizedExpense(db, alice, groupId, {
+      description: 'Mixed',
+      payerId: bob,
+      taxCents: 0,
+      tipCents: 0,
+      items: [
+        { name: 'A', amountCents: 1000, participantIds: [alice], payerId: alice },
+        { name: 'B', amountCents: 1000, participantIds: [carl] }, // no payer -> expense payer (bob)
+      ],
+    });
+    const balances = await net();
+    expect(balances[alice]).toBe(0); // paid 1000, owes 1000
+    expect(balances[bob]).toBe(1000); // paid item B via fallback, owes nothing
+    expect(balances[carl]).toBe(-1000);
+  });
+
+  test('rejects an item payer who is not a group member', async () => {
+    await expect(
+      createItemizedExpense(db, alice, groupId, {
+        description: 'Bad',
+        payerId: alice,
+        taxCents: 0,
+        tipCents: 0,
+        items: [{ name: 'X', amountCents: 500, participantIds: [alice], payerId: 'stranger' }],
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_PAYER' });
+  });
+
   test('deleteExpense removes it from the ledger and rebalances', async () => {
     const e = await createExpense(db, alice, groupId, {
       description: 'Dinner',

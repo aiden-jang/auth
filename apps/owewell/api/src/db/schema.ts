@@ -106,6 +106,9 @@ export const expenseItems = sqliteTable('expense_items', {
     .references(() => expenses.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   amountCents: integer('amount_cents').notNull(),
+  // Who paid for this line item. Null means "the expense's payer" — covers rows
+  // created before per-item payers existed, and items where no payer was picked.
+  payerId: text('payer_id').references(() => people.id),
 });
 
 export const expenseItemShares = sqliteTable(

@@ -119,6 +119,8 @@ export interface ExpenseItemInput {
   name: string;
   amountCents: number;
   participantIds: string[];
+  /** Who paid for this item. Omit to fall back to the expense's payer. */
+  payerId?: string;
 }
 
 export interface CreateItemizedPayload {
