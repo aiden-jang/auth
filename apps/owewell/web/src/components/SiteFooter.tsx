@@ -1,23 +1,26 @@
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
+import { siteFooterLinks } from '@aidenjang/auth-client';
 import { AUTH_ORIGIN } from '../lib/api';
 
-// Legal pages live once on the shared account app (accounts.aidenjang.com/privacy, /terms).
-// Building the URLs from AUTH_ORIGIN keeps dev pointing at the local auth service.
-const privacyUrl = new URL('/privacy', AUTH_ORIGIN).toString();
-const termsUrl = new URL('/terms', AUTH_ORIGIN).toString();
+// Content (credit + legal links) is shared via siteFooterLinks so it stays in sync across apps;
+// the styling here is owewell's own theme so the footer matches the app.
+const links = siteFooterLinks(AUTH_ORIGIN);
 
 export function SiteFooter(): ReactNode {
   return (
-    <footer className="mx-auto flex w-full max-w-3xl flex-col items-center gap-1 px-5 py-8 text-center text-xs text-muted">
-      <p>owewell · split the bill, keep the friends</p>
-      <nav className="flex gap-4">
-        <a href={privacyUrl} className="hover:text-accent hover:underline">
-          Privacy
-        </a>
-        <a href={termsUrl} className="hover:text-accent hover:underline">
-          Terms
-        </a>
-      </nav>
+    <footer className="flex w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 px-5 py-8 text-center text-xs text-muted">
+      {links.map((link, i) => (
+        <Fragment key={link.href}>
+          {i > 0 && <span aria-hidden>·</span>}
+          <a
+            href={link.href}
+            {...(link.external ? { target: '_blank', rel: 'noreferrer' } : {})}
+            className="hover:text-accent hover:underline"
+          >
+            {link.label}
+          </a>
+        </Fragment>
+      ))}
     </footer>
   );
 }
