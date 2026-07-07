@@ -30,7 +30,14 @@ Currently set: `COOKIE_DOMAIN=.aidenjang.com`, `CORS_ORIGINS` (owewell + bloomno
 **Not yet set (optional):**
 - `RESEND_API_KEY` — until set, verification/reset emails are logged, not sent. To deliver, set
   it and add SPF/DKIM/DMARC for `aidenjang.com`.
-- `TURNSTILE_SECRET` — until set (plus the site key in the UI), the CAPTCHA is skipped.
+- `TURNSTILE_SECRET` (server) **+** `VITE_TURNSTILE_SITE_KEY` (web build) — the CAPTCHA needs
+  **both**, set together. Create a Turnstile widget in the Cloudflare dashboard, then:
+  - build the web with the site key: `VITE_TURNSTILE_SITE_KEY=<site-key> pnpm --filter @aidenjang/auth-web build`
+    (the deploy script runs the build, so export it in the deploy shell), and
+  - set the secret: `echo "<secret>" | pnpm exec wrangler secret put TURNSTILE_SECRET`.
+  With neither set, Turnstile is skipped everywhere (widget hidden, backend check bypassed). Do
+  **not** set only the secret — the backend would then reject every signup/login/forgot for a
+  missing token, since the widget wouldn't render.
 
 ## One-time account setup (done — reference)
 

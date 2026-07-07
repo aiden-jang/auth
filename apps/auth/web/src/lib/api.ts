@@ -29,12 +29,13 @@ async function req<T>(path: string, method: string, body?: unknown): Promise<T> 
 
 export const authApi = {
   me: () => req<{ user: AuthUser }>('/auth/me', 'GET'),
-  login: (email: string, password: string) =>
-    req<{ user: AuthUser }>('/auth/login', 'POST', { email, password }),
-  register: (email: string, password: string, displayName: string) =>
-    req<{ user: AuthUser }>('/auth/register', 'POST', { email, password, displayName }),
+  login: (email: string, password: string, turnstileToken?: string) =>
+    req<{ user: AuthUser }>('/auth/login', 'POST', { email, password, turnstileToken }),
+  register: (email: string, password: string, displayName: string, turnstileToken?: string) =>
+    req<{ user: AuthUser }>('/auth/register', 'POST', { email, password, displayName, turnstileToken }),
   logout: () => req<{ ok: boolean }>('/auth/logout', 'POST'),
-  forgot: (email: string) => req<{ ok: boolean }>('/auth/forgot-password', 'POST', { email }),
+  forgot: (email: string, turnstileToken?: string) =>
+    req<{ ok: boolean }>('/auth/forgot-password', 'POST', { email, turnstileToken }),
   reset: (token: string, newPassword: string) =>
     req<{ ok: boolean }>('/auth/reset-password', 'POST', { token, newPassword }),
   updateProfile: (displayName: string) =>

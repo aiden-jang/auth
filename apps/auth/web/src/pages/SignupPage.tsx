@@ -4,6 +4,7 @@ import { authApi } from '../lib/api';
 import { safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
+import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 
 export function SignupPage(): ReactNode {
   const [params] = useSearchParams();
@@ -13,6 +14,7 @@ export function SignupPage(): ReactNode {
   const [confirmEmail, setConfirmEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -35,7 +37,7 @@ export function SignupPage(): ReactNode {
     setError(null);
     setLoading(true);
     try {
-      await authApi.register(email, password, displayName);
+      await authApi.register(email, password, displayName, turnstileToken);
       window.location.href = safeReturnTo(returnTo) ?? '/account';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create your account.');
@@ -139,7 +141,9 @@ export function SignupPage(): ReactNode {
           </p>
         )}
 
-        <button className={buttonClass} disabled={loading}>
+        <Turnstile onToken={setTurnstileToken} />
+
+        <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>
           {loading ? 'Creating...' : 'Create account'}
         </button>
       </form>

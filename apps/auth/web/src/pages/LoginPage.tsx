@@ -4,12 +4,14 @@ import { authApi } from '../lib/api';
 import { safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
+import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 
 export function LoginPage(): ReactNode {
   const [params] = useSearchParams();
   const returnTo = params.get('return_to');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +22,7 @@ export function LoginPage(): ReactNode {
     setError(null);
     setLoading(true);
     try {
-      await authApi.login(email, password);
+      await authApi.login(email, password, turnstileToken);
       window.location.href = safeReturnTo(returnTo) ?? '/account';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not log in.');
@@ -77,7 +79,9 @@ export function LoginPage(): ReactNode {
           </p>
         )}
 
-        <button className={buttonClass} disabled={loading}>
+        <Turnstile onToken={setTurnstileToken} />
+
+        <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>
           {loading ? 'Signing in...' : 'Log in'}
         </button>
       </form>
