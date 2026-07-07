@@ -107,7 +107,9 @@ export function AccountPage(): ReactNode {
     <AuthCard title="Your account" subtitle="One login for all of aidenjang's apps." showApps={false}>
       {/* App launcher — this is the landing when a visitor signs in at
           aidenjang.com without being sent back to a specific app, so lead
-          with somewhere to go. Sourced from lib/apps.ts. */}
+          with somewhere to go. Hidden while changing password so that flow
+          stays focused. Sourced from lib/apps.ts. */}
+      {!changingPw && (
       <section aria-label="Apps">
         <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Jump into an app</h2>
         <ul className="mt-3 space-y-2">
@@ -139,8 +141,9 @@ export function AccountPage(): ReactNode {
           ))}
         </ul>
       </section>
+      )}
 
-      <hr className="my-6 border-line" />
+      {!changingPw && <hr className="my-6 border-line" />}
 
       <dl className="space-y-3 text-sm">
         {editingName ? (
