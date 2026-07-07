@@ -5,7 +5,7 @@ import { invitesApi, type InviteInfo } from '../lib/invites';
 
 function Card({ children }: { children: ReactNode }): ReactNode {
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-10">
+    <div className="flex flex-1 items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         <h1 className="mb-6 flex items-center justify-center gap-2 font-display text-3xl font-semibold tracking-tight">
           <span aria-hidden>🧾</span> owewell
