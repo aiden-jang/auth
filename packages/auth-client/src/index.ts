@@ -42,3 +42,26 @@ export function logoutUrl(authBaseUrl: string, returnTo: string): string {
   u.searchParams.set('return_to', returnTo);
   return u.toString();
 }
+
+/** Where the "made by aiden jang" credit points. */
+export const SITE_AUTHOR_URL = 'https://www.aidenjang.com';
+
+export interface FooterLink {
+  label: string;
+  href: string;
+  /** true for off-site links (open in a new tab, need rel=noreferrer). */
+  external?: boolean;
+}
+
+/**
+ * The shared site-footer link model: the author credit plus the legal pages, which live once
+ * on the account app (privacy/terms are derived from `authBaseUrl` so dev points local).
+ * Content only — each app renders these in its own theme so the footer matches the app.
+ */
+export function siteFooterLinks(authBaseUrl: string): FooterLink[] {
+  return [
+    { label: 'made by aiden jang', href: SITE_AUTHOR_URL, external: true },
+    { label: 'privacy', href: new URL('/privacy', authBaseUrl).toString() },
+    { label: 'terms', href: new URL('/terms', authBaseUrl).toString() },
+  ];
+}
