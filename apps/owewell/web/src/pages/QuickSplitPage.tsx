@@ -140,6 +140,50 @@ export function QuickSplitPage(): ReactNode {
     setItems((prev) => (prev.length <= 1 ? prev : prev.filter((it) => it.id !== id)));
   }
 
+  // Live running total for one item's non-equal split, so values that don't add
+  // up are visible before saving. Mirrors the group expense form.
+  function itemSplitHint(item: Item): { text: string; tone: string } | null {
+    if (item.method === 'EQUAL') return null;
+    const raws = named.map((p) => (item.values[p.id] ?? '').trim()).filter(Boolean);
+    if (item.method === 'EXACT') {
+      let sum = 0;
+      let ok = true;
+      for (const r of raws) {
+        try {
+          sum += dollarsToCents(r);
+        } catch {
+          ok = false;
+        }
+      }
+      let target = 0;
+      try {
+        target = item.amount.trim() ? dollarsToCents(item.amount) : 0;
+      } catch {
+        target = 0;
+      }
+      const tone = !ok ? 'text-neg' : target > 0 && sum === target ? 'text-pos' : sum > target ? 'text-neg' : 'text-muted';
+      return { text: `${Money.fromCents(sum).format()} of ${Money.fromCents(target).format()}`, tone };
+    }
+    if (item.method === 'PERCENT') {
+      let sum = 0;
+      let ok = true;
+      for (const r of raws) {
+        const n = Number(r);
+        if (Number.isFinite(n)) sum += n;
+        else ok = false;
+      }
+      const rounded = Math.round(sum * 100) / 100;
+      const tone = !ok ? 'text-neg' : rounded === 100 ? 'text-pos' : rounded > 100 ? 'text-neg' : 'text-muted';
+      return { text: `${rounded}% of 100%`, tone };
+    }
+    let sum = 0;
+    for (const r of raws) {
+      const n = Number(r);
+      if (Number.isFinite(n)) sum += n;
+    }
+    return { text: `${sum} share${sum === 1 ? '' : 's'} total`, tone: 'text-muted' };
+  }
+
   // Live combined breakdown: each person's total share summed across every valid item, or null
   // until at least one item has a usable amount + valid per-person values.
   let transfers: Transfer[] | null = null;
@@ -413,6 +457,14 @@ export function QuickSplitPage(): ReactNode {
                       <span className="w-10 text-xs text-muted">{VALUE_HINT[item.method]}</span>
                     </div>
                   ))}
+                  {(() => {
+                    const hint = itemSplitHint(item);
+                    return hint ? (
+                      <p className={`text-right text-xs tabular-nums ${hint.tone}`} aria-live="polite">
+                        {hint.text}
+                      </p>
+                    ) : null;
+                  })()}
                 </div>
               )}
             </div>
