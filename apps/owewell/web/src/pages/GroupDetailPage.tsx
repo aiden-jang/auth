@@ -466,7 +466,7 @@ export function GroupDetailPage(): ReactNode {
             {suggested.map((payment) => (
               <li
                 key={`${payment.fromUserId}-${payment.toUserId}`}
-                className="flex items-center justify-between gap-3"
+                className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
               >
                 <span className="flex items-center gap-2 text-sm">
                   <Avatar name={payment.fromName} size="sm" />
@@ -479,7 +479,7 @@ export function GroupDetailPage(): ReactNode {
                     </span>
                   </span>
                 </span>
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   {payLinks(
                     group.members.find((m) => m.userId === payment.toUserId) ?? {
                       venmoHandle: null,

@@ -100,6 +100,8 @@ export function QuickSplitPage(): ReactNode {
   const [people, setPeople] = useState<Person[]>([newPerson('You'), newPerson('')]);
   const [items, setItems] = useState<Item[]>([newItem()]);
   const [payerId, setPayerId] = useState<string>('');
+  // Off by default: one payer for the whole bill. On: a per-item "paid by" for split tabs.
+  const [splitPayers, setSplitPayers] = useState(false);
   const [youId, setYouId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -157,7 +159,7 @@ export function QuickSplitPage(): ReactNode {
         }),
       );
       for (const s of shares) owedAcc[s.userId] = (owedAcc[s.userId] ?? 0) + s.owedCents;
-      const itemPayer = item.payerId || effectivePayerId;
+      const itemPayer = splitPayers ? item.payerId || effectivePayerId : effectivePayerId;
       if (paidAcc[itemPayer] !== undefined) paidAcc[itemPayer] += amountCents;
       grandTotal += amountCents;
       any = true;
@@ -205,7 +207,9 @@ export function QuickSplitPage(): ReactNode {
         setError('Check the per-person values on each item.');
         return;
       }
-      const payerIndex = named.findIndex((p) => p.id === (item.payerId || effectivePayerId));
+      // Only send per-item payers when the split-tabs toggle is on; otherwise the backend
+      // falls back to the single default payer.
+      const payerIndex = splitPayers ? named.findIndex((p) => p.id === (item.payerId || effectivePayerId)) : -1;
       builtItems.push({
         description: item.description.trim() || 'Quick split',
         amountCents,
@@ -320,7 +324,17 @@ export function QuickSplitPage(): ReactNode {
 
         {/* Items — one expense per row, each split its own way among everyone above */}
         <div className="mt-6 space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">What you spent</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">What you spent</h2>
+            <label className="flex items-center gap-1.5 text-xs text-muted">
+              <input
+                type="checkbox"
+                checked={splitPayers}
+                onChange={(e) => setSplitPayers(e.target.checked)}
+              />
+              different people paid
+            </label>
+          </div>
           {items.map((item, index) => (
             <div key={item.id} className="glass space-y-3 rounded-2xl p-4">
               <div className="flex items-center gap-2">
@@ -364,7 +378,7 @@ export function QuickSplitPage(): ReactNode {
                   ))}
                 </select>
               </div>
-              {named.length > 0 && (
+              {splitPayers && named.length > 0 && (
                 <div className="flex items-center gap-2 text-sm text-muted">
                   <span>paid by</span>
                   <select
