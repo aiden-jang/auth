@@ -18,6 +18,16 @@ export const groupsApi = {
   // Rename a name-only placeholder member. Real accounts own their name via the auth service.
   renameMember: (id: string, userId: string, name: string): Promise<GroupMember> =>
     api.patch<{ member: GroupMember }>(`/groups/${id}/members/${userId}`, { name }).then((r) => r.member),
+  // Set a member's payment handles (for settle-up deep links). Omitted fields are left as-is;
+  // an empty string clears one. Editable for yourself or a name-only placeholder.
+  setPaymentHandles: (
+    id: string,
+    userId: string,
+    handles: { venmoHandle?: string; cashappCashtag?: string; paypalHandle?: string },
+  ): Promise<GroupMember> =>
+    api
+      .patch<{ member: GroupMember }>(`/groups/${id}/members/${userId}/payment`, handles)
+      .then((r) => r.member),
   balances: (id: string): Promise<Balance[]> =>
     api.get<{ balances: Balance[] }>(`/groups/${id}/balances`).then((r) => r.balances),
   rename: (id: string, name: string): Promise<GroupDetail> =>

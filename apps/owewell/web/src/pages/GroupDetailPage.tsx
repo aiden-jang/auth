@@ -14,9 +14,10 @@ import { RecordPaymentForm } from '../components/RecordPaymentForm';
 import { Skeleton, SkeletonList } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/Confirm';
-import { groupsApi, type Balance, type GroupDetail } from '../lib/groups';
+import { groupsApi, type Balance, type GroupDetail, type GroupMember } from '../lib/groups';
 import { expensesApi, type Expense } from '../lib/expenses';
 import { settlementsApi, type Settlement, type SuggestedPayment } from '../lib/settlements';
+import { payLinks } from '../lib/payLinks';
 import { invitesApi } from '../lib/invites';
 import { useGroupRealtime } from '../hooks/useGroupRealtime';
 
@@ -79,6 +80,10 @@ export function GroupDetailPage(): ReactNode {
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingMemberName, setEditingMemberName] = useState('');
+  const [payingMemberId, setPayingMemberId] = useState<string | null>(null);
+  const [payVenmo, setPayVenmo] = useState('');
+  const [payCashapp, setPayCashapp] = useState('');
+  const [payPaypal, setPayPaypal] = useState('');
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [settleMethod, setSettleMethod] = useState<PaymentMethod>('cash');
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -255,6 +260,28 @@ export function GroupDetailPage(): ReactNode {
       await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not rename them.');
+    }
+  }
+
+  function startEditPayment(m: GroupMember): void {
+    setPayingMemberId(m.userId);
+    setPayVenmo(m.venmoHandle ?? '');
+    setPayCashapp(m.cashappCashtag ?? '');
+    setPayPaypal(m.paypalHandle ?? '');
+  }
+
+  async function savePaymentHandles(memberId: string): Promise<void> {
+    try {
+      await groupsApi.setPaymentHandles(id, memberId, {
+        venmoHandle: payVenmo,
+        cashappCashtag: payCashapp,
+        paypalHandle: payPaypal,
+      });
+      setPayingMemberId(null);
+      await load();
+      toast.success('Payment handles saved.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not save payment handles.');
     }
   }
 
@@ -452,14 +479,36 @@ export function GroupDetailPage(): ReactNode {
                     </span>
                   </span>
                 </span>
-                <button
-                  type="button"
-                  disabled={settling}
-                  onClick={() => void markPaid(payment)}
-                  className="shrink-0 rounded-full border border-line-strong bg-surface2 px-3.5 py-1.5 text-sm font-medium transition hover:border-accent active:scale-[0.98] disabled:opacity-60"
-                >
-                  Settle
-                </button>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {payLinks(
+                    group.members.find((m) => m.userId === payment.toUserId) ?? {
+                      venmoHandle: null,
+                      cashappCashtag: null,
+                      paypalHandle: null,
+                    },
+                    payment.amountCents,
+                    `owewell: ${group.name}`,
+                  ).map((link) => (
+                    <a
+                      key={link.label}
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={`Pay ${payment.toName} via ${link.label}`}
+                      className="rounded-full border border-line-strong bg-surface2 px-3 py-1.5 text-xs font-medium transition hover:border-accent active:scale-[0.98]"
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                  <button
+                    type="button"
+                    disabled={settling}
+                    onClick={() => void markPaid(payment)}
+                    className="rounded-full border border-line-strong bg-surface2 px-3.5 py-1.5 text-sm font-medium transition hover:border-accent active:scale-[0.98] disabled:opacity-60"
+                  >
+                    Settle
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -619,6 +668,50 @@ export function GroupDetailPage(): ReactNode {
                           Cancel
                         </button>
                       </span>
+                    ) : payingMemberId === member.userId ? (
+                      <span className="flex w-full flex-col gap-2">
+                        <span className="text-xs font-medium text-muted">
+                          {member.displayName}&rsquo;s payment handles
+                        </span>
+                        <input
+                          value={payVenmo}
+                          onChange={(e) => setPayVenmo(e.target.value)}
+                          placeholder="Venmo username"
+                          aria-label="Venmo username"
+                          autoFocus
+                          className="rounded-lg border border-line bg-field px-2.5 py-1.5 text-sm outline-none focus:border-accent"
+                        />
+                        <input
+                          value={payCashapp}
+                          onChange={(e) => setPayCashapp(e.target.value)}
+                          placeholder="Cash App $cashtag"
+                          aria-label="Cash App cashtag"
+                          className="rounded-lg border border-line bg-field px-2.5 py-1.5 text-sm outline-none focus:border-accent"
+                        />
+                        <input
+                          value={payPaypal}
+                          onChange={(e) => setPayPaypal(e.target.value)}
+                          placeholder="PayPal.me username"
+                          aria-label="PayPal.me username"
+                          className="rounded-lg border border-line bg-field px-2.5 py-1.5 text-sm outline-none focus:border-accent"
+                        />
+                        <span className="flex gap-3 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => void savePaymentHandles(member.userId)}
+                            className="text-sm font-medium text-accent"
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPayingMemberId(null)}
+                            className="text-sm text-muted"
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      </span>
                     ) : (
                       <>
                         <span className="flex items-center gap-3 font-medium">
@@ -646,6 +739,17 @@ export function GroupDetailPage(): ReactNode {
                           </span>
                         </span>
                         <span className="flex items-center gap-3">
+                          {(isSelf || member.isPlaceholder) && (
+                            <button
+                              type="button"
+                              onClick={() => startEditPayment(member)}
+                              aria-label={`Payment handles for ${member.displayName}`}
+                              title="Payment handles"
+                              className="grid h-7 w-7 place-items-center rounded-full text-faint transition hover:bg-surface2 hover:text-ink"
+                            >
+                              <Icon name="wallet" size={14} />
+                            </button>
+                          )}
                           <span className={`tnum text-sm font-medium ${label.tone}`}>{label.text}</span>
                           {canLeave && (
                             <button

@@ -9,6 +9,11 @@ export const people = sqliteTable('people', {
   authUserId: text('auth_user_id').unique(),
   displayName: text('display_name').notNull(),
   isPlaceholder: integer('is_placeholder', { mode: 'boolean' }).notNull().default(false),
+  // Optional payment handles, used to build "settle up via Venmo/Cash App/PayPal" deep links.
+  // Stored without the leading @ / $ so links can be composed uniformly.
+  venmoHandle: text('venmo_handle'),
+  cashappCashtag: text('cashapp_cashtag'),
+  paypalHandle: text('paypal_handle'),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
