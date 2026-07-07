@@ -31,8 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
 
   useEffect(() => {
     api
-      .get<{ user: AuthUser | null }>('/me')
-      .then((res) => setUser(res.user))
+      .get<{ user: AuthUser | null; personId?: string }>('/me')
+      // The client compares against owewell person ids everywhere (group members,
+      // balances, payers), so expose the person id as `user.id` rather than the
+      // auth-service user id — otherwise isOwner, balances, and "you" never match.
+      .then((res) => setUser(res.user ? { ...res.user, id: res.personId ?? res.user.id } : null))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
