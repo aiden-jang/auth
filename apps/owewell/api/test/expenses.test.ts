@@ -225,6 +225,53 @@ describe('expenses — itemized, balances, delete', () => {
   });
 });
 
+describe('adding a member re-splits shared equal expenses', () => {
+  test('folds a new member into everyone-splits, leaves subset + non-equal alone', async () => {
+    // Dinner split among everyone (alice, bob, carl); Cab split only among alice.
+    await createExpense(db, alice, groupId, {
+      description: 'Dinner',
+      amountCents: 3000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }, { userId: carl }],
+    });
+    await createExpense(db, alice, groupId, {
+      description: 'Cab',
+      amountCents: 1000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }],
+    });
+
+    const dana = (await addPlaceholderMember(db, alice, groupId, 'Dana')).userId;
+
+    const exps = await listExpenses(db, alice, groupId);
+    const dinner = exps.find((e) => e.description === 'Dinner')!;
+    // 3000 now split 4 ways.
+    expect(owed(dinner.splits)).toEqual({ [alice]: 750, [bob]: 750, [carl]: 750, [dana]: 750 });
+    // Subset split is deliberate — untouched.
+    const cab = exps.find((e) => e.description === 'Cab')!;
+    expect(owed(cab.splits)).toEqual({ [alice]: 1000 });
+  });
+
+  test('leaves EXACT splits untouched when a member is added', async () => {
+    await createExpense(db, alice, groupId, {
+      description: 'Tickets',
+      amountCents: 1000,
+      payerId: alice,
+      splitMethod: 'EXACT',
+      participants: [
+        { userId: alice, value: 600 },
+        { userId: bob, value: 400 },
+      ],
+    });
+    const dana = (await addPlaceholderMember(db, alice, groupId, 'Dana')).userId;
+    const tickets = (await listExpenses(db, alice, groupId)).find((e) => e.description === 'Tickets')!;
+    expect(owed(tickets.splits)).toEqual({ [alice]: 600, [bob]: 400 });
+    expect(tickets.splits.some((s) => s.userId === dana)).toBe(false);
+  });
+});
+
 describe('expenses — editing', () => {
   test('updateExpense recomputes splits and rebalances, preserving id', async () => {
     const e = await createExpense(db, alice, groupId, {

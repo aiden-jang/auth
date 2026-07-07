@@ -1,7 +1,7 @@
 import type { InviteInfo, InviteStatus } from '@owewell/core';
 import { and, eq } from 'drizzle-orm';
 import type { DB } from './db/client.js';
-import { requireMembership } from './groups.js';
+import { requireMembership, resplitSharedEqualExpenses } from './groups.js';
 import { groupMembers, groups, invites } from './db/schema.js';
 
 const INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
@@ -92,12 +92,17 @@ export async function acceptInvite(db: DB, personId: string, token: string): Pro
     .where(and(eq(groupMembers.groupId, invite.groupId), eq(groupMembers.personId, personId)))
     .get();
   if (!existing) {
+    const priorMemberIds = (
+      await db.select({ id: groupMembers.personId }).from(groupMembers).where(eq(groupMembers.groupId, invite.groupId)).all()
+    ).map((r) => r.id);
     await db.insert(groupMembers).values({
       id: crypto.randomUUID(),
       groupId: invite.groupId,
       personId,
       role: 'MEMBER',
     });
+    // Fold the joiner into expenses that were split evenly among everyone.
+    await resplitSharedEqualExpenses(db, invite.groupId, priorMemberIds, personId);
   }
   await db.update(invites).set({ acceptedAt: new Date() }).where(eq(invites.token, token));
   return { groupId: invite.groupId };
