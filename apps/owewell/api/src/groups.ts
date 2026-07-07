@@ -1,3 +1,4 @@
+import { computeSplit } from '@aidenjang/shared';
 import { and, count, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { DB } from './db/client.js';
 import { pruneOrphanPlaceholders } from './people.js';
@@ -330,12 +331,53 @@ export async function setPaymentHandles(
   return memberView(db, groupId, targetPersonId);
 }
 
+/**
+ * When a member joins, fold them into the expenses that were split evenly among *everyone*.
+ * Only EQUAL expenses whose participant set is exactly the prior membership are touched — a
+ * shared dinner re-divides to include the newcomer, while deliberate subset splits and
+ * EXACT/PERCENT/SHARES/itemized expenses (which encode specific allocations) are left alone.
+ */
+export async function resplitSharedEqualExpenses(
+  db: DB,
+  groupId: string,
+  priorMemberIds: string[],
+  newMemberId: string,
+): Promise<void> {
+  if (priorMemberIds.length === 0) return;
+  const priorSet = new Set(priorMemberIds);
+  const eqExpenses = await db
+    .select({ id: expenses.id, amountCents: expenses.amountCents })
+    .from(expenses)
+    .where(and(eq(expenses.groupId, groupId), eq(expenses.splitMethod, 'EQUAL'), isNull(expenses.deletedAt)))
+    .all();
+  for (const e of eqExpenses) {
+    const parts = (
+      await db.select({ personId: expenseSplits.personId }).from(expenseSplits).where(eq(expenseSplits.expenseId, e.id)).all()
+    ).map((r) => r.personId);
+    // Only "everyone" expenses: the participant set must match the prior membership exactly.
+    if (parts.length !== priorSet.size || parts.some((p) => !priorSet.has(p))) continue;
+    const shares = computeSplit(
+      'EQUAL',
+      e.amountCents,
+      [...priorMemberIds, newMemberId].map((userId) => ({ userId })),
+    );
+    await db.delete(expenseSplits).where(eq(expenseSplits.expenseId, e.id));
+    await db.insert(expenseSplits).values(
+      shares.map((s) => ({ id: crypto.randomUUID(), expenseId: e.id, personId: s.userId, owedCents: s.owedCents })),
+    );
+  }
+}
+
 /** Add a name-only person (no account) to the group, backed by a placeholder people row. */
 export async function addPlaceholderMember(db: DB, personId: string, groupId: string, name: string): Promise<GroupMemberView> {
   await requireMembership(db, personId, groupId);
+  const priorMemberIds = (
+    await db.select({ id: groupMembers.personId }).from(groupMembers).where(eq(groupMembers.groupId, groupId)).all()
+  ).map((r) => r.id);
   const newPersonId = crypto.randomUUID();
   await db.insert(people).values({ id: newPersonId, displayName: name, isPlaceholder: true });
   await db.insert(groupMembers).values({ id: crypto.randomUUID(), groupId, personId: newPersonId, role: 'MEMBER' });
+  await resplitSharedEqualExpenses(db, groupId, priorMemberIds, newPersonId);
   return {
     userId: newPersonId,
     displayName: name,
