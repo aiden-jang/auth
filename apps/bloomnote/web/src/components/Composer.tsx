@@ -34,6 +34,7 @@ import {
 } from '../lib/mine'
 import { DEFAULT_MOOD, MOODS } from '../lib/moods'
 import { DEFAULT_OCCASION, OCCASIONS } from '../lib/occasions'
+import { placeholderFor } from '../lib/placeholders'
 import { withViewTransition } from '../lib/viewTransition'
 import { playSuccess, playWhoosh } from '../sound'
 import styles from './Composer.module.css'
@@ -117,12 +118,6 @@ function classifyError(err: unknown): string {
   return 'model'
 }
 
-const MESSAGE_PLACEHOLDERS = [
-  "happy bday maya. you're the only person i know who keeps a tide journal AND laughs too hard at her own jokes. would drive six hours for a sunset and rope me in every time. no notes, glad you exist.",
-  "mom, 60 years. raised three of us solo while finishing your degree at night, taught me to garden, still call every sunday. don't say ty nearly enough.",
-  "theo the night i applied to grad school you stayed up making sure i ate. the pour-over kind of carried me ngl. think about it more than you'd guess. hbd friend.",
-]
-
 interface ComposerProps {
   /** Optional remix seed; when present, the composer renders in
    *  reply mode (From/To pre-filled inverse, original shown as
@@ -160,9 +155,9 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
   const [message, setMessage] = useState(initialInputs.message)
   const [occasion, setOccasion] = useState(initialInputs.occasion)
   const [mood, setMood] = useState(initialInputs.mood)
-  const [placeholder] = useState(
-    () => MESSAGE_PLACEHOLDERS[Math.floor(Math.random() * MESSAGE_PLACEHOLDERS.length)],
-  )
+  // Curated example that follows the selected occasion + mood, so the empty
+  // field previews the kind of note those choices suggest.
+  const placeholder = placeholderFor(occasion, mood)
 
   // How many gardens this device has sent — gates the "your gardens"
   // footer link so it never shows for a first-time visitor with an
