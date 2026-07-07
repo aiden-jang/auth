@@ -28,7 +28,7 @@ export function App(): ReactNode {
   // only redirects out to them (see AuthContext).
   return (
     <div className="flex min-h-screen flex-col">
-      <div className="flex-1">
+      <div className="flex flex-1 flex-col">
         <Routes>
           <Route path="/invite/:token" element={<InvitePage />} />
           <Route path="/split" element={<QuickSplitPage />} />

@@ -300,7 +300,7 @@ export function QuickSplitPage(): ReactNode {
     'w-full rounded-xl border border-line bg-field px-3 py-2.5 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20';
 
   return (
-    <div className="min-h-screen">
+    <div className="flex-1">
       {user ? <AppHeader /> : <PublicHeader />}
       <main className="mx-auto max-w-xl animate-rise px-4 py-10">
         <h1 className="font-display text-4xl font-semibold tracking-tight">Split a bill</h1>

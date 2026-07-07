@@ -118,7 +118,7 @@ export function DashboardPage(): ReactNode {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="flex-1">
       <AppHeader />
       <main className="mx-auto max-w-2xl animate-rise px-4 py-8">
         {pending && (
