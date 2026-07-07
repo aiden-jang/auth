@@ -147,6 +147,10 @@ input[type='checkbox'] {
 .animate-fade {
   animation: var(--animate-fade);
 }
+.animate-rise {
+  animation: var(--animate-rise);
+  animation-fill-mode: backwards;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .animate-rise,
