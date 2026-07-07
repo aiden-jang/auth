@@ -541,6 +541,13 @@ export function GroupDetailPage(): ReactNode {
             <p className="mt-3 text-sm text-muted">
               Nothing yet. Add an expense and let the math sort itself out.
             </p>
+            <button
+              type="button"
+              onClick={() => setSheetOpen(true)}
+              className="btn-gradient mt-4 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition active:scale-[0.98]"
+            >
+              <Icon name="plus" size={15} /> Add an expense
+            </button>
           </div>
         ) : (
           <ul className="mt-3 space-y-2">
