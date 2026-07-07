@@ -103,6 +103,36 @@ describe('groups', () => {
     expect(restored.archived).toBe(false);
   });
 
+  test('an archived group is read-only, but can still be restored and deleted', async () => {
+    const db = testDb();
+    const group = await createGroup(db, alice, 'Trip');
+    const bob = (await addPlaceholderMember(db, alice, group.id, 'Bob')).userId;
+    await setGroupArchived(db, alice, group.id, true);
+
+    // Mutations are refused while archived.
+    await expect(renameGroup(db, alice, group.id, 'Nope')).rejects.toMatchObject({
+      code: 'NOT_EDITABLE',
+    });
+    await expect(renameMember(db, alice, group.id, bob, 'Bobby')).rejects.toMatchObject({
+      code: 'NOT_EDITABLE',
+    });
+    await expect(addPlaceholderMember(db, alice, group.id, 'Cara')).rejects.toMatchObject({
+      code: 'NOT_EDITABLE',
+    });
+    await expect(removeMember(db, alice, group.id, bob)).rejects.toMatchObject({
+      code: 'NOT_EDITABLE',
+    });
+
+    // Restore reopens it, then edits work again.
+    await setGroupArchived(db, alice, group.id, false);
+    expect((await renameGroup(db, alice, group.id, 'Weekend')).name).toBe('Weekend');
+
+    // Deleting an archived group is allowed (archive first, delete later).
+    await setGroupArchived(db, alice, group.id, true);
+    await deleteGroup(db, alice, group.id);
+    await expect(getGroup(db, alice, group.id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
   test('only the owner can archive', async () => {
     const db = testDb();
     const group = await createGroup(db, alice, 'Trip');

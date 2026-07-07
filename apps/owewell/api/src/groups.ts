@@ -81,6 +81,23 @@ async function requireOwner(db: DB, personId: string, groupId: string): Promise<
   if (role !== 'OWNER') throw new GroupError('NOT_OWNER', 'Only the group owner can do that.');
 }
 
+/**
+ * Throws NOT_EDITABLE if the group is archived. Archived groups are read-only: their
+ * history and balances stay visible, but no expense, settlement, or member can change.
+ * Archiving/restoring and deleting the group are the deliberate exceptions and don't call this.
+ */
+export async function requireEditable(db: DB, groupId: string): Promise<void> {
+  const g = await db
+    .select({ archivedAt: groups.archivedAt })
+    .from(groups)
+    .where(eq(groups.id, groupId))
+    .get();
+  if (!g) throw new GroupError('NOT_FOUND', 'Group not found.');
+  if (g.archivedAt !== null) {
+    throw new GroupError('NOT_EDITABLE', 'This group is archived. Restore it to make changes.');
+  }
+}
+
 async function membersOf(db: DB, groupId: string): Promise<GroupMemberView[]> {
   const rows = await db
     .select({
@@ -220,6 +237,7 @@ export async function listGroups(db: DB, personId: string): Promise<GroupSummary
 
 export async function renameGroup(db: DB, personId: string, groupId: string, name: string): Promise<GroupDetail> {
   await requireOwner(db, personId, groupId);
+  await requireEditable(db, groupId);
   await db.update(groups).set({ name }).where(eq(groups.id, groupId));
   return getGroup(db, personId, groupId);
 }
@@ -257,6 +275,7 @@ export async function renameMember(
   name: string,
 ): Promise<GroupMemberView> {
   await requireMembership(db, actingPersonId, groupId);
+  await requireEditable(db, groupId);
   const membership = await db
     .select({ role: groupMembers.role, joinedAt: groupMembers.joinedAt })
     .from(groupMembers)
@@ -302,6 +321,7 @@ export async function setPaymentHandles(
 ): Promise<GroupMemberView> {
   await requireMembership(db, actingPersonId, groupId);
   await requireMembership(db, targetPersonId, groupId); // target must be in the group too
+  await requireEditable(db, groupId);
   if (targetPersonId !== actingPersonId) {
     const person = await db
       .select({ isPlaceholder: people.isPlaceholder })
@@ -403,6 +423,7 @@ export async function resplitSharedExpenses(
 /** Add a name-only person (no account) to the group, backed by a placeholder people row. */
 export async function addPlaceholderMember(db: DB, personId: string, groupId: string, name: string): Promise<GroupMemberView> {
   await requireMembership(db, personId, groupId);
+  await requireEditable(db, groupId);
   const priorMemberIds = (
     await db.select({ id: groupMembers.personId }).from(groupMembers).where(eq(groupMembers.groupId, groupId)).all()
   ).map((r) => r.id);
@@ -427,6 +448,7 @@ export async function addPlaceholderMember(db: DB, personId: string, groupId: st
  * nobody with ledger activity can be removed until it's cleared. */
 export async function removeMember(db: DB, actingPersonId: string, groupId: string, targetPersonId: string): Promise<void> {
   await requireMembership(db, actingPersonId, groupId);
+  await requireEditable(db, groupId);
   const target = await db
     .select({ role: groupMembers.role })
     .from(groupMembers)

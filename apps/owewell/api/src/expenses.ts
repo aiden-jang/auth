@@ -1,7 +1,7 @@
 import { computeItemizedSplit, computeItemizedPayers, computeSplit, type SplitMethod } from '@aidenjang/shared';
 import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
 import type { DB } from './db/client.js';
-import { requireMembership } from './groups.js';
+import { requireEditable, requireMembership } from './groups.js';
 import {
   expenseItemShares,
   expenseItems,
@@ -80,6 +80,7 @@ async function clearItemizedRows(db: DB, expenseId: string): Promise<void> {
 
 export async function createExpense(db: DB, personId: string, groupId: string, input: CreateExpenseInput): Promise<ExpenseView> {
   await requireMembership(db, personId, groupId);
+  await requireEditable(db, groupId);
   const members = await memberPersonIds(db, groupId);
   if (!members.has(input.payerId)) throw new ExpenseError('INVALID_PAYER', 'The payer must be a member of the group.');
   if (input.participants.some((p) => !members.has(p.userId))) {
@@ -120,6 +121,7 @@ export async function createExpense(db: DB, personId: string, groupId: string, i
 /** Replace a simple (non-itemized) expense in place, recomputing its splits. Preserves createdAt. */
 export async function updateExpense(db: DB, personId: string, groupId: string, expenseId: string, input: CreateExpenseInput): Promise<ExpenseView> {
   await requireMembership(db, personId, groupId);
+  await requireEditable(db, groupId);
   const existing = await db
     .select({ createdAt: expenses.createdAt })
     .from(expenses)
@@ -168,6 +170,7 @@ export async function updateExpense(db: DB, personId: string, groupId: string, e
 
 export async function createItemizedExpense(db: DB, personId: string, groupId: string, input: CreateItemizedExpenseInput): Promise<ExpenseView> {
   await requireMembership(db, personId, groupId);
+  await requireEditable(db, groupId);
   const members = await memberPersonIds(db, groupId);
   if (!members.has(input.payerId)) throw new ExpenseError('INVALID_PAYER', 'The payer must be a member of the group.');
   const everyone = new Set(input.items.flatMap((i) => i.participantIds));
@@ -219,6 +222,7 @@ export async function createItemizedExpense(db: DB, personId: string, groupId: s
 /** Replace an itemized expense in place: recompute item splits, swap items + shares. Preserves createdAt. */
 export async function updateItemizedExpense(db: DB, personId: string, groupId: string, expenseId: string, input: CreateItemizedExpenseInput): Promise<ExpenseView> {
   await requireMembership(db, personId, groupId);
+  await requireEditable(db, groupId);
   const existing = await db
     .select({ createdAt: expenses.createdAt })
     .from(expenses)
@@ -336,6 +340,7 @@ export async function listExpenses(db: DB, personId: string, groupId: string): P
 
 export async function deleteExpense(db: DB, personId: string, groupId: string, expenseId: string): Promise<void> {
   await requireMembership(db, personId, groupId);
+  await requireEditable(db, groupId);
   const e = await db.select({ id: expenses.id }).from(expenses).where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId), isNull(expenses.deletedAt))).get();
   if (!e) throw new ExpenseError('NOT_FOUND', 'That expense is already gone.');
   await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, expenseId));
