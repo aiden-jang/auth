@@ -717,7 +717,11 @@ export default function Composer({ remixSeed }: ComposerProps = {}) {
       <SoundToggle />
       <header className={styles.header}>
         <p className={styles.kicker}>for someone who matters</p>
-        <h1 className={styles.title}>bloomnote</h1>
+        <h1 className={styles.title}>
+          <a href="/" aria-label="bloomnote home" style={{ color: 'inherit', textDecoration: 'none' }}>
+            bloomnote
+          </a>
+        </h1>
         <p className={styles.subtitle}>
           {remixSeed
             ? `write ${remixSeed.from || 'them'} back.`
