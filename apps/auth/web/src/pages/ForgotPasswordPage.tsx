@@ -2,9 +2,11 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { AuthCard, buttonClass, inputClass } from '../components/AuthCard';
+import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 
 export function ForgotPasswordPage(): ReactNode {
   const [email, setEmail] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -12,7 +14,7 @@ export function ForgotPasswordPage(): ReactNode {
     e.preventDefault();
     setLoading(true);
     try {
-      await authApi.forgot(email);
+      await authApi.forgot(email, turnstileToken);
     } catch {
       /* always show the same message, no enumeration */
     }
@@ -31,7 +33,8 @@ export function ForgotPasswordPage(): ReactNode {
       ) : (
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-3.5">
           <input className={inputClass} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
-          <button className={buttonClass} disabled={loading}>{loading ? 'Sending...' : 'Send reset link'}</button>
+          <Turnstile onToken={setTurnstileToken} />
+          <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>{loading ? 'Sending...' : 'Send reset link'}</button>
           <p className="text-sm text-muted">
             <Link to="/login" className="text-accent hover:underline">Back to login</Link>
           </p>

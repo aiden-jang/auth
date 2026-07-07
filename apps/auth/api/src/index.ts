@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { harden } from '@aidenjang/http';
+import { DEFAULT_CSP, harden } from '@aidenjang/http';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Context } from 'hono';
@@ -23,7 +23,16 @@ const app = new Hono<{ Bindings: Env }>();
 // Security response headers on every route. CSRF is left to the session cookie's SameSite=Lax
 // attribute, Turnstile, and the CORS allowlist below, since auth is intentionally callable
 // cross-origin by the app frontends.
-app.use('*', harden({ csrf: false }));
+//
+// Turnstile loads a script + iframe and phones home to challenges.cloudflare.com, so the auth
+// pages need it allowed in script-src, frame-src, and connect-src on top of the shared default.
+const TURNSTILE_ORIGIN = 'https://challenges.cloudflare.com';
+const AUTH_CSP =
+  DEFAULT_CSP.replace("script-src 'self'", `script-src 'self' ${TURNSTILE_ORIGIN}`).replace(
+    "connect-src 'self' https://static.cloudflareinsights.com",
+    `connect-src 'self' https://static.cloudflareinsights.com ${TURNSTILE_ORIGIN}`,
+  ) + `; frame-src ${TURNSTILE_ORIGIN}`;
+app.use('*', harden({ csrf: false, csp: AUTH_CSP }));
 
 app.use('/auth/*', (c, next) =>
   cors({
