@@ -1,4 +1,4 @@
-import { computeSplit } from '@aidenjang/shared';
+import { computeSplit, computeItemizedSplit } from '@aidenjang/shared';
 import { and, count, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { DB } from './db/client.js';
 import { pruneOrphanPlaceholders } from './people.js';
@@ -332,12 +332,24 @@ export async function setPaymentHandles(
 }
 
 /**
- * When a member joins, fold them into the expenses that were split evenly among *everyone*.
- * Only EQUAL expenses whose participant set is exactly the prior membership are touched — a
- * shared dinner re-divides to include the newcomer, while deliberate subset splits and
- * EXACT/PERCENT/SHARES/itemized expenses (which encode specific allocations) are left alone.
+ * When a member joins, fold them into expenses shared by *everyone*: EQUAL expenses split
+ * across the whole prior membership re-divide to include them, and itemized receipts where
+ * every line item was shared by everyone add them to every item and recompute.
+ *
+ * Left untouched on purpose: subset splits (deliberately just some people) and EXACT / PERCENT
+ * / SHARES expenses (their per-person allocations have no defined value for a newcomer). Those
+ * stay manual.
  */
-export async function resplitSharedEqualExpenses(
+async function replaceSplits(db: DB, expenseId: string, shares: { userId: string; owedCents: number }[]): Promise<void> {
+  await db.delete(expenseSplits).where(eq(expenseSplits.expenseId, expenseId));
+  await db.insert(expenseSplits).values(
+    shares.map((s) => ({ id: crypto.randomUUID(), expenseId, personId: s.userId, owedCents: s.owedCents })),
+  );
+}
+
+const sameSet = (ids: string[], set: Set<string>): boolean => ids.length === set.size && ids.every((id) => set.has(id));
+
+export async function resplitSharedExpenses(
   db: DB,
   groupId: string,
   priorMemberIds: string[],
@@ -345,26 +357,46 @@ export async function resplitSharedEqualExpenses(
 ): Promise<void> {
   if (priorMemberIds.length === 0) return;
   const priorSet = new Set(priorMemberIds);
-  const eqExpenses = await db
-    .select({ id: expenses.id, amountCents: expenses.amountCents })
+  const everyone = [...priorMemberIds, newMemberId];
+
+  const rows = await db
+    .select({ id: expenses.id, amountCents: expenses.amountCents, splitMethod: expenses.splitMethod, taxCents: expenses.taxCents, tipCents: expenses.tipCents })
     .from(expenses)
-    .where(and(eq(expenses.groupId, groupId), eq(expenses.splitMethod, 'EQUAL'), isNull(expenses.deletedAt)))
+    .where(and(eq(expenses.groupId, groupId), isNull(expenses.deletedAt)))
     .all();
-  for (const e of eqExpenses) {
-    const parts = (
-      await db.select({ personId: expenseSplits.personId }).from(expenseSplits).where(eq(expenseSplits.expenseId, e.id)).all()
-    ).map((r) => r.personId);
-    // Only "everyone" expenses: the participant set must match the prior membership exactly.
-    if (parts.length !== priorSet.size || parts.some((p) => !priorSet.has(p))) continue;
-    const shares = computeSplit(
-      'EQUAL',
-      e.amountCents,
-      [...priorMemberIds, newMemberId].map((userId) => ({ userId })),
-    );
-    await db.delete(expenseSplits).where(eq(expenseSplits.expenseId, e.id));
-    await db.insert(expenseSplits).values(
-      shares.map((s) => ({ id: crypto.randomUUID(), expenseId: e.id, personId: s.userId, owedCents: s.owedCents })),
-    );
+
+  for (const e of rows) {
+    if (e.splitMethod === 'EQUAL') {
+      const parts = (
+        await db.select({ personId: expenseSplits.personId }).from(expenseSplits).where(eq(expenseSplits.expenseId, e.id)).all()
+      ).map((r) => r.personId);
+      if (!sameSet(parts, priorSet)) continue; // subset splits stay as-is
+      await replaceSplits(db, e.id, computeSplit('EQUAL', e.amountCents, everyone.map((userId) => ({ userId }))));
+    } else if (e.splitMethod === 'ITEMIZED') {
+      const itemRows = await db
+        .select({ id: expenseItems.id, amountCents: expenseItems.amountCents })
+        .from(expenseItems)
+        .where(eq(expenseItems.expenseId, e.id))
+        .all();
+      const shareRows = await db
+        .select({ itemId: expenseItemShares.itemId, personId: expenseItemShares.personId })
+        .from(expenseItemShares)
+        .where(inArray(expenseItemShares.itemId, itemRows.map((i) => i.id)))
+        .all();
+      const partsByItem = new Map<string, string[]>();
+      for (const s of shareRows) partsByItem.set(s.itemId, [...(partsByItem.get(s.itemId) ?? []), s.personId]);
+      // Only receipts where *every* item was shared by everyone.
+      if (!itemRows.every((i) => sameSet(partsByItem.get(i.id) ?? [], priorSet))) continue;
+      for (const i of itemRows) {
+        await db.insert(expenseItemShares).values({ id: crypto.randomUUID(), itemId: i.id, personId: newMemberId });
+      }
+      const shares = computeItemizedSplit({
+        items: itemRows.map((i) => ({ amountCents: i.amountCents, participantIds: everyone })),
+        taxCents: e.taxCents,
+        tipCents: e.tipCents,
+      });
+      await replaceSplits(db, e.id, shares);
+    }
   }
 }
 
@@ -377,7 +409,7 @@ export async function addPlaceholderMember(db: DB, personId: string, groupId: st
   const newPersonId = crypto.randomUUID();
   await db.insert(people).values({ id: newPersonId, displayName: name, isPlaceholder: true });
   await db.insert(groupMembers).values({ id: crypto.randomUUID(), groupId, personId: newPersonId, role: 'MEMBER' });
-  await resplitSharedEqualExpenses(db, groupId, priorMemberIds, newPersonId);
+  await resplitSharedExpenses(db, groupId, priorMemberIds, newPersonId);
   return {
     userId: newPersonId,
     displayName: name,
