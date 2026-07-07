@@ -166,5 +166,16 @@ input[type='checkbox'] {
   button:not(:disabled),
   [role='button']:not(:disabled) {
     cursor: pointer;
+    transition:
+      transform 0.12s ease,
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+  /* A subtle shared press. Sits in the base layer, so buttons that set their own
+     active/transform utility (or the .btn-gradient hover-lift) still win. */
+  button:not(:disabled):active,
+  [role='button']:not(:disabled):active {
+    transform: scale(0.97);
   }
 }
