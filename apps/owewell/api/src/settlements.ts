@@ -2,7 +2,7 @@ import { simplifyDebts } from '@aidenjang/shared';
 import type { PaymentMethod } from '@owewell/core';
 import { and, desc, eq } from 'drizzle-orm';
 import type { DB } from './db/client.js';
-import { requireMembership } from './groups.js';
+import { requireEditable, requireMembership } from './groups.js';
 import { getBalances } from './expenses.js';
 import { groupMembers, settlements } from './db/schema.js';
 
@@ -49,6 +49,7 @@ export async function recordSettlement(
   input: RecordSettlementInput,
 ): Promise<SettlementView> {
   await requireMembership(db, personId, groupId);
+  await requireEditable(db, groupId);
 
   if (input.fromUserId === input.toUserId) {
     throw new SettlementError('SAME_PARTY', 'A payment needs two different people.');
@@ -105,6 +106,7 @@ export async function listSettlements(db: DB, personId: string, groupId: string)
 
 export async function deleteSettlement(db: DB, personId: string, groupId: string, settlementId: string): Promise<void> {
   await requireMembership(db, personId, groupId);
+  await requireEditable(db, groupId);
   const row = await db
     .select({ id: settlements.id })
     .from(settlements)
