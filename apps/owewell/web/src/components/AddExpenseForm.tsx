@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Money, dollarsToCents, type SplitMethod } from '@aidenjang/shared';
 import { expensesApi, type Expense } from '../lib/expenses';
+import { normalizeAmountInput } from '../lib/format';
 import type { GroupMember } from '../lib/groups';
 
 const METHODS: { value: SplitMethod; label: string }[] = [
@@ -196,6 +197,7 @@ export function AddExpenseForm({ groupId, members, onCreated, editing }: Props):
         <input
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
+          onBlur={() => setAmount(normalizeAmountInput(amount))}
           placeholder="0.00"
           inputMode="decimal"
           required
