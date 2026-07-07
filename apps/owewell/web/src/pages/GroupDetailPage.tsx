@@ -78,6 +78,7 @@ export function GroupDetailPage(): ReactNode {
   const [sheetOpen, setSheetOpen] = useState(false);
   // All the viewer's groups, for the header switcher. Fetched once; the list rarely changes.
   const [allGroups, setAllGroups] = useState<GroupSummary[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -150,6 +151,13 @@ export function GroupDetailPage(): ReactNode {
       .then((gs) => setAllGroups(gs.filter((g) => !g.archived)))
       .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = (): void => setMenuOpen(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [menuOpen]);
 
   useGroupRealtime(id, () => {
     void refreshLedger();
@@ -430,34 +438,55 @@ export function GroupDetailPage(): ReactNode {
             )}
           </h1>
           {isOwner && (
-            <div className="flex shrink-0 items-center gap-1">
+            <div className="relative shrink-0">
               <button
                 type="button"
-                onClick={() => {
-                  setNewName(group.name);
-                  setRenaming(true);
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen((v) => !v);
                 }}
-                aria-label="Rename group"
+                aria-label="Group options"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
                 className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-ink"
               >
-                <Icon name="pencil" size={17} />
+                <Icon name="more" size={18} />
               </button>
-              <button
-                type="button"
-                onClick={() => void toggleArchive()}
-                aria-label={group.archived ? 'Restore group' : 'Archive group'}
-                className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-ink"
-              >
-                <Icon name={group.archived ? 'undo' : 'archive'} size={17} />
-              </button>
-              <button
-                type="button"
-                onClick={() => void deleteGroup()}
-                aria-label="Delete group"
-                className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-neg"
-              >
-                <Icon name="trash" size={17} />
-              </button>
+              {menuOpen && (
+                <div
+                  role="menu"
+                  className="surface absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-2xl border border-line py-1 shadow-xl shadow-black/40"
+                >
+                  <button
+                    role="menuitem"
+                    type="button"
+                    onClick={() => {
+                      setNewName(group.name);
+                      setRenaming(true);
+                    }}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition hover:bg-surface2"
+                  >
+                    <Icon name="pencil" size={15} /> Rename
+                  </button>
+                  <button
+                    role="menuitem"
+                    type="button"
+                    onClick={() => void toggleArchive()}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition hover:bg-surface2"
+                  >
+                    <Icon name={group.archived ? 'undo' : 'archive'} size={15} />{' '}
+                    {group.archived ? 'Restore group' : 'Archive group'}
+                  </button>
+                  <button
+                    role="menuitem"
+                    type="button"
+                    onClick={() => void deleteGroup()}
+                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-neg transition hover:bg-surface2"
+                  >
+                    <Icon name="trash" size={15} /> Delete group
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
