@@ -373,6 +373,9 @@ export function GroupDetailPage(): ReactNode {
   }
   const balanceByUser = Object.fromEntries(balances.map((b) => [b.userId, b.netCents]));
   const isOwner = group.members.find((m) => m.userId === user?.id)?.role === 'OWNER';
+  // Archived groups are read-only: history + balances stay visible, but nothing can be edited
+  // until the group is restored.
+  const readOnly = group.archived;
   const myNet = balanceByUser[user?.id ?? ''] ?? 0;
   const settled = myNet === 0;
   const owed = myNet > 0;
@@ -460,17 +463,19 @@ export function GroupDetailPage(): ReactNode {
                   role="menu"
                   className="surface absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-2xl border border-line py-1 shadow-xl shadow-black/40"
                 >
-                  <button
-                    role="menuitem"
-                    type="button"
-                    onClick={() => {
-                      setNewName(group.name);
-                      setRenaming(true);
-                    }}
-                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition hover:bg-surface2"
-                  >
-                    <Icon name="pencil" size={15} /> Rename
-                  </button>
+                  {!readOnly && (
+                    <button
+                      role="menuitem"
+                      type="button"
+                      onClick={() => {
+                        setNewName(group.name);
+                        setRenaming(true);
+                      }}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition hover:bg-surface2"
+                    >
+                      <Icon name="pencil" size={15} /> Rename
+                    </button>
+                  )}
                   <button
                     role="menuitem"
                     type="button"
@@ -506,16 +511,22 @@ export function GroupDetailPage(): ReactNode {
         >
           {settled ? (groupSettled ? 'All settled' : "You're square") : <MoneyText cents={Math.abs(myNet)} />}
         </p>
-        <button
-          type="button"
-          onClick={() => setPaymentOpen(true)}
-          className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition hover:underline"
-        >
-          <Icon name="wallet" size={15} /> Record a payment
-        </button>
+        {readOnly ? (
+          <p className="mt-4 inline-flex items-center gap-1.5 text-sm text-muted">
+            <Icon name="archive" size={15} /> Archived · read-only. Restore it to make changes.
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPaymentOpen(true)}
+            className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition hover:underline"
+          >
+            <Icon name="wallet" size={15} /> Record a payment
+          </button>
+        )}
       </div>
 
-      {suggested.length > 0 && (
+      {!readOnly && suggested.length > 0 && (
         <section className="mt-6 rounded-2xl border border-accent/25 bg-accent-soft p-4">
           <div className="flex items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-accent">
@@ -630,22 +641,26 @@ export function GroupDetailPage(): ReactNode {
                     <span className="tnum font-semibold">
                       {Money.fromCents(item.expense.amountCents).format()}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setEditingExpense(item.expense)}
-                      aria-label={`Edit ${item.expense.description}`}
-                      className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-ink group-hover:opacity-100"
-                    >
-                      <Icon name="pencil" size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void deleteExpense(item.expense.id)}
-                      aria-label={`Delete ${item.expense.description}`}
-                      className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-neg group-hover:opacity-100"
-                    >
-                      <Icon name="x" size={16} />
-                    </button>
+                    {!readOnly && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setEditingExpense(item.expense)}
+                          aria-label={`Edit ${item.expense.description}`}
+                          className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-ink group-hover:opacity-100"
+                        >
+                          <Icon name="pencil" size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void deleteExpense(item.expense.id)}
+                          aria-label={`Delete ${item.expense.description}`}
+                          className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-neg group-hover:opacity-100"
+                        >
+                          <Icon name="x" size={16} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </li>
               ) : (
@@ -674,14 +689,16 @@ export function GroupDetailPage(): ReactNode {
                     <span className="tnum font-medium text-pos">
                       {Money.fromCents(item.settlement.amountCents).format()}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => void undoSettlement(item.settlement.id)}
-                      aria-label="Undo payment"
-                      className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-neg group-hover:opacity-100"
-                    >
-                      <Icon name="undo" size={15} />
-                    </button>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        onClick={() => void undoSettlement(item.settlement.id)}
+                        aria-label="Undo payment"
+                        className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-neg group-hover:opacity-100"
+                      >
+                        <Icon name="undo" size={15} />
+                      </button>
+                    )}
                   </div>
                 </li>
               ),
@@ -721,8 +738,8 @@ export function GroupDetailPage(): ReactNode {
               {group.members.map((member) => {
                 const label = balanceLabel(balanceByUser[member.userId] ?? 0);
                 const isSelf = member.userId === user?.id;
-                const canLeave = isSelf && member.role !== 'OWNER';
-                const canRemove = isOwner && !isSelf && member.role !== 'OWNER';
+                const canLeave = isSelf && member.role !== 'OWNER' && !readOnly;
+                const canRemove = isOwner && !isSelf && member.role !== 'OWNER' && !readOnly;
                 return (
                   <li
                     key={member.userId}
@@ -807,7 +824,7 @@ export function GroupDetailPage(): ReactNode {
                                 owner
                               </span>
                             )}
-                            {member.isPlaceholder && (
+                            {member.isPlaceholder && !readOnly && (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -823,7 +840,7 @@ export function GroupDetailPage(): ReactNode {
                           </span>
                         </span>
                         <span className="flex items-center gap-3">
-                          {(isSelf || member.isPlaceholder) && (
+                          {(isSelf || member.isPlaceholder) && !readOnly && (
                             <button
                               type="button"
                               onClick={() => startEditPayment(member)}
@@ -863,51 +880,57 @@ export function GroupDetailPage(): ReactNode {
               })}
             </ul>
 
-            <form onSubmit={(e) => void onAddMember(e)} className="mt-3 flex gap-2">
-              <input
-                type="text"
-                value={memberName}
-                onChange={(e) => setMemberName(e.target.value)}
-                placeholder="Add someone by name"
-                className="flex-1 rounded-xl border border-line bg-field px-3.5 py-2.5 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-              />
-              <button
-                type="submit"
-                className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface2 px-4 py-2.5 text-sm font-medium transition hover:border-accent active:scale-[0.98]"
-              >
-                <Icon name="user-plus" size={16} /> Add
-              </button>
-            </form>
-            {memberError && <p className="mt-2 text-sm font-medium text-neg">{memberError}</p>}
-            <div className="mt-3">
-              <button
-                type="button"
-                onClick={() => void createInviteLink()}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-accent transition hover:underline"
-              >
-                <Icon name="link" size={15} /> Or invite someone on owewell with a link
-              </button>
-              {inviteLink && (
-                <input
-                  readOnly
-                  value={inviteLink}
-                  onFocus={(e) => e.target.select()}
-                  aria-label="Invite link"
-                  className="mt-2 w-full rounded-xl border border-line bg-field px-3 py-2.5 text-sm text-muted outline-none"
-                />
-              )}
-            </div>
+            {!readOnly && (
+              <>
+                <form onSubmit={(e) => void onAddMember(e)} className="mt-3 flex gap-2">
+                  <input
+                    type="text"
+                    value={memberName}
+                    onChange={(e) => setMemberName(e.target.value)}
+                    placeholder="Add someone by name"
+                    className="flex-1 rounded-xl border border-line bg-field px-3.5 py-2.5 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  />
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface2 px-4 py-2.5 text-sm font-medium transition hover:border-accent active:scale-[0.98]"
+                  >
+                    <Icon name="user-plus" size={16} /> Add
+                  </button>
+                </form>
+                {memberError && <p className="mt-2 text-sm font-medium text-neg">{memberError}</p>}
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => void createInviteLink()}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-accent transition hover:underline"
+                  >
+                    <Icon name="link" size={15} /> Or invite someone on owewell with a link
+                  </button>
+                  {inviteLink && (
+                    <input
+                      readOnly
+                      value={inviteLink}
+                      onFocus={(e) => e.target.select()}
+                      aria-label="Invite link"
+                      className="mt-2 w-full rounded-xl border border-line bg-field px-3 py-2.5 text-sm text-muted outline-none"
+                    />
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
       </section>
 
-      <button
-        type="button"
-        onClick={() => setSheetOpen(true)}
-        className="btn-gradient fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full px-6 py-3.5 font-semibold shadow-xl shadow-black/30 transition active:scale-[0.97]"
-      >
-        <Icon name="plus" size={20} /> Add expense
-      </button>
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          className="btn-gradient fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full px-6 py-3.5 font-semibold shadow-xl shadow-black/30 transition active:scale-[0.97]"
+        >
+          <Icon name="plus" size={20} /> Add expense
+        </button>
+      )}
 
       <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Add to the tab">
         <div className="mb-4 inline-flex w-full rounded-full border border-line bg-field p-1">
