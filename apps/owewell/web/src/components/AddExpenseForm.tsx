@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
-import { dollarsToCents, type SplitMethod } from '@aidenjang/shared';
+import { Money, dollarsToCents, type SplitMethod } from '@aidenjang/shared';
 import { expensesApi, type Expense } from '../lib/expenses';
 import type { GroupMember } from '../lib/groups';
 
@@ -135,6 +135,51 @@ export function AddExpenseForm({ groupId, members, onCreated, editing }: Props):
     }
   }
 
+  // Live running total for the non-equal methods, so the user sees whether their per-person
+  // values add up before hitting submit.
+  let splitHint: { text: string; tone: string } | null = null;
+  if (method !== 'EQUAL') {
+    const chosen = members.filter((m) => selected.has(m.userId));
+    const raws = chosen.map((m) => (values[m.userId] ?? '').trim()).filter(Boolean);
+    if (method === 'EXACT') {
+      let sum = 0;
+      let ok = true;
+      for (const raw of raws) {
+        try {
+          sum += dollarsToCents(raw);
+        } catch {
+          ok = false;
+        }
+      }
+      let target = 0;
+      try {
+        target = amount.trim() ? dollarsToCents(amount) : 0;
+      } catch {
+        target = 0;
+      }
+      const tone = !ok ? 'text-neg' : target > 0 && sum === target ? 'text-pos' : sum > target ? 'text-neg' : 'text-muted';
+      splitHint = { text: `${Money.fromCents(sum).format()} of ${Money.fromCents(target).format()} assigned`, tone };
+    } else if (method === 'PERCENT') {
+      let sum = 0;
+      let ok = true;
+      for (const raw of raws) {
+        const n = Number(raw);
+        if (Number.isFinite(n)) sum += n;
+        else ok = false;
+      }
+      const rounded = Math.round(sum * 100) / 100;
+      const tone = !ok ? 'text-neg' : rounded === 100 ? 'text-pos' : rounded > 100 ? 'text-neg' : 'text-muted';
+      splitHint = { text: `${rounded}% of 100%`, tone };
+    } else {
+      let sum = 0;
+      for (const raw of raws) {
+        const n = Number(raw);
+        if (Number.isFinite(n)) sum += n;
+      }
+      splitHint = { text: `${sum} share${sum === 1 ? '' : 's'} total`, tone: 'text-muted' };
+    }
+  }
+
   const inputClass =
     'w-full rounded-xl border border-line bg-field px-3 py-2.5 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20';
 
@@ -208,6 +253,12 @@ export function AddExpenseForm({ groupId, members, onCreated, editing }: Props):
           </div>
         ))}
       </div>
+
+      {splitHint && (
+        <p className={`text-right text-sm tabular-nums ${splitHint.tone}`} aria-live="polite">
+          {splitHint.text}
+        </p>
+      )}
 
       {error && (
         <p className="text-sm font-medium text-neg" role="alert">
