@@ -376,6 +376,9 @@ export function GroupDetailPage(): ReactNode {
   const myNet = balanceByUser[user?.id ?? ''] ?? 0;
   const settled = myNet === 0;
   const owed = myNet > 0;
+  // You can be square (net 0) while the group still has debts between others.
+  // Only call it "all settled" when there are no outstanding transfers at all.
+  const groupSettled = suggested.length === 0;
 
   return (
     <Shell>
@@ -501,7 +504,7 @@ export function GroupDetailPage(): ReactNode {
             settled ? 'text-ink' : owed ? 'text-gradient' : 'text-neg'
           }`}
         >
-          {settled ? 'All settled' : <MoneyText cents={Math.abs(myNet)} />}
+          {settled ? (groupSettled ? 'All settled' : "You're square") : <MoneyText cents={Math.abs(myNet)} />}
         </p>
         <button
           type="button"
