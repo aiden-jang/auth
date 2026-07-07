@@ -551,11 +551,12 @@ export function GroupDetailPage(): ReactNode {
           </div>
         ) : (
           <ul className="mt-3 space-y-2">
-            {activity.map((item) =>
+            {activity.map((item, i) =>
               item.kind === 'expense' ? (
                 <li
                   key={`e-${item.expense.id}`}
-                  className="group surface flex items-center justify-between gap-3 rounded-2xl px-4 py-3"
+                  className="animate-rise group surface flex items-center justify-between gap-3 rounded-2xl px-4 py-3"
+                  style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <Avatar name={payerSummary(item.expense).avatar} size="sm" />
@@ -591,7 +592,8 @@ export function GroupDetailPage(): ReactNode {
               ) : (
                 <li
                   key={`s-${item.settlement.id}`}
-                  className="group flex items-center justify-between gap-3 rounded-2xl border border-line px-4 py-3"
+                  className="animate-rise group flex items-center justify-between gap-3 rounded-2xl border border-line px-4 py-3"
+                  style={{ animationDelay: `${Math.min(i, 6) * 40}ms` }}
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-pos/30 bg-pos/10 text-pos">
