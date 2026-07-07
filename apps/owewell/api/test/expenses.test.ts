@@ -254,6 +254,37 @@ describe('adding a member re-splits shared equal expenses', () => {
     expect(owed(cab.splits)).toEqual({ [alice]: 1000 });
   });
 
+  test('folds a new member into an itemized receipt shared by everyone', async () => {
+    await createItemizedExpense(db, alice, groupId, {
+      description: 'Table',
+      payerId: alice,
+      taxCents: 0,
+      tipCents: 0,
+      items: [{ name: 'Shared platter', amountCents: 3000, participantIds: [alice, bob, carl] }],
+    });
+    const dana = (await addPlaceholderMember(db, alice, groupId, 'Dana')).userId;
+    const table = (await listExpenses(db, alice, groupId)).find((e) => e.description === 'Table')!;
+    // 3000 now split 4 ways.
+    expect(owed(table.splits)).toEqual({ [alice]: 750, [bob]: 750, [carl]: 750, [dana]: 750 });
+  });
+
+  test('leaves an itemized receipt with a subset item untouched', async () => {
+    await createItemizedExpense(db, alice, groupId, {
+      description: 'Mixed table',
+      payerId: alice,
+      taxCents: 0,
+      tipCents: 0,
+      items: [
+        { name: 'Shared', amountCents: 3000, participantIds: [alice, bob, carl] },
+        { name: 'Just Alice', amountCents: 1000, participantIds: [alice] },
+      ],
+    });
+    const dana = (await addPlaceholderMember(db, alice, groupId, 'Dana')).userId;
+    const table = (await listExpenses(db, alice, groupId)).find((e) => e.description === 'Mixed table')!;
+    // Not every item was shared by everyone, so the receipt is left as-is (no Dana).
+    expect(table.splits.some((s) => s.userId === dana)).toBe(false);
+  });
+
   test('leaves EXACT splits untouched when a member is added', async () => {
     await createExpense(db, alice, groupId, {
       description: 'Tickets',
