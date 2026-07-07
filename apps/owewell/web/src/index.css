@@ -103,9 +103,14 @@ input[type='checkbox'] {
   background: linear-gradient(115deg, #a78bfa 0%, #6ee7f0 100%);
   color: #09090f;
   box-shadow: 0 8px 26px -8px rgba(124, 92, 255, 0.55);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
+/* Lift on hover; press is handled by the inline active:scale utility. */
 .btn-gradient:hover {
-  box-shadow: 0 10px 32px -8px rgba(124, 92, 255, 0.7);
+  box-shadow: 0 12px 34px -8px rgba(124, 92, 255, 0.72);
+  transform: translateY(-1px);
 }
 
 /* Solid elevated surface. */
@@ -120,6 +125,8 @@ input[type='checkbox'] {
   border: 1px solid rgba(255, 255, 255, 0.075);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  /* Soft ambient depth so the frosted cards sit above the page rather than flat on it. */
+  box-shadow: 0 16px 40px -24px rgba(0, 0, 0, 0.7);
 }
 
 /* Interactive rows: a gentle lift and accent hairline on hover. */
