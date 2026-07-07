@@ -36,6 +36,10 @@ export interface GroupMember {
   joinedAt: string;
   /** True for name-only members (no linked account). Only these can be renamed locally. */
   isPlaceholder: boolean;
+  /** Payment handles (without @ / $), used to build settle-up deep links. Null when unset. */
+  venmoHandle: string | null;
+  cashappCashtag: string | null;
+  paypalHandle: string | null;
 }
 
 export interface GroupSummary {

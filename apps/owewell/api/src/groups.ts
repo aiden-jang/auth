@@ -19,6 +19,7 @@ export type GroupErrorCode =
   | 'NOT_OWNER'
   | 'CANNOT_REMOVE_OWNER'
   | 'NOT_PLACEHOLDER'
+  | 'NOT_EDITABLE'
   | 'HAS_ACTIVITY';
 
 export class GroupError extends Error {
@@ -38,6 +39,10 @@ export interface GroupMemberView {
   role: string;
   joinedAt: Date;
   isPlaceholder: boolean;
+  // Payment handles (without @ / $), for settle-up deep links. Null when unset.
+  venmoHandle: string | null;
+  cashappCashtag: string | null;
+  paypalHandle: string | null;
 }
 
 export interface GroupDetail {
@@ -83,6 +88,9 @@ async function membersOf(db: DB, groupId: string): Promise<GroupMemberView[]> {
       joinedAt: groupMembers.joinedAt,
       displayName: people.displayName,
       isPlaceholder: people.isPlaceholder,
+      venmoHandle: people.venmoHandle,
+      cashappCashtag: people.cashappCashtag,
+      paypalHandle: people.paypalHandle,
     })
     .from(groupMembers)
     .innerJoin(people, eq(groupMembers.personId, people.id))
@@ -96,7 +104,17 @@ async function membersOf(db: DB, groupId: string): Promise<GroupMemberView[]> {
     role: r.role,
     joinedAt: r.joinedAt,
     isPlaceholder: r.isPlaceholder,
+    venmoHandle: r.venmoHandle,
+    cashappCashtag: r.cashappCashtag,
+    paypalHandle: r.paypalHandle,
   }));
+}
+
+/** One member's view, freshly read (includes payment handles). Throws NOT_FOUND if absent. */
+async function memberView(db: DB, groupId: string, personId: string): Promise<GroupMemberView> {
+  const m = (await membersOf(db, groupId)).find((x) => x.userId === personId);
+  if (!m) throw new GroupError('NOT_FOUND', 'They are not in this group.');
+  return m;
 }
 
 export async function getGroup(db: DB, personId: string, groupId: string): Promise<GroupDetail> {
@@ -253,14 +271,63 @@ export async function renameMember(
     throw new GroupError('NOT_PLACEHOLDER', 'Only name-only members can be renamed; real accounts manage their own name.');
   }
   await db.update(people).set({ displayName: name }).where(eq(people.id, targetPersonId));
-  return {
-    userId: targetPersonId,
-    displayName: name,
-    email: null,
-    role: membership.role,
-    joinedAt: membership.joinedAt,
-    isPlaceholder: true,
+  return memberView(db, groupId, targetPersonId);
+}
+
+export interface PaymentHandles {
+  venmoHandle: string | null;
+  cashappCashtag: string | null;
+  paypalHandle: string | null;
+}
+
+/** What the endpoint accepts: an omitted field is left unchanged; a blank string clears it. */
+export interface PaymentHandleInput {
+  venmoHandle?: string | undefined;
+  cashappCashtag?: string | undefined;
+  paypalHandle?: string | undefined;
+}
+
+/**
+ * Set a member's payment handles (for settle-up deep links). You may edit your
+ * own handles, or those of a name-only placeholder you're in a group with; real
+ * accounts other than yourself manage their own. Empty strings clear a handle.
+ */
+export async function setPaymentHandles(
+  db: DB,
+  actingPersonId: string,
+  groupId: string,
+  targetPersonId: string,
+  handles: PaymentHandleInput,
+): Promise<GroupMemberView> {
+  await requireMembership(db, actingPersonId, groupId);
+  await requireMembership(db, targetPersonId, groupId); // target must be in the group too
+  if (targetPersonId !== actingPersonId) {
+    const person = await db
+      .select({ isPlaceholder: people.isPlaceholder })
+      .from(people)
+      .where(eq(people.id, targetPersonId))
+      .get();
+    if (!person?.isPlaceholder) {
+      throw new GroupError('NOT_EDITABLE', 'Only you can set your own payment handles.');
+    }
+  }
+  // Normalize: trim, strip a leading @ / $, and treat blank as clearing (null).
+  const clean = (v: string | undefined): string | null | undefined => {
+    if (v === undefined) return undefined; // not provided → leave unchanged
+    const t = v.trim().replace(/^[@$]/, '');
+    return t === '' ? null : t;
   };
+  const patch: Partial<PaymentHandles> = {};
+  const venmo = clean(handles.venmoHandle);
+  const cashapp = clean(handles.cashappCashtag);
+  const paypal = clean(handles.paypalHandle);
+  if (venmo !== undefined) patch.venmoHandle = venmo;
+  if (cashapp !== undefined) patch.cashappCashtag = cashapp;
+  if (paypal !== undefined) patch.paypalHandle = paypal;
+  if (Object.keys(patch).length > 0) {
+    await db.update(people).set(patch).where(eq(people.id, targetPersonId));
+  }
+  return memberView(db, groupId, targetPersonId);
 }
 
 /** Add a name-only person (no account) to the group, backed by a placeholder people row. */
@@ -276,6 +343,9 @@ export async function addPlaceholderMember(db: DB, personId: string, groupId: st
     role: 'MEMBER',
     joinedAt: new Date(),
     isPlaceholder: true,
+    venmoHandle: null,
+    cashappCashtag: null,
+    paypalHandle: null,
   };
 }
 

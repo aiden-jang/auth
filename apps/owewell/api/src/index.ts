@@ -17,6 +17,7 @@ import {
   renameMember,
   requireMembership,
   setGroupArchived,
+  setPaymentHandles,
 } from './groups.js';
 import {
   ExpenseError,
@@ -142,6 +143,23 @@ app.patch('/owewell/groups/:id/members/:personId', async (c) => {
     c.req.param('id'),
     c.req.param('personId'),
     parsed.data.name,
+  );
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
+  return c.json({ member });
+});
+
+app.patch('/owewell/groups/:id/members/:personId/payment', async (c) => {
+  const handle = z.string().trim().max(64).optional();
+  const parsed = z
+    .object({ venmoHandle: handle, cashappCashtag: handle, paypalHandle: handle })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const member = await setPaymentHandles(
+    createDb(c.env),
+    c.get('person').id,
+    c.req.param('id'),
+    c.req.param('personId'),
+    parsed.data,
   );
   c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ member });
