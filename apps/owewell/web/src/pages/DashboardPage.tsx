@@ -237,7 +237,13 @@ export function DashboardPage(): ReactNode {
             </div>
           ) : (
             <>
-              <ul className="space-y-2.5">{activeGroups.map(groupRow)}</ul>
+              {activeGroups.length > 0 ? (
+                <ul className="space-y-2.5">{activeGroups.map(groupRow)}</ul>
+              ) : (
+                <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
+                  No active groups. Your archived ones are below.
+                </p>
+              )}
               {archivedGroups.length > 0 && (
                 <div className="mt-4">
                   <button
