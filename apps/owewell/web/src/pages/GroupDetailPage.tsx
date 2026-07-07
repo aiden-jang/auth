@@ -14,7 +14,7 @@ import { RecordPaymentForm } from '../components/RecordPaymentForm';
 import { Skeleton, SkeletonList } from '../components/Skeleton';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/Confirm';
-import { groupsApi, type Balance, type GroupDetail, type GroupMember } from '../lib/groups';
+import { groupsApi, type Balance, type GroupDetail, type GroupMember, type GroupSummary } from '../lib/groups';
 import { expensesApi, type Expense } from '../lib/expenses';
 import { settlementsApi, type Settlement, type SuggestedPayment } from '../lib/settlements';
 import { payLinks } from '../lib/payLinks';
@@ -76,6 +76,8 @@ export function GroupDetailPage(): ReactNode {
   const [settling, setSettling] = useState(false);
   const [expenseMode, setExpenseMode] = useState<'simple' | 'itemized'>('simple');
   const [sheetOpen, setSheetOpen] = useState(false);
+  // All the viewer's groups, for the header switcher. Fetched once; the list rarely changes.
+  const [allGroups, setAllGroups] = useState<GroupSummary[]>([]);
   const [membersOpen, setMembersOpen] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -141,6 +143,13 @@ export function GroupDetailPage(): ReactNode {
   useEffect(() => {
     void load();
   }, [id]);
+
+  useEffect(() => {
+    groupsApi
+      .list()
+      .then((gs) => setAllGroups(gs.filter((g) => !g.archived)))
+      .catch(() => undefined);
+  }, []);
 
   useGroupRealtime(id, () => {
     void refreshLedger();
@@ -362,12 +371,30 @@ export function GroupDetailPage(): ReactNode {
 
   return (
     <Shell>
-      <Link
-        to="/"
-        className="inline-flex items-center gap-1 text-sm font-medium text-muted transition hover:text-ink"
-      >
-        <Icon name="arrow-left" size={16} /> Your groups
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1 text-sm font-medium text-muted transition hover:text-ink"
+        >
+          <Icon name="arrow-left" size={16} /> Your groups
+        </Link>
+        {allGroups.length > 1 && allGroups.some((g) => g.id === id) && (
+          <select
+            value={id}
+            onChange={(e) => {
+              if (e.target.value !== id) navigate(`/groups/${e.target.value}`);
+            }}
+            aria-label="Switch group"
+            className="max-w-[55%] truncate rounded-full border border-line bg-field px-3 py-1.5 text-sm text-muted outline-none transition hover:text-ink focus:border-accent"
+          >
+            {allGroups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
 
       {renaming ? (
         <div className="mt-3 flex gap-2">
