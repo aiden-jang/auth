@@ -111,12 +111,17 @@ export function GroupDetailPage(): ReactNode {
   }
 
   async function refreshLedger(): Promise<void> {
-    const [b, e, st, s] = await Promise.all([
+    // Refetch the group too, not just the ledger: if it was archived, renamed, or had a
+    // member change in another tab/device, `group.archived` (which drives read-only) and the
+    // member list must stay current, otherwise stale gates would keep edit controls live.
+    const [g, b, e, st, s] = await Promise.all([
+      groupsApi.get(id),
       groupsApi.balances(id),
       expensesApi.list(id),
       settlementsApi.list(id),
       settlementsApi.suggested(id),
     ]);
+    setGroup(g);
     setBalances(b);
     setExpenses(e);
     setSettlements(st);
