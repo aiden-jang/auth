@@ -904,7 +904,7 @@ export function GroupDetailPage(): ReactNode {
       <button
         type="button"
         onClick={() => setSheetOpen(true)}
-        className="btn-gradient fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full px-6 py-3.5 font-semibold shadow-xl shadow-black/30 transition active:scale-[0.97]"
+        className="btn-gradient fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full px-6 py-3.5 font-semibold shadow-xl shadow-black/30 transition active:scale-[0.97]"
       >
         <Icon name="plus" size={20} /> Add expense
       </button>
