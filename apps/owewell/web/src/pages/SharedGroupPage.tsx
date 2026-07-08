@@ -138,10 +138,13 @@ export function SharedGroupPage(): ReactNode {
                 <ul className="mt-3 space-y-2 text-sm">
                   {summary.suggested.map((p, i) => (
                     <li key={i} className="flex items-center justify-between gap-2">
-                      <span>
-                        <span className="font-medium">{p.fromName}</span>
-                        <span className="text-muted"> pays </span>
-                        <span className="font-medium">{p.toName}</span>
+                      <span className="flex items-center gap-2">
+                        <Avatar name={p.fromName} size="sm" />
+                        <span>
+                          <span className="font-medium">{p.fromName}</span>
+                          <span className="text-muted"> pays </span>
+                          <span className="font-medium">{p.toName}</span>
+                        </span>
                       </span>
                       <span className="tnum font-medium">{Money.fromCents(p.amountCents).format()}</span>
                     </li>
