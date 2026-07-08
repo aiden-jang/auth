@@ -494,8 +494,8 @@ export function GroupDetailPage(): ReactNode {
             <button
               type="button"
               onClick={() => void onShare()}
-              aria-label="Share summary"
-              title="Share summary"
+              aria-label="Invite / share link"
+              title="Invite / share link"
               className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-ink"
             >
               <Icon name="share" size={17} />
@@ -591,9 +591,10 @@ export function GroupDetailPage(): ReactNode {
 
       {shareLink && (
         <div className="mt-4 rounded-2xl border border-accent/25 bg-accent-soft p-4">
-          <p className="text-sm font-medium">Read-only share link</p>
+          <p className="text-sm font-medium">Group invite link</p>
           <p className="mt-0.5 text-xs text-muted">
-            Anyone with this link can view the summary. Editing still needs a sign-in.
+            Anyone with this link can view the group. People you added by name can sign in and
+            claim their spot to join and edit.
           </p>
           <div className="mt-2 flex gap-2">
             <input
