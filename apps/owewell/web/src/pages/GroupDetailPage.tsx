@@ -655,7 +655,7 @@ export function GroupDetailPage(): ReactNode {
                     </span>
                   </span>
                 </span>
-                <div className="flex flex-wrap items-center gap-1.5">
+                <div className="flex flex-wrap items-center justify-end gap-1.5 pl-9 sm:pl-0">
                   {payLinks(
                     group.members.find((m) => m.userId === payment.toUserId) ?? {
                       venmoHandle: null,
