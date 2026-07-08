@@ -10,6 +10,8 @@ import {
   renameGroup,
   renameMember,
   setGroupArchived,
+  getOrCreateShareToken,
+  getSharedSummary,
 } from '../src/groups.js';
 import { createExpense, getBalances } from '../src/expenses.js';
 import { recordSettlement } from '../src/settlements.js';
@@ -109,6 +111,42 @@ describe('groups', () => {
     const bal = await getBalances(db, alice, group.id);
     expect(bal.reduce((sum, b) => sum + b.netCents, 0)).toBe(0);
     expect(bal.find((b) => b.userId === alice)?.netCents).toBe(0);
+  });
+
+  test('share token is stable and its public summary reflects the group', async () => {
+    const db = testDb();
+    const group = await createGroup(db, alice, 'Trip');
+    const bob = (await addPlaceholderMember(db, alice, group.id, 'Bob')).userId;
+    await createExpense(db, alice, group.id, {
+      description: 'Dinner',
+      amountCents: 1000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }],
+      category: 'food',
+    });
+
+    const token = await getOrCreateShareToken(db, alice, group.id);
+    expect(token).toMatch(/^[a-f0-9]{32,}$/);
+    // Idempotent: the same token comes back on repeat.
+    expect(await getOrCreateShareToken(db, alice, group.id)).toBe(token);
+    // Non-members can't mint a link.
+    const outsider = await seedPerson(db, 'Nate');
+    await expect(getOrCreateShareToken(db, outsider, group.id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+
+    const summary = await getSharedSummary(db, token);
+    expect(summary).not.toBeNull();
+    expect(summary).toMatchObject({
+      groupName: 'Trip',
+      memberCount: 2,
+      totalSpentCents: 1000,
+      perPersonCents: 500,
+    });
+    expect(summary?.suggested).toEqual([{ fromName: 'Bob', toName: 'Alice', amountCents: 500 }]);
+    expect(summary?.breakdown).toEqual([{ category: 'food', cents: 1000 }]);
+
+    // An unknown token resolves to nothing, not someone else's group.
+    expect(await getSharedSummary(db, 'not-a-real-token')).toBeNull();
   });
 
   test('unknown group is NOT_FOUND', async () => {

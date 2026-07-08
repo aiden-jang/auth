@@ -43,6 +43,13 @@
       "when": 1783473361890,
       "tag": "0005_serious_jackpot",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1783477182794,
+      "tag": "0006_flaky_hairball",
+      "breakpoints": true
     }
   ]
 }

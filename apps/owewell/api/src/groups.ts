@@ -1,7 +1,7 @@
-import { computeSplit, computeItemizedSplit, computeItemizedPayers } from '@aidenjang/shared';
+import { computeSplit, computeItemizedSplit, computeItemizedPayers, simplifyDebts } from '@aidenjang/shared';
 import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
 import type { DB } from './db/client.js';
-import { getBalances } from './expenses.js';
+import { computeBalances, getBalances } from './expenses.js';
 import { pruneOrphanPlaceholders } from './people.js';
 import {
   expenseItemShares,
@@ -158,6 +158,77 @@ export async function setGroupArchived(db: DB, personId: string, groupId: string
   await requireOwner(db, personId, groupId);
   await db.update(groups).set({ archivedAt: archived ? new Date() : null }).where(eq(groups.id, groupId));
   return getGroup(db, personId, groupId);
+}
+
+/** The read-only view served on the public share page. Deliberately excludes payment handles
+ *  and individual line items — just totals, balances, and who-owes-who. */
+export interface SharedGroupSummary {
+  groupId: string;
+  groupName: string;
+  memberCount: number;
+  totalSpentCents: number;
+  perPersonCents: number;
+  totalSettledCents: number;
+  members: { displayName: string; netCents: number }[];
+  suggested: { fromName: string; toName: string; amountCents: number }[];
+  breakdown: { category: string; cents: number }[];
+}
+
+/** Create (once) or return the group's public share token. Members only. */
+export async function getOrCreateShareToken(db: DB, personId: string, groupId: string): Promise<string> {
+  await requireMembership(db, personId, groupId);
+  const g = await db.select({ shareToken: groups.shareToken }).from(groups).where(eq(groups.id, groupId)).get();
+  if (!g) throw new GroupError('NOT_FOUND', 'Group not found.');
+  if (g.shareToken) return g.shareToken;
+  // Two UUIDs' worth of entropy, hex only, so the link isn't guessable.
+  const token = (crypto.randomUUID() + crypto.randomUUID()).replace(/-/g, '');
+  await db.update(groups).set({ shareToken: token }).where(eq(groups.id, groupId));
+  return token;
+}
+
+/** Resolve a share token to its read-only summary. No auth: anyone with the link may view.
+ *  Returns null when the token doesn't match a group. */
+export async function getSharedSummary(db: DB, token: string): Promise<SharedGroupSummary | null> {
+  if (!token) return null;
+  const g = await db.select().from(groups).where(eq(groups.shareToken, token)).get();
+  if (!g) return null;
+
+  const balances = await computeBalances(db, g.id);
+  const nameByPerson = new Map(balances.map((b) => [b.userId, b.displayName]));
+  const suggested = simplifyDebts(balances.map((b) => ({ userId: b.userId, netCents: b.netCents }))).map((t) => ({
+    fromName: nameByPerson.get(t.fromUserId) ?? 'Someone',
+    toName: nameByPerson.get(t.toUserId) ?? 'Someone',
+    amountCents: t.amountCents,
+  }));
+
+  const exps = await db
+    .select({ amountCents: expenses.amountCents, category: expenses.category })
+    .from(expenses)
+    .where(and(eq(expenses.groupId, g.id), isNull(expenses.deletedAt)))
+    .all();
+  const totalSpentCents = exps.reduce((sum, e) => sum + e.amountCents, 0);
+  const setl = await db.select({ amountCents: settlements.amountCents }).from(settlements).where(eq(settlements.groupId, g.id)).all();
+  const totalSettledCents = setl.reduce((sum, s) => sum + s.amountCents, 0);
+  const catTotals = new Map<string, number>();
+  for (const e of exps) {
+    const key = e.category ?? 'other';
+    catTotals.set(key, (catTotals.get(key) ?? 0) + e.amountCents);
+  }
+  const breakdown = [...catTotals.entries()]
+    .map(([category, cents]) => ({ category, cents }))
+    .sort((a, b) => b.cents - a.cents);
+
+  return {
+    groupId: g.id,
+    groupName: g.name,
+    memberCount: balances.length,
+    totalSpentCents,
+    perPersonCents: balances.length ? Math.round(totalSpentCents / balances.length) : 0,
+    totalSettledCents,
+    members: balances.map((b) => ({ displayName: b.displayName, netCents: b.netCents })),
+    suggested,
+    breakdown,
+  };
 }
 
 export async function createGroup(db: DB, personId: string, name: string): Promise<GroupDetail> {
