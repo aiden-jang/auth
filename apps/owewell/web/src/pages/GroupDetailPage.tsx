@@ -320,10 +320,21 @@ export function GroupDetailPage(): ReactNode {
   if (notFound) {
     return (
       <Shell>
-        <p className="text-lg font-medium">That group went missing. Or was never yours.</p>
-        <Link to="/" className="mt-2 inline-block text-sm font-medium text-accent">
-          Back to your groups
-        </Link>
+        <div className="rounded-3xl border border-dashed border-line p-10 text-center">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-surface2 text-muted">
+            <Icon name="users" size={22} />
+          </div>
+          <p className="mt-4 text-lg font-medium">That group went missing. Or was never yours.</p>
+          <p className="mt-1 text-sm text-muted">
+            It may have been deleted, or you&rsquo;re not a member.
+          </p>
+          <Link
+            to="/"
+            className="btn-gradient mt-5 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition active:scale-[0.98]"
+          >
+            <Icon name="arrow-left" size={15} /> Back to your groups
+          </Link>
+        </div>
       </Shell>
     );
   }
