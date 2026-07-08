@@ -76,6 +76,7 @@ export function DashboardPage(): ReactNode {
           archived: false,
           memberCount: group.members.length,
           netCents: 0,
+          totalUnsettledCents: 0,
         },
         ...(prev ?? []),
       ]);
@@ -108,6 +109,12 @@ export function DashboardPage(): ReactNode {
             <span className="block truncate font-medium">{group.name}</span>
             <span className="block text-sm text-muted">
               {group.memberCount} {group.memberCount === 1 ? 'person' : 'people'}
+              {group.totalUnsettledCents > 0 && (
+                <span className="text-faint">
+                  {' · '}
+                  {Money.fromCents(group.totalUnsettledCents).format()} unsettled
+                </span>
+              )}
             </span>
           </span>
           <span className={`tnum text-sm font-semibold ${label.className}`}>{label.text}</span>

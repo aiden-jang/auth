@@ -51,6 +51,8 @@ export interface GroupSummary {
   memberCount: number;
   /** The viewer's net in this group. Positive: they're owed. Negative: they owe. */
   netCents: number;
+  /** The whole group's outstanding money (sum of every positive balance), not just the viewer's. */
+  totalUnsettledCents: number;
 }
 
 export interface GroupDetail {
