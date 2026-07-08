@@ -863,9 +863,11 @@ export function GroupDetailPage(): ReactNode {
                 const label = balanceLabel(balanceByUser[member.userId] ?? 0);
                 const bal = balanceOf[member.userId];
                 const isSelf = member.userId === user?.id;
-                // The owner can remove any non-owner member, even unsettled — the server writes
-                // off their balance. There's no "leave"; to get a group off your list you archive.
-                const canRemove = isOwner && !isSelf && member.role !== 'OWNER';
+                // The owner can remove a non-owner member only before any payment is recorded
+                // (removal re-splits expenses, which would break a logged settlement). There's no
+                // "leave" — to get a group off your list you archive it.
+                const canRemove =
+                  isOwner && !isSelf && member.role !== 'OWNER' && settlements.length === 0;
                 return (
                   <li
                     key={member.userId}
@@ -1024,6 +1026,11 @@ export function GroupDetailPage(): ReactNode {
             <p className="mt-3 text-xs text-muted">
               Added someone by name? Share the group link (top right) so they can claim their spot.
             </p>
+            {isOwner && settlements.length > 0 && (
+              <p className="mt-1 text-xs text-faint">
+                Members can&rsquo;t be removed once a payment has been recorded.
+              </p>
+            )}
           </div>
         )}
       </section>

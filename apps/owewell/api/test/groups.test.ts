@@ -15,7 +15,7 @@ import {
   claimPlaceholder,
 } from '../src/groups.js';
 import { createExpense, getBalances } from '../src/expenses.js';
-import { listSettlements } from '../src/settlements.js';
+import { listSettlements, recordSettlement } from '../src/settlements.js';
 import { testDb, seedPerson } from './helpers.js';
 
 let alice: string;
@@ -107,6 +107,23 @@ describe('groups', () => {
     expect(byId[alice]).toBe(300);
     expect(byId[carol]).toBe(-300);
     expect(balances.reduce((sum, b) => sum + b.netCents, 0)).toBe(0);
+  });
+
+  test('a member cannot be removed once a payment has been recorded', async () => {
+    const db = testDb();
+    const group = await createGroup(db, alice, 'Trip');
+    const bob = (await addPlaceholderMember(db, alice, group.id, 'Bob')).userId;
+    await createExpense(db, alice, group.id, {
+      description: 'Dinner',
+      amountCents: 1000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }],
+    });
+    // Once anyone's marked paid, removal is blocked (it would break the recorded payment).
+    await recordSettlement(db, alice, group.id, { fromUserId: bob, toUserId: alice, amountCents: 500 });
+    await expect(removeMember(db, alice, group.id, bob)).rejects.toMatchObject({ code: 'HAS_ACTIVITY' });
+    expect((await getGroup(db, alice, group.id)).members.map((m) => m.userId)).toContain(bob);
   });
 
   test('removing a member who paid hands their expense to the owner', async () => {
