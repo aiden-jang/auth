@@ -1,6 +1,7 @@
 import { computeSplit, computeItemizedSplit } from '@aidenjang/shared';
 import { and, count, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { DB } from './db/client.js';
+import { getBalances } from './expenses.js';
 import { pruneOrphanPlaceholders } from './people.js';
 import {
   expenseItemShares,
@@ -462,14 +463,17 @@ export async function removeMember(db: DB, actingPersonId: string, groupId: stri
     await requireOwner(db, actingPersonId, groupId);
   }
 
-  const [asPayer, asSplit, asShare, asSettle] = await Promise.all([
-    db.select({ c: count() }).from(expenses).where(and(eq(expenses.groupId, groupId), eq(expenses.payerId, targetPersonId))).get(),
-    db.select({ c: count() }).from(expenseSplits).innerJoin(expenses, eq(expenseSplits.expenseId, expenses.id)).where(and(eq(expenses.groupId, groupId), eq(expenseSplits.personId, targetPersonId))).get(),
-    db.select({ c: count() }).from(expenseItemShares).innerJoin(expenseItems, eq(expenseItemShares.itemId, expenseItems.id)).innerJoin(expenses, eq(expenseItems.expenseId, expenses.id)).where(and(eq(expenses.groupId, groupId), eq(expenseItemShares.personId, targetPersonId))).get(),
-    db.select({ c: count() }).from(settlements).where(and(eq(settlements.groupId, groupId), or(eq(settlements.fromPersonId, targetPersonId), eq(settlements.toPersonId, targetPersonId)))).get(),
-  ]);
-  if ((asPayer?.c ?? 0) || (asSplit?.c ?? 0) || (asShare?.c ?? 0) || (asSettle?.c ?? 0)) {
-    throw new GroupError('HAS_ACTIVITY', "They're already in expenses here. Settle and clear those first.");
+  // Being in past expenses no longer blocks removal. What matters is the balance: getBalances
+  // only returns current members, so dropping someone whose net is zero leaves everyone else
+  // balanced, while dropping someone who still owes or is owed would strand that money as a
+  // phantom imbalance. So: settled members can go (history stays intact); unsettled can't yet.
+  const balances = await getBalances(db, actingPersonId, groupId);
+  const targetNet = balances.find((b) => b.userId === targetPersonId)?.netCents ?? 0;
+  if (targetNet !== 0) {
+    throw new GroupError(
+      'HAS_ACTIVITY',
+      'They still owe or are owed money here. Settle up with them first, then remove.',
+    );
   }
 
   await db.delete(groupMembers).where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.personId, targetPersonId)));
