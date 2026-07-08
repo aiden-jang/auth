@@ -6,24 +6,15 @@ import {
   useTransform,
 } from "framer-motion";
 import type { Restaurant, SwipeDirection } from "@wherever/shared";
-import { distanceLabel, priceLabel, styleFor } from "./cardStyle.js";
+import { distanceLabel, priceLabel } from "./cardStyle.js";
+import { RestaurantPhoto } from "./RestaurantPhoto.js";
 
 const SWIPE_THRESHOLD = 110;
 
 function CardFace({ restaurant }: { restaurant: Restaurant }) {
-  const s = styleFor(restaurant.category);
   return (
     <>
-      <div
-        className="h-48 flex items-center justify-center text-7xl"
-        style={{ background: restaurant.imageUrl ? undefined : s.gradient }}
-      >
-        {restaurant.imageUrl ? (
-          <img src={restaurant.imageUrl} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <span className="drop-shadow-lg">{s.emoji}</span>
-        )}
-      </div>
+      <RestaurantPhoto imageUrl={restaurant.imageUrl} category={restaurant.category} className="h-48" />
       <div className="p-5">
         <div className="font-display text-2xl font-bold leading-tight">
           {restaurant.name}

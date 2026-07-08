@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import type { VisitedPlace } from "@wherever/shared";
 import type { MatchState } from "../useSessionSocket.js";
-import { distanceLabel, priceLabel, styleFor } from "./cardStyle.js";
+import { distanceLabel, priceLabel } from "./cardStyle.js";
+import { RestaurantPhoto } from "./RestaurantPhoto.js";
 
 function History({ visited }: { visited: VisitedPlace[] }) {
   if (visited.length === 0) return null;
@@ -61,7 +62,6 @@ export function MatchScreen({
   }
 
   const { restaurant, rightSwipes, totalParticipants } = match;
-  const s = styleFor(restaurant.category);
 
   function share() {
     const text = `We're eating at ${restaurant.name}. Decided by swipe, not by group chat.`;
@@ -78,16 +78,7 @@ export function MatchScreen({
         It&apos;s decided
       </p>
       <div className="mt-5 rounded-[28px] bg-ink-soft border border-white/10 shadow-2xl shadow-black/60 overflow-hidden">
-        <div
-          className="h-44 flex items-center justify-center text-7xl"
-          style={{ background: restaurant.imageUrl ? undefined : s.gradient }}
-        >
-          {restaurant.imageUrl ? (
-            <img src={restaurant.imageUrl} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="drop-shadow-lg">{s.emoji}</span>
-          )}
-        </div>
+        <RestaurantPhoto imageUrl={restaurant.imageUrl} category={restaurant.category} className="h-44" />
         <div className="p-5">
           <div className="font-display text-3xl font-extrabold leading-tight">
             {restaurant.name}
