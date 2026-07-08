@@ -89,7 +89,7 @@ export function SharedGroupPage(): ReactNode {
           <Link to="/" className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight">
             <BrandMark /> owewell
           </Link>
-          <span className="text-xs text-muted">shared summary · read-only</span>
+          <span className="text-xs text-muted">shared with you</span>
         </div>
       </header>
 
@@ -108,7 +108,12 @@ export function SharedGroupPage(): ReactNode {
 
         {status === 'ready' && summary && (
           <>
-            <h1 className="font-display text-3xl font-semibold tracking-tight">{summary.groupName}</h1>
+            {!viewerIsMember && (
+              <p className="text-sm font-medium text-accent">
+                {hasOpenSeats ? "You've been invited" : 'Shared with you'}
+              </p>
+            )}
+            <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">{summary.groupName}</h1>
             <p className="mt-1 text-sm text-muted">
               {summary.memberCount} {summary.memberCount === 1 ? 'person' : 'people'}
             </p>
