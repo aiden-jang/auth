@@ -234,23 +234,22 @@ export function GroupDetailPage(): ReactNode {
     navigate('/');
   }
 
-  async function removeFromGroup(targetUserId: string, isSelf: boolean): Promise<void> {
+  async function removeFromGroup(targetUserId: string, netCents: number): Promise<void> {
+    const reSplit =
+      netCents !== 0
+        ? "Their share of the expenses re-splits among everyone else (nothing gets marked as paid). "
+        : '';
     const ok = await confirm({
-      title: isSelf ? 'Leave this group?' : 'Remove this person?',
-      body: isSelf
-        ? 'You can be added back later if you change your mind.'
-        : 'They lose access to this group. You can add them back later.',
-      confirmLabel: isSelf ? 'Leave' : 'Remove',
+      title: 'Remove this person?',
+      body: `${reSplit}They lose access to this group. You can add them back later.`,
+      confirmLabel: 'Remove',
       tone: 'danger',
     });
     if (!ok) return;
     try {
       await groupsApi.removeMember(id, targetUserId);
-      if (isSelf) navigate('/');
-      else {
-        await load();
-        toast.success('Removed them from the group.');
-      }
+      await load();
+      toast.success('Removed them from the group.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not remove them.');
     }
@@ -864,11 +863,9 @@ export function GroupDetailPage(): ReactNode {
                 const label = balanceLabel(balanceByUser[member.userId] ?? 0);
                 const bal = balanceOf[member.userId];
                 const isSelf = member.userId === user?.id;
-                // The owner can remove another member once they're settled (removing an
-                // unsettled member would strand money; the server enforces this too). There's no
-                // "leave" — to get a group off your list you archive it.
-                const settled = (balanceByUser[member.userId] ?? 0) === 0;
-                const canRemove = isOwner && !isSelf && member.role !== 'OWNER' && settled;
+                // The owner can remove any non-owner member, even unsettled — the server writes
+                // off their balance. There's no "leave"; to get a group off your list you archive.
+                const canRemove = isOwner && !isSelf && member.role !== 'OWNER';
                 return (
                   <li
                     key={member.userId}
@@ -992,7 +989,7 @@ export function GroupDetailPage(): ReactNode {
                           {canRemove && (
                             <button
                               type="button"
-                              onClick={() => void removeFromGroup(member.userId, false)}
+                              onClick={() => void removeFromGroup(member.userId, balanceByUser[member.userId] ?? 0)}
                               aria-label={`Remove ${member.displayName}`}
                               title={`Remove ${member.displayName}`}
                               className="grid h-8 w-8 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-neg"

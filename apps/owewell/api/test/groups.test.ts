@@ -15,7 +15,7 @@ import {
   claimPlaceholder,
 } from '../src/groups.js';
 import { createExpense, getBalances } from '../src/expenses.js';
-import { recordSettlement } from '../src/settlements.js';
+import { listSettlements } from '../src/settlements.js';
 import { testDb, seedPerson } from './helpers.js';
 
 let alice: string;
@@ -80,38 +80,56 @@ describe('groups', () => {
     await expect(getGroup(db, alice, group.id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
-  test('a settled member can be removed even when they appear in expenses', async () => {
+  test('removing a member re-splits their share among the rest, no settlements invented', async () => {
     const db = testDb();
     const group = await createGroup(db, alice, 'Trip');
     const bob = (await addPlaceholderMember(db, alice, group.id, 'Bob')).userId;
+    const carol = (await addPlaceholderMember(db, alice, group.id, 'Carol')).userId;
 
-    // Alice pays 1000 split evenly: Bob owes 500.
+    // Alice pays 600 split three ways: each owes 200 (Alice +400, Bob -200, Carol -200).
     await createExpense(db, alice, group.id, {
       description: 'Dinner',
-      amountCents: 1000,
+      amountCents: 600,
       payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }, { userId: carol }],
+    });
+
+    await removeMember(db, alice, group.id, bob);
+
+    // Bob is gone, nothing is marked settled, and his 200 share was absorbed by Alice + Carol
+    // (dinner re-splits two ways: 300 each → Alice +300, Carol -300). Ledger still nets to zero.
+    const g = await getGroup(db, alice, group.id);
+    expect(g.members.map((m) => m.userId)).not.toContain(bob);
+    expect(await listSettlements(db, alice, group.id)).toHaveLength(0);
+    const balances = await getBalances(db, alice, group.id);
+    const byId = Object.fromEntries(balances.map((b) => [b.userId, b.netCents]));
+    expect(byId[alice]).toBe(300);
+    expect(byId[carol]).toBe(-300);
+    expect(balances.reduce((sum, b) => sum + b.netCents, 0)).toBe(0);
+  });
+
+  test('removing a member who paid hands their expense to the owner', async () => {
+    const db = testDb();
+    const group = await createGroup(db, alice, 'Trip'); // Alice is owner
+    const bob = (await addPlaceholderMember(db, alice, group.id, 'Bob')).userId;
+
+    // Bob pays 100 split with Alice: Alice owes Bob 50.
+    await createExpense(db, alice, group.id, {
+      description: 'Cab',
+      amountCents: 100,
+      payerId: bob,
       splitMethod: 'EQUAL',
       participants: [{ userId: alice }, { userId: bob }],
     });
 
-    // Bob is in an expense and still owes, so removal is blocked (on the balance, not on
-    // merely appearing in an expense).
-    await expect(removeMember(db, alice, group.id, bob)).rejects.toMatchObject({
-      code: 'HAS_ACTIVITY',
-    });
-
-    // Once Bob settles up, he can be removed although he's still in the expense's history.
-    await recordSettlement(db, alice, group.id, { fromUserId: bob, toUserId: alice, amountCents: 500 });
-    expect((await getBalances(db, alice, group.id)).find((b) => b.userId === bob)?.netCents).toBe(0);
-
     await removeMember(db, alice, group.id, bob);
-    const after = await getGroup(db, alice, group.id);
-    expect(after.members.map((m) => m.userId)).not.toContain(bob);
 
-    // The remaining ledger still balances to zero.
-    const bal = await getBalances(db, alice, group.id);
-    expect(bal.reduce((sum, b) => sum + b.netCents, 0)).toBe(0);
-    expect(bal.find((b) => b.userId === alice)?.netCents).toBe(0);
+    // The payment is handed to the owner and Bob's share re-splits to Alice: it's now Alice's
+    // own $100 expense → she nets zero, and no settlement was invented.
+    const byId = Object.fromEntries((await getBalances(db, alice, group.id)).map((b) => [b.userId, b.netCents]));
+    expect(byId[alice]).toBe(0);
+    expect(await listSettlements(db, alice, group.id)).toHaveLength(0);
   });
 
   test('share token is stable and its public summary reflects the group', async () => {

@@ -154,22 +154,3 @@ export const settlements = sqliteTable(
   },
   (t) => ({ byGroup: index('settle_group').on(t.groupId) }),
 );
-
-export const invites = sqliteTable('invites', {
-  id: text('id').primaryKey(),
-  groupId: text('group_id')
-    .notNull()
-    .references(() => groups.id, { onDelete: 'cascade' }),
-  // The raw token lives in the share link; unique and unguessable.
-  token: text('token').notNull().unique(),
-  // Optional addressee (lowercased). Null = anyone with the link.
-  email: text('email'),
-  invitedById: text('invited_by_id')
-    .notNull()
-    .references(() => people.id),
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-  acceptedAt: integer('accepted_at', { mode: 'timestamp' }),
-});

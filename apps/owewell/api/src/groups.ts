@@ -1,7 +1,7 @@
-import { computeSplit, computeItemizedSplit, computeItemizedPayers, simplifyDebts } from '@aidenjang/shared';
-import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { computeSplit, computeItemizedSplit, computeItemizedPayers, simplifyDebts, allocateCents } from '@aidenjang/shared';
+import { and, count, desc, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { DB } from './db/client.js';
-import { computeBalances, getBalances } from './expenses.js';
+import { computeBalances } from './expenses.js';
 import { pruneOrphanPlaceholders } from './people.js';
 import {
   expenseItemShares,
@@ -10,7 +10,6 @@ import {
   expenses,
   groupMembers,
   groups,
-  invites,
   people,
   settlements,
 } from './db/schema.js';
@@ -449,7 +448,6 @@ export async function deleteGroup(db: DB, personId: string, groupId: string): Pr
     await db.delete(expenses).where(inArray(expenses.id, expIds));
   }
   await db.delete(settlements).where(eq(settlements.groupId, groupId));
-  await db.delete(invites).where(eq(invites.groupId, groupId));
   await db.delete(groupMembers).where(eq(groupMembers.groupId, groupId));
   await db.delete(groups).where(eq(groups.id, groupId));
   await pruneOrphanPlaceholders(db);
@@ -634,8 +632,78 @@ export async function addPlaceholderMember(db: DB, personId: string, groupId: st
   };
 }
 
-/** Remove a member (or leave). Owner can remove others; anyone can leave; owner can't be removed;
- * nobody with ledger activity can be removed until it's cleared. */
+/**
+ * "Un-add" a member from the ledger: re-split each expense as if they were never a participant
+ * (their owed share is redistributed across the remaining participants), and hand anything they
+ * paid over to `ownerId` so the outlay isn't lost. No settlements are created. Keeps the ledger
+ * zero-sum without fabricating payments.
+ */
+async function unaddFromLedger(db: DB, groupId: string, personId: string, ownerId: string): Promise<void> {
+  const exps = await db
+    .select({ id: expenses.id, payerId: expenses.payerId })
+    .from(expenses)
+    .where(and(eq(expenses.groupId, groupId), isNull(expenses.deletedAt)))
+    .all();
+
+  for (const e of exps) {
+    // Anything they paid is taken over by the owner (so the payment isn't lost).
+    if (e.payerId === personId) {
+      await db.update(expenses).set({ payerId: ownerId }).where(eq(expenses.id, e.id));
+    }
+    await db
+      .update(expenseItems)
+      .set({ payerId: ownerId })
+      .where(and(eq(expenseItems.expenseId, e.id), eq(expenseItems.payerId, personId)));
+
+    // Redistribute their owed share across the remaining participants (proportionally).
+    const splits = await db
+      .select({ id: expenseSplits.id, personId: expenseSplits.personId, owedCents: expenseSplits.owedCents })
+      .from(expenseSplits)
+      .where(eq(expenseSplits.expenseId, e.id))
+      .all();
+    const mine = splits.find((s) => s.personId === personId);
+    if (mine) {
+      const others = splits.filter((s) => s.personId !== personId);
+      if (others.length === 0) {
+        // They were the only participant — the expense is theirs, so it leaves with them.
+        await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, e.id));
+      } else {
+        const weights = others.map((o) => o.owedCents);
+        const hasWeight = weights.some((w) => w > 0);
+        const add = allocateCents(mine.owedCents, hasWeight ? weights : others.map(() => 1));
+        for (let i = 0; i < others.length; i++) {
+          await db
+            .update(expenseSplits)
+            .set({ owedCents: others[i]!.owedCents + add[i]! })
+            .where(eq(expenseSplits.id, others[i]!.id));
+        }
+        await db.delete(expenseSplits).where(eq(expenseSplits.id, mine.id));
+      }
+    }
+
+    // Drop them from itemized item shares (detail cleanup; balances come from the splits above).
+    const itemIds = (
+      await db.select({ id: expenseItems.id }).from(expenseItems).where(eq(expenseItems.expenseId, e.id)).all()
+    ).map((i) => i.id);
+    if (itemIds.length) {
+      await db
+        .delete(expenseItemShares)
+        .where(and(inArray(expenseItemShares.itemId, itemIds), eq(expenseItemShares.personId, personId)));
+    }
+  }
+
+  // Any settlements referencing them are dropped — they're leaving the ledger entirely.
+  await db
+    .delete(settlements)
+    .where(
+      and(eq(settlements.groupId, groupId), or(eq(settlements.fromPersonId, personId), eq(settlements.toPersonId, personId))),
+    );
+}
+
+/** Remove a member. Owner can remove others; the owner can't be removed (delete the group
+ * instead). Removal "un-adds" the member — their share is re-split among the people who remain
+ * and anything they paid is handed to the owner — so the ledger stays correct with no
+ * settlements invented. */
 export async function removeMember(db: DB, actingPersonId: string, groupId: string, targetPersonId: string): Promise<void> {
   await requireMembership(db, actingPersonId, groupId);
   const target = await db
@@ -651,21 +719,12 @@ export async function removeMember(db: DB, actingPersonId: string, groupId: stri
     await requireOwner(db, actingPersonId, groupId);
   }
 
-  // Being in past expenses no longer blocks removal. What matters is the balance: getBalances
-  // only returns current members, so dropping someone whose net is zero leaves everyone else
-  // balanced, while dropping someone who still owes or is owed would strand that money as a
-  // phantom imbalance. So: settled members can go (history stays intact); unsettled can't yet.
-  const balances = await getBalances(db, actingPersonId, groupId);
-  const targetNet = balances.find((b) => b.userId === targetPersonId)?.netCents ?? 0;
-  if (targetNet !== 0) {
-    const leaving = targetPersonId === actingPersonId;
-    throw new GroupError(
-      'HAS_ACTIVITY',
-      leaving
-        ? 'You still owe or are owed money here. Settle up first, then you can leave.'
-        : 'They still owe or are owed money here. Settle up with them first, then remove.',
-    );
-  }
+  const owner = await db
+    .select({ personId: groupMembers.personId })
+    .from(groupMembers)
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.role, 'OWNER')))
+    .get();
+  await unaddFromLedger(db, groupId, targetPersonId, owner?.personId ?? actingPersonId);
 
   await db.delete(groupMembers).where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.personId, targetPersonId)));
   await pruneOrphanPlaceholders(db);
