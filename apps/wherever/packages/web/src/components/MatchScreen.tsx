@@ -1,8 +1,11 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { VisitedPlace } from "@wherever/shared";
 import type { MatchState } from "../useSessionSocket.js";
 import { distanceLabel, priceLabel, reviewCountLabel } from "./cardStyle.js";
 import { RestaurantPhoto } from "./RestaurantPhoto.js";
+import { Confetti } from "./Confetti.js";
+import { buzz } from "./haptics.js";
 
 function History({ visited }: { visited: VisitedPlace[] }) {
   if (visited.length === 0) return null;
@@ -61,23 +64,56 @@ export function MatchScreen({
     );
   }
 
-  const { restaurant, rightSwipes, totalParticipants } = match;
+  return <WinnerScreen match={match} visited={visited} isHost={isHost} onAgain={onAgain} navigate={navigate} />;
+}
 
-  function share() {
+function WinnerScreen({
+  match,
+  visited,
+  isHost,
+  onAgain,
+  navigate,
+}: {
+  match: Extract<NonNullable<MatchState>, { kind: "match" }>;
+  visited: VisitedPlace[];
+  isHost: boolean;
+  onAgain: () => void;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  const { restaurant, rightSwipes, totalParticipants } = match;
+  const [shared, setShared] = useState(false);
+
+  // Celebrate once when the verdict lands: confetti + a short victory buzz.
+  const [celebrate, setCelebrate] = useState(true);
+  useEffect(() => {
+    buzz([18, 40, 18]);
+    const t = setTimeout(() => setCelebrate(false), 4000);
+    return () => clearTimeout(t);
+  }, []);
+
+  async function share() {
     const text = `We're eating at ${restaurant.name}. Decided by swipe, not by group chat.`;
-    if (navigator.share) {
-      navigator.share({ title: "Wherever, Honestly", text }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(text);
+    const url = window.location.origin;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Wherever, Honestly", text, url });
+      } else {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        setShared(true);
+        setTimeout(() => setShared(false), 1800);
+      }
+    } catch {
+      // User dismissed the share sheet; nothing to do.
     }
   }
 
   return (
-    <div className="text-center max-w-sm mx-auto w-full">
+    <div className="relative text-center max-w-sm mx-auto w-full">
+      {celebrate && <Confetti />}
       <p className="font-display text-lg font-bold tracking-widest text-acid uppercase">
         It&apos;s decided
       </p>
-      <div className="mt-5 rounded-[28px] bg-ink-soft border border-white/10 shadow-2xl shadow-black/60 overflow-hidden">
+      <div className="pop-in mt-5 rounded-[28px] bg-ink-soft border border-white/10 shadow-2xl shadow-black/60 overflow-hidden">
         <RestaurantPhoto imageUrl={restaurant.imageUrl} category={restaurant.category} className="h-44" />
         <div className="p-5">
           <div className="font-display text-3xl font-extrabold leading-tight">
@@ -107,9 +143,9 @@ export function MatchScreen({
       <div className="mt-8 flex flex-col gap-3">
         <button
           onClick={share}
-          className="rounded-full bg-ember px-8 py-3 text-lg font-semibold text-ink hover:brightness-110 transition"
+          className="rounded-full bg-ember px-8 py-3 text-lg font-semibold text-ink hover:brightness-110 active:scale-[0.98] transition"
         >
-          Tell the group it&apos;s settled
+          {shared ? "Copied. Go gloat." : "Tell the group it's settled"}
         </button>
         {isHost ? (
           <button

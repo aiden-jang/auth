@@ -8,6 +8,7 @@ import {
 import type { Restaurant, SwipeDirection } from "@wherever/shared";
 import { distanceLabel, priceLabel, reviewCountLabel } from "./cardStyle.js";
 import { RestaurantPhoto } from "./RestaurantPhoto.js";
+import { buzz } from "./haptics.js";
 
 const SWIPE_THRESHOLD = 110;
 
@@ -107,6 +108,8 @@ export function SwipeDeck({
     (dir: SwipeDirection) => {
       const current = restaurants[index];
       if (!current) return;
+      // A light tap on a like, a slightly firmer double-tap on a pass.
+      buzz(dir === "right" ? 12 : [8, 20]);
       setExitDir(dir);
       onSwipe(current.id, dir);
       setIndex((i) => i + 1);
@@ -175,7 +178,7 @@ export function SwipeDeck({
           type="button"
           aria-label="Hard pass"
           onClick={() => commit("left")}
-          className="grid place-items-center h-16 w-16 rounded-full border border-white/15 text-2xl hover:border-flare hover:text-flare hover:scale-105 transition"
+          className="grid place-items-center h-16 w-16 rounded-full border border-white/15 text-2xl hover:border-flare hover:text-flare hover:scale-105 active:scale-95 transition"
         >
           ✕
         </button>
@@ -186,7 +189,7 @@ export function SwipeDeck({
           type="button"
           aria-label="Let's eat"
           onClick={() => commit("right")}
-          className="grid place-items-center h-16 w-16 rounded-full bg-acid text-ink text-2xl font-bold hover:scale-105 transition"
+          className="grid place-items-center h-16 w-16 rounded-full bg-acid text-ink text-2xl font-bold hover:scale-105 active:scale-95 transition"
         >
           ♥
         </button>
