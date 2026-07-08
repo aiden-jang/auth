@@ -381,9 +381,6 @@ export function GroupDetailPage(): ReactNode {
   const balanceByUser = Object.fromEntries(balances.map((b) => [b.userId, b.netCents]));
   const balanceOf = Object.fromEntries(balances.map((b) => [b.userId, b]));
   const isOwner = group.members.find((m) => m.userId === user?.id)?.role === 'OWNER';
-  // Archived groups are read-only: history + balances stay visible, but nothing can be edited
-  // until the group is restored.
-  const readOnly = group.archived;
   const myNet = balanceByUser[user?.id ?? ''] ?? 0;
   const settled = myNet === 0;
   const owed = myNet > 0;
@@ -522,27 +519,26 @@ export function GroupDetailPage(): ReactNode {
             >
               <Icon name="share" size={17} />
             </button>
-            {isOwner && (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen((v) => !v);
-                  }}
-                  aria-label="Group options"
-                  aria-haspopup="menu"
-                  aria-expanded={menuOpen}
-                  className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-ink"
-                >
-                  <Icon name="more" size={18} />
-                </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuOpen((v) => !v);
+                }}
+                aria-label="Group options"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-ink"
+              >
+                <Icon name="more" size={18} />
+              </button>
               {menuOpen && (
                 <div
                   role="menu"
-                  className="surface absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-2xl border border-line py-1 shadow-xl shadow-black/40"
+                  className="surface absolute right-0 z-20 mt-1 w-48 overflow-hidden rounded-2xl border border-line py-1 shadow-xl shadow-black/40"
                 >
-                  {!readOnly && (
+                  {isOwner && (
                     <button
                       role="menuitem"
                       type="button"
@@ -555,6 +551,7 @@ export function GroupDetailPage(): ReactNode {
                       <Icon name="pencil" size={15} /> Rename
                     </button>
                   )}
+                  {/* Per-member: archiving hides the group from your own list only. */}
                   <button
                     role="menuitem"
                     type="button"
@@ -562,20 +559,21 @@ export function GroupDetailPage(): ReactNode {
                     className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm transition hover:bg-surface2"
                   >
                     <Icon name={group.archived ? 'undo' : 'archive'} size={15} />{' '}
-                    {group.archived ? 'Restore group' : 'Archive group'}
+                    {group.archived ? 'Unarchive (show in my list)' : 'Archive (hide from my list)'}
                   </button>
-                  <button
-                    role="menuitem"
-                    type="button"
-                    onClick={() => void deleteGroup()}
-                    className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-neg transition hover:bg-surface2"
-                  >
-                    <Icon name="trash" size={15} /> Delete group
-                  </button>
+                  {isOwner && (
+                    <button
+                      role="menuitem"
+                      type="button"
+                      onClick={() => void deleteGroup()}
+                      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-neg transition hover:bg-surface2"
+                    >
+                      <Icon name="trash" size={15} /> Delete group
+                    </button>
+                  )}
                 </div>
               )}
-              </div>
-            )}
+            </div>
           </div>
         </div>
       )}
@@ -601,19 +599,13 @@ export function GroupDetailPage(): ReactNode {
             {Money.fromCents(totalSettled).format()} settled so far
           </p>
         )}
-        {readOnly ? (
-          <p className="mt-4 inline-flex items-center gap-1.5 text-sm text-muted">
-            <Icon name="archive" size={15} /> Archived · read-only. Restore it to make changes.
-          </p>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setPaymentOpen(true)}
-            className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition hover:underline"
-          >
-            <Icon name="wallet" size={15} /> Record a payment
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setPaymentOpen(true)}
+          className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition hover:underline"
+        >
+          <Icon name="wallet" size={15} /> Record a payment
+        </button>
       </div>
 
       {shareLink && (
@@ -641,7 +633,7 @@ export function GroupDetailPage(): ReactNode {
         </div>
       )}
 
-      {!readOnly && suggested.length > 0 && (
+      {suggested.length > 0 && (
         <section className="mt-6 rounded-2xl border border-accent/25 bg-accent-soft p-4">
           <div className="flex items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-accent">
@@ -798,7 +790,7 @@ export function GroupDetailPage(): ReactNode {
                     <span className="tnum font-semibold">
                       {Money.fromCents(item.expense.amountCents).format()}
                     </span>
-                    {!readOnly && (
+                    {(
                       <>
                         <button
                           type="button"
@@ -846,7 +838,7 @@ export function GroupDetailPage(): ReactNode {
                     <span className="tnum font-medium text-pos">
                       {Money.fromCents(item.settlement.amountCents).format()}
                     </span>
-                    {!readOnly && (
+                    {(
                       <button
                         type="button"
                         onClick={() => void undoSettlement(item.settlement.id)}
@@ -896,8 +888,11 @@ export function GroupDetailPage(): ReactNode {
                 const label = balanceLabel(balanceByUser[member.userId] ?? 0);
                 const bal = balanceOf[member.userId];
                 const isSelf = member.userId === user?.id;
-                const canLeave = isSelf && member.role !== 'OWNER' && !readOnly;
-                const canRemove = isOwner && !isSelf && member.role !== 'OWNER' && !readOnly;
+                // The owner can remove another member once they're settled (removing an
+                // unsettled member would strand money; the server enforces this too). There's no
+                // "leave" — to get a group off your list you archive it.
+                const settled = (balanceByUser[member.userId] ?? 0) === 0;
+                const canRemove = isOwner && !isSelf && member.role !== 'OWNER' && settled;
                 return (
                   <li
                     key={member.userId}
@@ -983,7 +978,7 @@ export function GroupDetailPage(): ReactNode {
                                   owner
                                 </span>
                               )}
-                              {member.isPlaceholder && !readOnly && (
+                              {member.isPlaceholder && (
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1006,7 +1001,7 @@ export function GroupDetailPage(): ReactNode {
                           </span>
                         </span>
                         <span className="flex items-center gap-3">
-                          {(isSelf || member.isPlaceholder) && !readOnly && (
+                          {(isSelf || member.isPlaceholder) && (
                             <button
                               type="button"
                               onClick={() => startEditPayment(member)}
@@ -1018,15 +1013,6 @@ export function GroupDetailPage(): ReactNode {
                             </button>
                           )}
                           <span className={`tnum text-sm font-medium ${label.tone}`}>{label.text}</span>
-                          {canLeave && (
-                            <button
-                              type="button"
-                              onClick={() => void removeFromGroup(member.userId, true)}
-                              className="rounded-full border border-line px-2.5 py-1 text-xs font-medium text-muted transition hover:bg-surface2"
-                            >
-                              Leave
-                            </button>
-                          )}
                           {canRemove && (
                             <button
                               type="button"
@@ -1046,7 +1032,7 @@ export function GroupDetailPage(): ReactNode {
               })}
             </ul>
 
-            {!readOnly && (
+            {(
               <>
                 <form onSubmit={(e) => void onAddMember(e)} className="mt-3 flex gap-2">
                   <input
@@ -1088,7 +1074,7 @@ export function GroupDetailPage(): ReactNode {
         )}
       </section>
 
-      {!readOnly && (
+      {(
         <button
           type="button"
           onClick={() => setSheetOpen(true)}

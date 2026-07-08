@@ -216,43 +216,41 @@ describe('groups', () => {
     expect(restored.archived).toBe(false);
   });
 
-  test('an archived group is read-only, but can still be restored and deleted', async () => {
+  test('archiving is a personal hide, not a freeze — the group stays editable', async () => {
     const db = testDb();
     const group = await createGroup(db, alice, 'Trip');
     const bob = (await addPlaceholderMember(db, alice, group.id, 'Bob')).userId;
     await setGroupArchived(db, alice, group.id, true);
 
-    // Mutations are refused while archived.
-    await expect(renameGroup(db, alice, group.id, 'Nope')).rejects.toMatchObject({
-      code: 'NOT_EDITABLE',
-    });
-    await expect(renameMember(db, alice, group.id, bob, 'Bobby')).rejects.toMatchObject({
-      code: 'NOT_EDITABLE',
-    });
-    await expect(addPlaceholderMember(db, alice, group.id, 'Cara')).rejects.toMatchObject({
-      code: 'NOT_EDITABLE',
-    });
-    await expect(removeMember(db, alice, group.id, bob)).rejects.toMatchObject({
-      code: 'NOT_EDITABLE',
-    });
-
-    // Restore reopens it, then edits work again.
-    await setGroupArchived(db, alice, group.id, false);
+    // Everything still works after archiving; there is no read-only state.
     expect((await renameGroup(db, alice, group.id, 'Weekend')).name).toBe('Weekend');
-
-    // Deleting an archived group is allowed (archive first, delete later).
-    await setGroupArchived(db, alice, group.id, true);
-    await deleteGroup(db, alice, group.id);
-    await expect(getGroup(db, alice, group.id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect((await renameMember(db, alice, group.id, bob, 'Bobby')).displayName).toBe('Bobby');
+    await createExpense(db, alice, group.id, {
+      description: 'Dinner',
+      amountCents: 1000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }],
+    });
+    const bal = Object.fromEntries((await getBalances(db, alice, group.id)).map((b) => [b.userId, b.netCents]));
+    expect(bal[bob]).toBe(-500);
   });
 
-  test('only the owner can archive', async () => {
+  test('archive is per-member — each member hides their own view independently', async () => {
     const db = testDb();
     const group = await createGroup(db, alice, 'Trip');
-    const memberId = (await addPlaceholderMember(db, alice, group.id, 'Bob')).userId;
-    await expect(setGroupArchived(db, memberId, group.id, true)).rejects.toMatchObject({
-      code: 'NOT_OWNER',
-    });
+    const bob = (await addPlaceholderMember(db, alice, group.id, 'Bob')).userId;
+
+    // Alice hides it: archived in her view, still active in Bob's. (Any member may archive.)
+    await setGroupArchived(db, alice, group.id, true);
+    expect((await listGroups(db, alice)).find((g) => g.id === group.id)?.archived).toBe(true);
+    expect((await listGroups(db, bob)).find((g) => g.id === group.id)?.archived).toBe(false);
+
+    // Bob hides his view too; Alice unhides hers. The two are independent.
+    await setGroupArchived(db, bob, group.id, true);
+    await setGroupArchived(db, alice, group.id, false);
+    expect((await listGroups(db, alice)).find((g) => g.id === group.id)?.archived).toBe(false);
+    expect((await listGroups(db, bob)).find((g) => g.id === group.id)?.archived).toBe(true);
   });
 
   test('renameMember refuses a real account (owner) and a non-member', async () => {
