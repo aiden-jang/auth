@@ -29,7 +29,7 @@ import {
   updateExpense,
   updateItemizedExpense,
 } from './expenses.js';
-import { PAYMENT_METHODS } from '@owewell/core';
+import { EXPENSE_CATEGORY_KEYS, PAYMENT_METHODS } from '@owewell/core';
 import {
   SettlementError,
   deleteSettlement,
@@ -180,12 +180,14 @@ app.get('/owewell/groups/:id/expenses', async (c) => {
 });
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const category = z.enum(EXPENSE_CATEGORY_KEYS as [string, ...string[]]).optional();
 const createExpenseBody = z.object({
   description: z.string().trim().min(1).max(140),
   amountCents: z.number().int().positive(),
   payerId: z.string().min(1),
   splitMethod: z.enum(['EQUAL', 'EXACT', 'PERCENT', 'SHARES']),
   participants: z.array(z.object({ userId: z.string().min(1), value: z.number().int().optional() })).min(1),
+  category,
   date: isoDate.optional(),
 });
 app.post('/owewell/groups/:id/expenses', async (c) => {
@@ -218,6 +220,7 @@ const itemizedBody = z.object({
       }),
     )
     .min(1),
+  category,
   date: isoDate.optional(),
 });
 app.post('/owewell/groups/:id/expenses/itemized', async (c) => {

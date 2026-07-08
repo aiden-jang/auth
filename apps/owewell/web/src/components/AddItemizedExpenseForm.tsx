@@ -1,8 +1,10 @@
 import { useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
 import { dollarsToCents } from '@aidenjang/shared';
+import { DEFAULT_EXPENSE_CATEGORY, type ExpenseCategory } from '@owewell/core';
 import { expensesApi, ocrReceipt, type Expense } from '../lib/expenses';
 import type { GroupMember } from '../lib/groups';
 import { normalizeAmountInput } from '../lib/format';
+import { CategoryPicker } from './CategoryPicker';
 import { Icon } from './Icon';
 
 function centsToInput(cents: number): string {
@@ -49,6 +51,9 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
   const [tip, setTip] = useState(editing?.tipCents ? centsToInput(editing.tipCents) : '');
   const [items, setItems] = useState<ItemDraft[]>(initialItems);
   const [date, setDate] = useState(editing ? editing.date.slice(0, 10) : todayStr());
+  const [category, setCategory] = useState<ExpenseCategory>(
+    editing?.category ?? DEFAULT_EXPENSE_CATEGORY,
+  );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -137,7 +142,7 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
       return;
     }
 
-    const payload = { description: description.trim(), payerId, taxCents, tipCents, items: payloadItems, date };
+    const payload = { description: description.trim(), payerId, taxCents, tipCents, items: payloadItems, category, date };
     setSubmitting(true);
     try {
       if (editing) {
@@ -197,6 +202,8 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
         aria-label="Date"
         className={inputClass}
       />
+
+      <CategoryPicker value={category} onChange={setCategory} />
 
       <div className="space-y-3">
         {items.map((item, index) => (

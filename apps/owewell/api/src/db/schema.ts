@@ -70,6 +70,8 @@ export const expenses = sqliteTable(
     // Always integer cents. amountCents is the grand total (items + tax + tip for ITEMIZED).
     amountCents: integer('amount_cents').notNull(),
     splitMethod: text('split_method').notNull(), // EQUAL | EXACT | PERCENT | SHARES | ITEMIZED
+    // Spend category key (see @owewell/core EXPENSE_CATEGORIES). Null on legacy rows = "other".
+    category: text('category'),
     taxCents: integer('tax_cents').notNull().default(0),
     tipCents: integer('tip_cents').notNull().default(0),
     createdAt: integer('created_at', { mode: 'timestamp' })
