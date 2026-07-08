@@ -6,7 +6,9 @@ export interface Env {
   SESSION_ROOM: DurableObjectNamespace<SessionRoom>;
   RATE_LIMITER: DurableObjectNamespace<RateLimiter>;
   DB: D1Database;
-  /** "mock" now, "foursquare" once a key is set (Phase 2). */
+  /** Which RestaurantSource to use: "google" (default in prod), "foursquare", or "mock". */
   RESTAURANT_SOURCE?: string;
+  /** Google Places API (New) key. Restrict it to the Places API + your domain. */
+  GOOGLE_PLACES_API_KEY?: string;
   FOURSQUARE_API_KEY?: string;
 }
