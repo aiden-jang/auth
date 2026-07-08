@@ -82,6 +82,7 @@ export function GroupDetailPage(): ReactNode {
   const [menuOpen, setMenuOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [shareLink, setShareLink] = useState<string | null>(null);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingMemberName, setEditingMemberName] = useState('');
   const [payingMemberId, setPayingMemberId] = useState<string | null>(null);
@@ -420,29 +421,34 @@ export function GroupDetailPage(): ReactNode {
       toast.error('Could not create a share link.');
       return;
     }
-    const text = buildGroupSummary({
-      groupName: group.name,
-      memberCount: group.members.length,
-      totalSpentCents: totalSpent,
-      perPersonCents,
-      totalSettledCents: totalSettled,
-      suggested,
-    });
-    // Prefer the native share sheet (mobile); a dismissed sheet throws AbortError and is not
-    // an error. Fall back to the clipboard everywhere it isn't available (most desktops).
-    try {
-      if (navigator.share) {
+    // Always reveal the link on screen so it's visible no matter what the browser supports.
+    setShareLink(url);
+    // On phones, also offer the native share sheet with a summary preview (a dismissed sheet
+    // is not an error). Desktop just uses the visible link + Copy button below.
+    if (navigator.share) {
+      const text = buildGroupSummary({
+        groupName: group.name,
+        memberCount: group.members.length,
+        totalSpentCents: totalSpent,
+        perPersonCents,
+        totalSettledCents: totalSettled,
+        suggested,
+      });
+      try {
         await navigator.share({ title: `${group.name} — owewell`, text, url });
-        return;
+      } catch {
+        /* dismissed — the link stays visible below */
       }
-    } catch (err) {
-      if ((err as Error)?.name === 'AbortError') return;
     }
+  }
+
+  async function copyShareLink(): Promise<void> {
+    if (!shareLink) return;
     try {
-      await navigator.clipboard.writeText(`${text}\n\n${url}`);
-      toast.success('Share link copied to clipboard.');
+      await navigator.clipboard.writeText(shareLink);
+      toast.success('Link copied.');
     } catch {
-      toast.error('Could not copy the share link.');
+      toast.error('Copy failed — select the link and copy it manually.');
     }
   }
 
@@ -609,6 +615,31 @@ export function GroupDetailPage(): ReactNode {
           </button>
         )}
       </div>
+
+      {shareLink && (
+        <div className="mt-4 rounded-2xl border border-accent/25 bg-accent-soft p-4">
+          <p className="text-sm font-medium">Read-only share link</p>
+          <p className="mt-0.5 text-xs text-muted">
+            Anyone with this link can view the summary. Editing still needs a sign-in.
+          </p>
+          <div className="mt-2 flex gap-2">
+            <input
+              readOnly
+              value={shareLink}
+              onFocus={(e) => e.target.select()}
+              aria-label="Share link"
+              className="min-w-0 flex-1 rounded-xl border border-line bg-field px-3 py-2.5 text-sm text-muted outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => void copyShareLink()}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface2 px-4 py-2.5 text-sm font-medium transition hover:bg-surface2/70"
+            >
+              <Icon name="copy" size={15} /> Copy
+            </button>
+          </div>
+        </div>
+      )}
 
       {!readOnly && suggested.length > 0 && (
         <section className="mt-6 rounded-2xl border border-accent/25 bg-accent-soft p-4">
