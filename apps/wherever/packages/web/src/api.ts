@@ -6,6 +6,9 @@ export const DEFAULT_FILTERS: SessionFilters = {
   maxPriceTier: 4,
   categories: [],
   minRating: 0,
+  minReviews: 0,
+  openNow: false,
+  sort: "popularity",
 };
 
 // Empty in dev (Vite proxies /api to the Worker); set to the Worker origin in prod.

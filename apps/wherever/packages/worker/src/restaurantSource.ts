@@ -1,4 +1,5 @@
 import type { PriceTier, Restaurant, SessionFilters } from "@wherever/shared";
+import { googleTypeFor } from "@wherever/shared";
 
 /**
  * The boundary between the app and wherever restaurants come from. Swap the
@@ -18,21 +19,32 @@ export function passesRating(rating: number | null, minRating?: number): boolean
   return rating != null && rating >= minRating;
 }
 
+/**
+ * Minimum-review-count gate. Like passesRating: 0/undefined lets everything through, otherwise a
+ * place with an unknown count is dropped since we can't confirm it clears the bar.
+ */
+export function passesReviews(reviewCount: number | null, minReviews?: number): boolean {
+  if (!minReviews) return true;
+  return reviewCount != null && reviewCount >= minReviews;
+}
+
 const MOCK_DECK: Restaurant[] = [
-  { id: "mock-1", name: "The Usual", category: "Burgers", priceTier: 2, rating: 4.3, distanceMeters: 400, imageUrl: null, address: "12 Main St" },
-  { id: "mock-2", name: "Probably Fine Tacos", category: "Tacos", priceTier: 1, rating: 4.6, distanceMeters: 750, imageUrl: null, address: "88 2nd Ave" },
-  { id: "mock-3", name: "Noodle Situation", category: "Ramen", priceTier: 2, rating: 4.1, distanceMeters: 1100, imageUrl: null, address: "5 Bowl Ln" },
-  { id: "mock-4", name: "Salad, I Guess", category: "Healthy", priceTier: 2, rating: 3.9, distanceMeters: 300, imageUrl: null, address: "200 Green St" },
-  { id: "mock-5", name: "Late Night Pizza Decisions", category: "Pizza", priceTier: 1, rating: 4.4, distanceMeters: 950, imageUrl: null, address: "1 Slice Blvd" },
+  { id: "mock-1", name: "The Usual", category: "Burgers", priceTier: 2, rating: 4.3, reviewCount: 820, distanceMeters: 400, imageUrl: null, address: "12 Main St" },
+  { id: "mock-2", name: "Probably Fine Tacos", category: "Tacos", priceTier: 1, rating: 4.6, reviewCount: 1540, distanceMeters: 750, imageUrl: null, address: "88 2nd Ave" },
+  { id: "mock-3", name: "Noodle Situation", category: "Ramen", priceTier: 2, rating: 4.1, reviewCount: 210, distanceMeters: 1100, imageUrl: null, address: "5 Bowl Ln" },
+  { id: "mock-4", name: "Salad, I Guess", category: "Healthy", priceTier: 2, rating: 3.9, reviewCount: 47, distanceMeters: 300, imageUrl: null, address: "200 Green St" },
+  { id: "mock-5", name: "Late Night Pizza Decisions", category: "Pizza", priceTier: 1, rating: 4.4, reviewCount: 3020, distanceMeters: 950, imageUrl: null, address: "1 Slice Blvd" },
 ];
 
 /** Returns seeded data, filtered just enough to behave like the real thing. */
 export class MockRestaurantSource implements RestaurantSource {
   async fetchDeck(filters: SessionFilters): Promise<Restaurant[]> {
+    // Mock data has no opening hours, so the openNow filter is a no-op here (all treated as open).
     return MOCK_DECK.filter((r) => {
       if (r.priceTier > filters.maxPriceTier) return false;
       if (r.distanceMeters > filters.radiusMeters) return false;
       if (!passesRating(r.rating, filters.minRating)) return false;
+      if (!passesReviews(r.reviewCount, filters.minReviews)) return false;
       if (
         filters.categories.length > 0 &&
         !filters.categories.some((c) => c.toLowerCase() === r.category.toLowerCase())
@@ -72,6 +84,8 @@ export function mapFoursquarePlace(p: FoursquarePlace): Restaurant {
     priceTier: clampTier(p.price ?? 2),
     // Foursquare rates 0-10; our UI shows a 0-5 star scale.
     rating: p.rating != null ? Math.round((p.rating / 2) * 10) / 10 : null,
+    // The search fields we request don't include a rating count.
+    reviewCount: null,
     distanceMeters: p.distance ?? 0,
     imageUrl: photo ? `${photo.prefix}original${photo.suffix}` : null,
     address: p.location?.address ?? p.location?.formatted_address ?? null,
@@ -117,7 +131,10 @@ export class FoursquareRestaurantSource implements RestaurantSource {
     return (data.results ?? [])
       .filter((p) => p.fsq_place_id && p.name)
       .map(mapFoursquarePlace)
-      .filter((r) => passesRating(r.rating, filters.minRating));
+      .filter((r) => passesRating(r.rating, filters.minRating))
+      // Foursquare's search fields don't carry a rating count, so a minReviews filter drops
+      // everything here. Foursquare is only an alternate; Google is the primary source.
+      .filter((r) => passesReviews(r.reviewCount, filters.minReviews));
   }
 }
 
@@ -135,6 +152,7 @@ export interface GooglePlace {
   priceLevel?: string;
   formattedAddress?: string;
   photos?: { name: string }[];
+  currentOpeningHours?: { openNow?: boolean };
 }
 
 const GOOGLE_PRICE_TIER: Record<string, PriceTier> = {
@@ -146,43 +164,12 @@ const GOOGLE_PRICE_TIER: Record<string, PriceTier> = {
 };
 
 /**
- * Our cuisine labels -> Google primary place types (see Places "Table A" restaurant types).
- * Anything unmapped falls back to a plain restaurant search.
+ * Map our cuisine values to Google primary types via the shared cuisine list (single source of
+ * truth). Empty or unmapped -> a generic restaurant search.
  */
-const CUISINE_TO_GOOGLE_TYPE: Record<string, string> = {
-  burgers: "hamburger_restaurant",
-  pizza: "pizza_restaurant",
-  tacos: "mexican_restaurant",
-  mexican: "mexican_restaurant",
-  ramen: "ramen_restaurant",
-  sushi: "sushi_restaurant",
-  japanese: "japanese_restaurant",
-  italian: "italian_restaurant",
-  chinese: "chinese_restaurant",
-  thai: "thai_restaurant",
-  indian: "indian_restaurant",
-  korean: "korean_restaurant",
-  vietnamese: "vietnamese_restaurant",
-  french: "french_restaurant",
-  american: "american_restaurant",
-  seafood: "seafood_restaurant",
-  steak: "steak_house",
-  bbq: "barbecue_restaurant",
-  breakfast: "breakfast_restaurant",
-  brunch: "brunch_restaurant",
-  cafe: "cafe",
-  coffee: "coffee_shop",
-  dessert: "dessert_restaurant",
-  vegetarian: "vegetarian_restaurant",
-  vegan: "vegan_restaurant",
-  greek: "greek_restaurant",
-  mediterranean: "mediterranean_restaurant",
-};
-
-/** Map our cuisine labels to Google primary types; empty -> a generic restaurant search. */
 export function googleTypesFor(categories: string[]): string[] {
   const types = categories
-    .map((c) => CUISINE_TO_GOOGLE_TYPE[c.trim().toLowerCase()])
+    .map((c) => googleTypeFor(c))
     .filter((t): t is string => Boolean(t));
   return types.length > 0 ? [...new Set(types)] : ["restaurant"];
 }
@@ -239,6 +226,7 @@ export function mapGooglePlace(
     priceTier: (p.priceLevel ? GOOGLE_PRICE_TIER[p.priceLevel] : undefined) ?? 2,
     // Google already rates 0-5, matching our scale.
     rating: p.rating != null ? Math.round(p.rating * 10) / 10 : null,
+    reviewCount: p.userRatingCount ?? null,
     distanceMeters: p.location
       ? haversineMeters(center, { lat: p.location.latitude, lng: p.location.longitude })
       : 0,
@@ -269,9 +257,10 @@ export class GooglePlacesRestaurantSource implements RestaurantSource {
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": this.apiKey,
-        // Field mask drives the billing tier: request only what the deck shows. rating +
-        // priceLevel are already the top tier, so adding photos (a lower tier) costs nothing
-        // extra here; fetching the photo bytes is a separate SKU, billed by /api/photo.
+        // Field mask drives the billing tier: request only what the deck shows. rating,
+        // userRatingCount, priceLevel and currentOpeningHours are all the same (top) tier, and
+        // photos is a lower tier, so none of these add cost. Fetching the photo bytes is a
+        // separate SKU, billed by /api/photo.
         "X-Goog-FieldMask": [
           "places.id",
           "places.displayName",
@@ -282,12 +271,13 @@ export class GooglePlacesRestaurantSource implements RestaurantSource {
           "places.priceLevel",
           "places.formattedAddress",
           "places.photos",
+          "places.currentOpeningHours",
         ].join(","),
       },
       body: JSON.stringify({
         includedPrimaryTypes: googleTypesFor(filters.categories),
         maxResultCount: 20,
-        rankPreference: "POPULARITY",
+        rankPreference: filters.sort === "distance" ? "DISTANCE" : "POPULARITY",
         locationRestriction: {
           circle: {
             center: { latitude: center.lat, longitude: center.lng },
@@ -300,12 +290,17 @@ export class GooglePlacesRestaurantSource implements RestaurantSource {
     if (!res.ok) return [];
 
     const data = (await res.json()) as { places?: GooglePlace[] };
-    return (data.places ?? [])
-      .filter((p) => p.id && p.displayName?.text)
+    const places = (data.places ?? []).filter((p) => p.id && p.displayName?.text);
+    // Open-now reads the raw place, so filter before mapping (Restaurant carries no hours).
+    const visible = filters.openNow
+      ? places.filter((p) => p.currentOpeningHours?.openNow === true)
+      : places;
+    return visible
       .map((p) => mapGooglePlace(p, center, this.publicApiBase))
-      // Google filters by cuisine + radius server-side; price and rating are filtered here.
+      // Google filters by cuisine + radius server-side; the rest is filtered here.
       .filter((r) => r.priceTier <= filters.maxPriceTier)
-      .filter((r) => passesRating(r.rating, filters.minRating));
+      .filter((r) => passesRating(r.rating, filters.minRating))
+      .filter((r) => passesReviews(r.reviewCount, filters.minReviews));
   }
 }
 

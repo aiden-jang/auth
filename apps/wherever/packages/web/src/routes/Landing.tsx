@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { PriceTier, SessionFilters } from "@wherever/shared";
+import type { PriceTier, RestaurantSort, SessionFilters } from "@wherever/shared";
 import {
   CUISINE_OPTIONS,
+  MIN_REVIEWS_OPTIONS,
   PRICE_OPTIONS,
   RADIUS_OPTIONS,
   RATING_OPTIONS,
+  SORT_OPTIONS,
 } from "@wherever/shared";
 import { Modal } from "../components/Modal.js";
 import {
@@ -199,6 +201,71 @@ function FilterFields({
           ))}
         </div>
       </div>
+
+      <div className="flex flex-col gap-2">
+        <FieldLabel>Enough reviews to trust it</FieldLabel>
+        <div className="flex gap-2">
+          {MIN_REVIEWS_OPTIONS.map((o) => {
+            const on = (filters.minReviews ?? 0) === o.value;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                aria-pressed={on}
+                onClick={() => onChange({ ...filters, minReviews: o.value })}
+                className={`${segBase} ${on ? segOn : segOff}`}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <FieldLabel>Order by</FieldLabel>
+        <div className="flex gap-2">
+          {SORT_OPTIONS.map((o) => {
+            const on = (filters.sort ?? "popularity") === o.value;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                aria-pressed={on}
+                onClick={() => onChange({ ...filters, sort: o.value as RestaurantSort })}
+                className={`${segBase} ${on ? segOn : segOff}`}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        aria-pressed={filters.openNow ?? false}
+        onClick={() => onChange({ ...filters, openNow: !filters.openNow })}
+        className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${
+          filters.openNow ? "border-ember bg-ember/10" : "border-white/10 hover:border-white/30"
+        }`}
+      >
+        <span className="flex flex-col">
+          <span className="font-semibold">Open now</span>
+          <span className="text-xs text-muted">Hide places that are closed right now</span>
+        </span>
+        <span
+          className={`relative h-6 w-11 rounded-full transition-colors ${
+            filters.openNow ? "bg-ember" : "bg-white/15"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+              filters.openNow ? "translate-x-[22px]" : "translate-x-0.5"
+            }`}
+          />
+        </span>
+      </button>
     </div>
   );
 }

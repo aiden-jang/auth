@@ -6,6 +6,7 @@ import {
   mapFoursquarePlace,
   mapGooglePlace,
   passesRating,
+  passesReviews,
   photoProxyUrl,
   type FoursquarePlace,
   type GooglePlace,
@@ -30,6 +31,7 @@ describe("mapFoursquarePlace", () => {
       category: "Pizzeria",
       priceTier: 1,
       rating: 4.6, // 9.2 / 2
+      reviewCount: null,
       distanceMeters: 320,
       imageUrl: "https://fastly.fsq.com/p/original/abc.jpg",
       address: "7 Carmine St",
@@ -73,6 +75,7 @@ describe("mapGooglePlace", () => {
       category: "Pizza restaurant",
       priceTier: 2,
       rating: 4.5, // Google is already 0-5
+      reviewCount: 1200,
       distanceMeters: 0, // same point as the center
       // Photo routed through our proxy so the API key stays server-side.
       imageUrl: "https://api.example.com/api/photo?ref=places%2Fg1%2Fphotos%2Fx",
@@ -109,6 +112,12 @@ describe("mapGooglePlace", () => {
     expect(mapGooglePlace(base, center).category).toBe("Food");
     expect(mapGooglePlace(base, center).distanceMeters).toBe(0); // no location
     expect(mapGooglePlace(base, center).imageUrl).toBeNull(); // no photos
+    expect(mapGooglePlace(base, center).reviewCount).toBeNull(); // no rating count
+  });
+
+  it("passes through the rating count", () => {
+    const p: GooglePlace = { id: "x", displayName: { text: "n" }, userRatingCount: 342 };
+    expect(mapGooglePlace(p, center).reviewCount).toBe(342);
   });
 });
 
@@ -164,6 +173,21 @@ describe("passesRating", () => {
   });
 });
 
+describe("passesReviews", () => {
+  it("lets everything through with no minimum", () => {
+    expect(passesReviews(null, 0)).toBe(true);
+    expect(passesReviews(null, undefined)).toBe(true);
+    expect(passesReviews(5, 0)).toBe(true);
+  });
+
+  it("drops unrated and below-threshold places when a minimum is set", () => {
+    expect(passesReviews(null, 50)).toBe(false);
+    expect(passesReviews(49, 50)).toBe(false);
+    expect(passesReviews(50, 50)).toBe(true);
+    expect(passesReviews(999, 50)).toBe(true);
+  });
+});
+
 describe("MockRestaurantSource minRating filter", () => {
   it("keeps only places at or above the minimum rating", async () => {
     const deck = await new MockRestaurantSource().fetchDeck({
@@ -175,5 +199,19 @@ describe("MockRestaurantSource minRating filter", () => {
     expect(deck.every((r) => (r.rating ?? 0) >= 4.4)).toBe(true);
     expect(deck.map((r) => r.name)).toContain("Probably Fine Tacos"); // 4.6
     expect(deck.map((r) => r.name)).not.toContain("Salad, I Guess"); // 3.9
+  });
+});
+
+describe("MockRestaurantSource minReviews filter", () => {
+  it("keeps only places at or above the minimum review count", async () => {
+    const deck = await new MockRestaurantSource().fetchDeck({
+      radiusMeters: 50_000,
+      maxPriceTier: 4,
+      categories: [],
+      minReviews: 500,
+    });
+    expect(deck.every((r) => (r.reviewCount ?? 0) >= 500)).toBe(true);
+    expect(deck.map((r) => r.name)).toContain("Late Night Pizza Decisions"); // 3020
+    expect(deck.map((r) => r.name)).not.toContain("Noodle Situation"); // 210
   });
 });

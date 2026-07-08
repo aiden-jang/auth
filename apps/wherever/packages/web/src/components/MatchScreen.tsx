@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import type { VisitedPlace } from "@wherever/shared";
 import type { MatchState } from "../useSessionSocket.js";
-import { distanceLabel, priceLabel } from "./cardStyle.js";
+import { distanceLabel, priceLabel, reviewCountLabel } from "./cardStyle.js";
 import { RestaurantPhoto } from "./RestaurantPhoto.js";
 
 function History({ visited }: { visited: VisitedPlace[] }) {
@@ -88,6 +88,9 @@ export function MatchScreen({
             <span className="text-white/20">|</span>
             <span className="text-acid">
               {restaurant.rating ? `★ ${restaurant.rating}` : "new"}
+              {restaurant.rating && restaurant.reviewCount
+                ? ` (${reviewCountLabel(restaurant.reviewCount)})`
+                : ""}
             </span>
             <span className="text-white/20">|</span>
             <span>{priceLabel(restaurant.priceTier)}</span>

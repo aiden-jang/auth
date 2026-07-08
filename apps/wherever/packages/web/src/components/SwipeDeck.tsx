@@ -6,7 +6,7 @@ import {
   useTransform,
 } from "framer-motion";
 import type { Restaurant, SwipeDirection } from "@wherever/shared";
-import { distanceLabel, priceLabel } from "./cardStyle.js";
+import { distanceLabel, priceLabel, reviewCountLabel } from "./cardStyle.js";
 import { RestaurantPhoto } from "./RestaurantPhoto.js";
 
 const SWIPE_THRESHOLD = 110;
@@ -24,6 +24,9 @@ function CardFace({ restaurant }: { restaurant: Restaurant }) {
           <span className="text-white/20">|</span>
           <span className="text-acid">
             {restaurant.rating ? `★ ${restaurant.rating}` : "new"}
+            {restaurant.rating && restaurant.reviewCount
+              ? ` (${reviewCountLabel(restaurant.reviewCount)})`
+              : ""}
           </span>
           <span className="text-white/20">|</span>
           <span>{priceLabel(restaurant.priceTier)}</span>

@@ -14,8 +14,11 @@ export const priceTierSchema = z.union([
 export const sessionFiltersSchema = z.object({
   radiusMeters: z.number().int().positive().max(50_000),
   maxPriceTier: priceTierSchema,
-  categories: z.array(z.string().min(1).max(40)).max(20),
+  categories: z.array(z.string().min(1).max(40)).max(40),
   minRating: z.number().min(0).max(5).optional(),
+  minReviews: z.number().int().min(0).max(100_000).optional(),
+  openNow: z.boolean().optional(),
+  sort: z.enum(["popularity", "distance"]).optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
 });
