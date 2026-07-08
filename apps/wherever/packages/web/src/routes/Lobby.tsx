@@ -190,9 +190,9 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
           </>
         ) : deck ? (
           <div className="text-center max-w-sm">
-            <h1 className="font-display text-3xl font-bold">Nothing nearby.</h1>
+            <h1 className="font-display text-3xl font-bold">Nothing survived the filters.</h1>
             <p className="mt-2 text-muted">
-              Nothing matched your filters. Bold of this area to have no food.
+              Your standards met this neighborhood and won. Loosen something and try again.
             </p>
           </div>
         ) : (

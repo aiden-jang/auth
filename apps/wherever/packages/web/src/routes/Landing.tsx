@@ -313,7 +313,7 @@ export default function Landing() {
         </Modal>
       )}
       {error && (
-        <Modal title="Well, that didn't work" onClose={() => setError(null)}>
+        <Modal title="That went poorly" onClose={() => setError(null)}>
           <p className="text-muted">{error}</p>
         </Modal>
       )}
