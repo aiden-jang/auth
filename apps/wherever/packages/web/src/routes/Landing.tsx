@@ -4,6 +4,7 @@ import type { PriceTier, RestaurantSort, SessionFilters } from "@wherever/shared
 import {
   CUISINE_OPTIONS,
   MIN_REVIEWS_OPTIONS,
+  NEIGHBORHOODS,
   PRICE_OPTIONS,
   RADIUS_OPTIONS,
   RATING_OPTIONS,
@@ -125,6 +126,38 @@ function FilterFields({
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <FieldLabel>Where, geographically</FieldLabel>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            aria-pressed={!filters.area}
+            onClick={() => onChange({ ...filters, area: undefined })}
+            className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+              !filters.area ? "bg-acid text-ink border-acid font-semibold" : "border-white/10 text-cream hover:border-white/30"
+            }`}
+          >
+            📍 Near me
+          </button>
+          {NEIGHBORHOODS.map((n) => {
+            const on = filters.area === n.value;
+            return (
+              <button
+                key={n.value}
+                type="button"
+                aria-pressed={on}
+                onClick={() => onChange({ ...filters, area: n.value })}
+                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                  on ? "bg-acid text-ink border-acid font-semibold" : "border-white/10 text-cream hover:border-white/30"
+                }`}
+              >
+                {n.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="flex flex-col gap-2">
         <FieldLabel>Cravings (pick some, or leave it to fate)</FieldLabel>
         <div className="flex flex-wrap gap-2">

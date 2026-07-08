@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import type { Participant, SessionFilters } from "@wherever/shared";
-import { cuisineLabel, PRICE_OPTIONS, RADIUS_OPTIONS, SORT_OPTIONS } from "@wherever/shared";
+import { cuisineLabel, neighborhoodLabel, PRICE_OPTIONS, RADIUS_OPTIONS, SORT_OPTIONS } from "@wherever/shared";
 import { recallName, rememberName } from "../api.js";
 import { useSessionSocket } from "../useSessionSocket.js";
 import { SwipeDeck } from "../components/SwipeDeck.js";
@@ -57,8 +57,9 @@ function radiusLabel(meters: number): string {
 
 /** Read-only recap of the filters the host chose, so joiners know the game. */
 function FilterSummary({ filters }: { filters: SessionFilters }) {
+  const area = filters.area ? neighborhoodLabel(filters.area) : undefined;
   const chips: string[] = [
-    radiusLabel(filters.radiusMeters),
+    area ? `${area} · ${radiusLabel(filters.radiusMeters)}` : radiusLabel(filters.radiusMeters),
     `up to ${PRICE_OPTIONS.find((o) => o.tier === filters.maxPriceTier)?.label ?? "$$$$"}`,
   ];
   if (filters.minRating && filters.minRating > 0) chips.push(`${filters.minRating.toFixed(1)}+ stars`);

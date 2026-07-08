@@ -53,6 +53,8 @@ export interface SessionFilters {
   openNow?: boolean;
   /** Deck ordering. Defaults to "popularity". */
   sort?: RestaurantSort;
+  /** Named search area (a NEIGHBORHOODS value). Overrides lat/lng when set; unset means "near me". */
+  area?: string;
   /** Search center. Optional: the mock source ignores it; real sources need it. */
   lat?: number;
   lng?: number;
