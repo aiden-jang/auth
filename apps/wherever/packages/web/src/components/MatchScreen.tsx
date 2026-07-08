@@ -9,7 +9,7 @@ function History({ visited }: { visited: VisitedPlace[] }) {
   return (
     <div className="mt-10 text-left">
       <h3 className="text-sm font-semibold text-muted uppercase tracking-wider">
-        Already landed on
+        Already been dragged to
       </h3>
       <div className="mt-2 flex flex-wrap gap-2">
         {visited.map((v) => (
@@ -123,7 +123,7 @@ export function MatchScreen({
             onClick={() => navigate("/")}
             className="rounded-full border border-white/15 px-8 py-3 text-lg font-semibold hover:bg-white/5 transition"
           >
-            Leave
+            Show myself out
           </button>
         )}
       </div>

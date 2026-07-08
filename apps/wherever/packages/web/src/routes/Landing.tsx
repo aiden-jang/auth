@@ -289,7 +289,7 @@ function CreateForm({ onError }: { onError: (m: string) => void }) {
       });
       navigate(`/s/${code}`);
     } catch (err) {
-      onError(err instanceof Error ? err.message : "Something broke.");
+      onError(err instanceof Error ? err.message : "Something broke. Probably not you.");
       setBusy(false);
     }
   }
@@ -375,7 +375,7 @@ export default function Landing() {
         </Modal>
       )}
       {modal === "join" && (
-        <Modal title="Join with a code" onClose={() => setModal(null)}>
+        <Modal title="Got a code?" onClose={() => setModal(null)}>
           <JoinForm />
         </Modal>
       )}
