@@ -11,6 +11,8 @@ import {
   renameMember,
   setGroupArchived,
 } from '../src/groups.js';
+import { createExpense, getBalances } from '../src/expenses.js';
+import { recordSettlement } from '../src/settlements.js';
 import { testDb, seedPerson } from './helpers.js';
 
 let alice: string;
@@ -73,6 +75,40 @@ describe('groups', () => {
     });
     await deleteGroup(db, alice, group.id);
     await expect(getGroup(db, alice, group.id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  test('a settled member can be removed even when they appear in expenses', async () => {
+    const db = testDb();
+    const group = await createGroup(db, alice, 'Trip');
+    const bob = (await addPlaceholderMember(db, alice, group.id, 'Bob')).userId;
+
+    // Alice pays 1000 split evenly: Bob owes 500.
+    await createExpense(db, alice, group.id, {
+      description: 'Dinner',
+      amountCents: 1000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }],
+    });
+
+    // Bob is in an expense and still owes, so removal is blocked (on the balance, not on
+    // merely appearing in an expense).
+    await expect(removeMember(db, alice, group.id, bob)).rejects.toMatchObject({
+      code: 'HAS_ACTIVITY',
+    });
+
+    // Once Bob settles up, he can be removed although he's still in the expense's history.
+    await recordSettlement(db, alice, group.id, { fromUserId: bob, toUserId: alice, amountCents: 500 });
+    expect((await getBalances(db, alice, group.id)).find((b) => b.userId === bob)?.netCents).toBe(0);
+
+    await removeMember(db, alice, group.id, bob);
+    const after = await getGroup(db, alice, group.id);
+    expect(after.members.map((m) => m.userId)).not.toContain(bob);
+
+    // The remaining ledger still balances to zero.
+    const bal = await getBalances(db, alice, group.id);
+    expect(bal.reduce((sum, b) => sum + b.netCents, 0)).toBe(0);
+    expect(bal.find((b) => b.userId === alice)?.netCents).toBe(0);
   });
 
   test('unknown group is NOT_FOUND', async () => {
