@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import type { PriceTier, SessionFilters } from "@wherever/shared";
+import {
+  CUISINE_OPTIONS,
+  PRICE_OPTIONS,
+  RADIUS_OPTIONS,
+  RATING_OPTIONS,
+} from "@wherever/shared";
 import { Modal } from "../components/Modal.js";
 import {
   createSession,
@@ -83,9 +90,119 @@ function Card({ card, isFront }: { card: TeaserCard; isFront: boolean }) {
 const inputClass =
   "w-full rounded-2xl bg-black/40 border border-white/10 px-4 py-3 text-lg outline-none focus:border-ember transition-colors";
 
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return <span className="text-xs font-semibold uppercase tracking-wider text-muted">{children}</span>;
+}
+
+const segBase =
+  "flex-1 rounded-xl px-2 py-2 text-sm font-semibold transition-colors border";
+const segOn = "bg-ember text-ink border-ember";
+const segOff = "bg-black/40 text-cream border-white/10 hover:border-white/30";
+
+/** Cuisine multi-select + distance / rating / price pickers. Empty cuisine = anything. */
+function FilterFields({
+  filters,
+  onChange,
+}: {
+  filters: SessionFilters;
+  onChange: (next: SessionFilters) => void;
+}) {
+  function toggleCuisine(value: string) {
+    const has = filters.categories.includes(value);
+    onChange({
+      ...filters,
+      categories: has
+        ? filters.categories.filter((c) => c !== value)
+        : [...filters.categories, value],
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2">
+        <FieldLabel>Cuisine (any, if none picked)</FieldLabel>
+        <div className="flex flex-wrap gap-2">
+          {CUISINE_OPTIONS.map((c) => {
+            const on = filters.categories.includes(c.value);
+            return (
+              <button
+                key={c.value}
+                type="button"
+                aria-pressed={on}
+                onClick={() => toggleCuisine(c.value)}
+                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                  on ? "bg-acid text-ink border-acid font-semibold" : "border-white/10 text-cream hover:border-white/30"
+                }`}
+              >
+                <span className="mr-1">{c.emoji}</span>
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <FieldLabel>Within</FieldLabel>
+        <div className="flex gap-2">
+          {RADIUS_OPTIONS.map((o) => (
+            <button
+              key={o.meters}
+              type="button"
+              aria-pressed={filters.radiusMeters === o.meters}
+              onClick={() => onChange({ ...filters, radiusMeters: o.meters })}
+              className={`${segBase} ${filters.radiusMeters === o.meters ? segOn : segOff}`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <FieldLabel>Min rating</FieldLabel>
+        <div className="flex gap-2">
+          {RATING_OPTIONS.map((o) => {
+            const on = (filters.minRating ?? 0) === o.value;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                aria-pressed={on}
+                onClick={() => onChange({ ...filters, minRating: o.value })}
+                className={`${segBase} ${on ? segOn : segOff}`}
+              >
+                {o.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <FieldLabel>Up to</FieldLabel>
+        <div className="flex gap-2">
+          {PRICE_OPTIONS.map((o) => (
+            <button
+              key={o.tier}
+              type="button"
+              aria-pressed={filters.maxPriceTier === o.tier}
+              onClick={() => onChange({ ...filters, maxPriceTier: o.tier as PriceTier })}
+              className={`${segBase} ${filters.maxPriceTier === o.tier ? segOn : segOff}`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CreateForm({ onError }: { onError: (m: string) => void }) {
   const navigate = useNavigate();
   const [name, setName] = useState(recallName());
+  const [filters, setFilters] = useState<SessionFilters>(DEFAULT_FILTERS);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -96,7 +213,7 @@ function CreateForm({ onError }: { onError: (m: string) => void }) {
       rememberName(name.trim());
       const loc = await getLocation();
       const code = await createSession(name.trim(), {
-        ...DEFAULT_FILTERS,
+        ...filters,
         ...(loc ?? {}),
       });
       navigate(`/s/${code}`);
@@ -107,8 +224,9 @@ function CreateForm({ onError }: { onError: (m: string) => void }) {
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
+    <form onSubmit={submit} className="flex flex-col gap-4">
       <input className={inputClass} placeholder="Your name" value={name} maxLength={24} onChange={(e) => setName(e.target.value)} autoFocus />
+      <FilterFields filters={filters} onChange={setFilters} />
       <button type="submit" disabled={!name.trim() || busy} className="rounded-2xl bg-ember px-6 py-3 text-lg font-semibold text-ink disabled:opacity-50 hover:brightness-110 transition">
         {busy ? "Spinning it up..." : "Create the session"}
       </button>

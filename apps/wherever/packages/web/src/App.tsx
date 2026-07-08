@@ -27,7 +27,7 @@ export default function App() {
             No accounts, no login. We only keep the short-lived session for your group vote, and
             analytics are cookieless, so there is nothing personal to collect.
           </p>
-          <p className="mt-1">Place data powered by Foursquare.</p>
+          <p className="mt-1">Place data powered by Google.</p>
         </footer>
       </div>
     </BrowserRouter>

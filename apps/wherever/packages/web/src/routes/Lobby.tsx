@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import type { Participant } from "@wherever/shared";
+import type { Participant, SessionFilters } from "@wherever/shared";
+import { cuisineLabel, PRICE_OPTIONS, RADIUS_OPTIONS } from "@wherever/shared";
 import { recallName, rememberName } from "../api.js";
 import { useSessionSocket } from "../useSessionSocket.js";
 import { SwipeDeck } from "../components/SwipeDeck.js";
@@ -46,6 +47,34 @@ function DisconnectBanner() {
       <button onClick={() => location.reload()} className="underline font-semibold">
         Reload to rejoin
       </button>
+    </div>
+  );
+}
+
+function radiusLabel(meters: number): string {
+  return RADIUS_OPTIONS.find((o) => o.meters === meters)?.label ?? `${Math.round(meters / 1000)} km`;
+}
+
+/** Read-only recap of the filters the host chose, so joiners know the game. */
+function FilterSummary({ filters }: { filters: SessionFilters }) {
+  const chips: string[] = [
+    radiusLabel(filters.radiusMeters),
+    `up to ${PRICE_OPTIONS.find((o) => o.tier === filters.maxPriceTier)?.label ?? "$$$$"}`,
+  ];
+  if (filters.minRating && filters.minRating > 0) chips.push(`${filters.minRating.toFixed(1)}+ stars`);
+  chips.push(
+    filters.categories.length > 0
+      ? filters.categories.map(cuisineLabel).join(", ")
+      : "any food",
+  );
+
+  return (
+    <div className="mt-6 flex flex-wrap justify-center gap-2">
+      {chips.map((c) => (
+        <span key={c} className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs text-muted">
+          {c}
+        </span>
+      ))}
     </div>
   );
 }
@@ -184,6 +213,7 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
         <button onClick={copyLink} className="mt-4 rounded-full border border-white/15 px-5 py-2 text-sm font-medium hover:bg-white/5 transition">
           {copied ? "Copied. Go paste it." : "Copy invite link"}
         </button>
+        {session?.filters && <FilterSummary filters={session.filters} />}
       </div>
 
       <div className="w-full mt-10">

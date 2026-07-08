@@ -33,7 +33,10 @@ export class MockRestaurantSource implements RestaurantSource {
       if (r.priceTier > filters.maxPriceTier) return false;
       if (r.distanceMeters > filters.radiusMeters) return false;
       if (!passesRating(r.rating, filters.minRating)) return false;
-      if (filters.categories.length > 0 && !filters.categories.includes(r.category)) {
+      if (
+        filters.categories.length > 0 &&
+        !filters.categories.some((c) => c.toLowerCase() === r.category.toLowerCase())
+      ) {
         return false;
       }
       return true;
