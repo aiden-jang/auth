@@ -1,4 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
+import { DEFAULT_EXPENSE_CATEGORY, type ExpenseCategory } from '@owewell/core';
+import { CategoryPicker } from './CategoryPicker';
 import { Money, dollarsToCents, type SplitMethod } from '@aidenjang/shared';
 import { expensesApi, type Expense } from '../lib/expenses';
 import { normalizeAmountInput } from '../lib/format';
@@ -58,6 +60,9 @@ export function AddExpenseForm({ groupId, members, onCreated, editing }: Props):
   );
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(editing));
   const [date, setDate] = useState(editing ? editing.date.slice(0, 10) : todayStr());
+  const [category, setCategory] = useState<ExpenseCategory>(
+    editing?.category ?? DEFAULT_EXPENSE_CATEGORY,
+  );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -116,7 +121,7 @@ export function AddExpenseForm({ groupId, members, onCreated, editing }: Props):
       return;
     }
 
-    const payload = { description: description.trim(), amountCents, payerId, splitMethod: method, participants, date };
+    const payload = { description: description.trim(), amountCents, payerId, splitMethod: method, participants, category, date };
     setSubmitting(true);
     try {
       if (editing) {
@@ -219,6 +224,8 @@ export function AddExpenseForm({ groupId, members, onCreated, editing }: Props):
         aria-label="Date"
         className={inputClass}
       />
+
+      <CategoryPicker value={category} onChange={setCategory} />
 
       <select
         value={method}

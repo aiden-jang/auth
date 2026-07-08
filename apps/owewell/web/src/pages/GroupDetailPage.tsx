@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Money } from '@aidenjang/shared';
-import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, type PaymentMethod } from '@owewell/core';
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS, categoryMeta, type PaymentMethod } from '@owewell/core';
 import { useAuth } from '../auth/AuthContext';
 import { AppHeader } from '../components/AppHeader';
 import { Avatar } from '../components/Avatar';
@@ -397,6 +397,17 @@ export function GroupDetailPage(): ReactNode {
   // How much has already been paid back, and the even-split average across the members.
   const totalSettled = settlements.reduce((sum, s) => sum + s.amountCents, 0);
   const perPersonCents = group.members.length ? Math.round(totalSpent / group.members.length) : 0;
+  // Spend grouped by category, biggest first, for the "where it went" breakdown.
+  const spendByCategory = (() => {
+    const totals = new Map<string, number>();
+    for (const e of expenses) {
+      const key = e.category ?? 'other';
+      totals.set(key, (totals.get(key) ?? 0) + e.amountCents);
+    }
+    return [...totals.entries()]
+      .map(([key, cents]) => ({ meta: categoryMeta(key), cents }))
+      .sort((a, b) => b.cents - a.cents);
+  })();
 
   return (
     <Shell>
@@ -626,6 +637,33 @@ export function GroupDetailPage(): ReactNode {
         </section>
       )}
 
+      {totalSpent > 0 && spendByCategory.length > 1 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Where it went</h2>
+          <ul className="mt-3 space-y-2.5">
+            {spendByCategory.map(({ meta, cents }) => (
+              <li key={meta.key} className="flex items-center gap-3">
+                <span className="w-28 shrink-0 truncate text-sm">
+                  <span aria-hidden className="mr-1.5">
+                    {meta.emoji}
+                  </span>
+                  {meta.label}
+                </span>
+                <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface2">
+                  <span
+                    className="block h-full rounded-full bg-accent"
+                    style={{ width: `${Math.max(3, Math.round((cents / totalSpent) * 100))}%` }}
+                  />
+                </span>
+                <span className="tnum w-20 shrink-0 text-right text-sm text-muted">
+                  {Money.fromCents(cents).format()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="mt-8">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Activity</h2>
@@ -666,7 +704,12 @@ export function GroupDetailPage(): ReactNode {
                   <div className="flex min-w-0 items-center gap-3">
                     <Avatar name={payerSummary(item.expense).avatar} size="sm" />
                     <div className="min-w-0">
-                      <p className="truncate font-medium">{item.expense.description}</p>
+                      <p className="truncate font-medium">
+                        <span aria-hidden className="mr-1">
+                          {categoryMeta(item.expense.category).emoji}
+                        </span>
+                        {item.expense.description}
+                      </p>
                       <p className="text-sm text-muted">
                         {payerSummary(item.expense).label} · {timeAgo(item.expense.date)}
                       </p>

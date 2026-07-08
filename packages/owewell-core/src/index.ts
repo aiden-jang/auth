@@ -90,12 +90,37 @@ export interface ExpenseSplit {
   inputValue?: number | null;
 }
 
+/** The fixed set of expense categories, with display labels and emoji glyphs. */
+export const EXPENSE_CATEGORIES = [
+  { key: 'food', label: 'Food & Drink', emoji: '🍽️' },
+  { key: 'groceries', label: 'Groceries', emoji: '🛒' },
+  { key: 'lodging', label: 'Lodging', emoji: '🏨' },
+  { key: 'transport', label: 'Transport', emoji: '🚗' },
+  { key: 'entertainment', label: 'Entertainment', emoji: '🎉' },
+  { key: 'shopping', label: 'Shopping', emoji: '🛍️' },
+  { key: 'utilities', label: 'Utilities', emoji: '💡' },
+  { key: 'other', label: 'Other', emoji: '🧾' },
+] as const;
+
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]['key'];
+export const EXPENSE_CATEGORY_KEYS = EXPENSE_CATEGORIES.map((c) => c.key) as ExpenseCategory[];
+export const DEFAULT_EXPENSE_CATEGORY: ExpenseCategory = 'other';
+
+const OTHER_CATEGORY_META = EXPENSE_CATEGORIES.find((c) => c.key === DEFAULT_EXPENSE_CATEGORY)!;
+
+/** Look up a category's label + emoji, falling back to Other for unknown/legacy values. */
+export function categoryMeta(key: string | null | undefined): (typeof EXPENSE_CATEGORIES)[number] {
+  return EXPENSE_CATEGORIES.find((c) => c.key === key) ?? OTHER_CATEGORY_META;
+}
+
 export interface Expense {
   id: string;
   description: string;
   amountCents: number;
   payerId: string;
   splitMethod: ExpenseSplitMethod;
+  /** What kind of spend this was. Legacy rows may be null; treat as "other". */
+  category: ExpenseCategory | null;
   createdAt: string;
   /** The effective expense date (user-set date, else createdAt). Drives feed order + display. */
   date: string;
@@ -117,6 +142,8 @@ export interface CreateExpensePayload {
   payerId: string;
   splitMethod: SplitMethod;
   participants: SplitParticipantValue[];
+  /** Spend category. Omit to default to "other". */
+  category?: ExpenseCategory;
   /** The date the expense happened, as YYYY-MM-DD. Omit for "today". */
   date?: string;
 }
@@ -135,6 +162,8 @@ export interface CreateItemizedPayload {
   taxCents: number;
   tipCents: number;
   items: ExpenseItemInput[];
+  /** Spend category. Omit to default to "other". */
+  category?: ExpenseCategory;
   /** The date the expense happened, as YYYY-MM-DD. Omit for "today". */
   date?: string;
 }

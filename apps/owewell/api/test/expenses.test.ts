@@ -76,6 +76,29 @@ describe('expenses — split methods', () => {
     expect(owed(e.splits)).toEqual({ [alice]: 1000, [bob]: 1000 });
   });
 
+  test('stores the category and returns null when omitted', async () => {
+    await createExpense(db, alice, groupId, {
+      description: 'Dinner',
+      amountCents: 1000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }],
+      category: 'food',
+    });
+    await createExpense(db, alice, groupId, {
+      description: 'Mystery charge',
+      amountCents: 500,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }],
+    });
+    const byDesc = Object.fromEntries(
+      (await listExpenses(db, alice, groupId)).map((e) => [e.description, e.category]),
+    );
+    expect(byDesc['Dinner']).toBe('food');
+    expect(byDesc['Mystery charge']).toBeNull();
+  });
+
   test('SHARES splits by weight', async () => {
     const e = await createExpense(db, alice, groupId, {
       description: 'Gas',
