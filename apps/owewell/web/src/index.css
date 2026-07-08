@@ -140,6 +140,9 @@ input[type='checkbox'] {
   transform: translateY(-1px);
   border-color: var(--color-line-strong);
 }
+.row-interactive:active {
+  transform: scale(0.99);
+}
 
 .animate-sheet {
   animation: var(--animate-sheet);
