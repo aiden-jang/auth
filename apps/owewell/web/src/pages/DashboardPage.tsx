@@ -382,7 +382,7 @@ export function DashboardPage(): ReactNode {
 
       {selectMode && selected.size > 0 && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-card/90 backdrop-blur-md">
-          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
             <span className="text-sm font-medium">
               {selected.size} selected
             </span>
