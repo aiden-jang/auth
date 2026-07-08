@@ -53,6 +53,8 @@ export interface GroupSummary {
   netCents: number;
   /** The whole group's outstanding money (sum of every positive balance), not just the viewer's. */
   totalUnsettledCents: number;
+  /** Whether the viewer owns this group (only owners can delete it). */
+  isOwner: boolean;
 }
 
 export interface GroupDetail {

@@ -64,6 +64,7 @@ export interface GroupSummary {
   memberCount: number;
   netCents: number;
   totalUnsettledCents: number;
+  isOwner: boolean;
 }
 
 /** Throws NOT_FOUND if the person is not a member (which doubles as "does not exist"). */
@@ -309,6 +310,7 @@ export async function listGroups(db: DB, personId: string): Promise<GroupSummary
       name: groups.name,
       createdAt: groups.createdAt,
       archivedAt: groupMembers.archivedAt,
+      role: groupMembers.role,
     })
     .from(groups)
     .innerJoin(groupMembers, eq(groupMembers.groupId, groups.id))
@@ -424,6 +426,7 @@ export async function listGroups(db: DB, personId: string): Promise<GroupSummary
       memberCount: countMap.get(g.id) ?? 0,
       netCents: members?.get(personId) ?? 0,
       totalUnsettledCents,
+      isOwner: g.role === 'OWNER',
     };
   });
 }
