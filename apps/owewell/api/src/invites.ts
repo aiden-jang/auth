@@ -1,7 +1,7 @@
 import type { InviteInfo, InviteStatus } from '@owewell/core';
 import { and, eq } from 'drizzle-orm';
 import type { DB } from './db/client.js';
-import { requireEditable, requireMembership, resplitSharedExpenses } from './groups.js';
+import { requireMembership, resplitSharedExpenses } from './groups.js';
 import { groupMembers, groups, invites } from './db/schema.js';
 
 const INVITE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
@@ -40,7 +40,6 @@ export async function createInvite(
   email?: string,
 ): Promise<InviteView> {
   await requireMembership(db, personId, groupId);
-  await requireEditable(db, groupId);
   const token = newToken();
   const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
   await db.insert(invites).values({
@@ -85,8 +84,6 @@ export async function acceptInvite(db: DB, personId: string, token: string): Pro
   if (!invite) throw new InviteError('NOT_FOUND', 'This invite link is not valid.');
   if (invite.acceptedAt) throw new InviteError('ALREADY_ACCEPTED', 'This invite has already been used.');
   if (invite.expiresAt.getTime() <= Date.now()) throw new InviteError('EXPIRED', 'This invite has expired.');
-  // No joining an archived group; restore it first.
-  await requireEditable(db, invite.groupId);
 
   // Idempotent join: if they're already a member, just consume the invite.
   const existing = await db

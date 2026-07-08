@@ -48,6 +48,8 @@ export const groupMembers = sqliteTable(
     joinedAt: integer('joined_at', { mode: 'timestamp' })
       .notNull()
       .default(sql`(unixepoch())`),
+    // Per-member "hide from my list". Null = active in this member's view. Personal, not global.
+    archivedAt: integer('archived_at', { mode: 'timestamp' }),
   },
   (t) => ({
     groupPerson: uniqueIndex('gm_group_person').on(t.groupId, t.personId),

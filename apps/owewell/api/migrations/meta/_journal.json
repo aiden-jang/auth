@@ -50,6 +50,13 @@
       "when": 1783477182794,
       "tag": "0006_flaky_hairball",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1783484316729,
+      "tag": "0007_silent_silver_fox",
+      "breakpoints": true
     }
   ]
 }
