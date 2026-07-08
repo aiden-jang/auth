@@ -43,4 +43,7 @@ export const groupsApi = {
   // Public: fetch a group's read-only summary by share token (works signed-out).
   sharedSummary: (token: string): Promise<SharedGroupSummary> =>
     api.get<{ summary: SharedGroupSummary }>(`/shared/${token}`).then((r) => r.summary),
+  // Claim an unclaimed placeholder seat via a share token. Requires sign-in.
+  claimSeat: (token: string, personId: string): Promise<{ groupId: string }> =>
+    api.post<{ groupId: string }>(`/shared/${token}/claim`, { personId }),
 };

@@ -8,6 +8,7 @@ import { Avatar } from '../components/Avatar';
 import { BrandMark } from '../components/BrandMark';
 import { Icon } from '../components/Icon';
 import { SiteFooter } from '../components/SiteFooter';
+import { useToast } from '../components/Toast';
 
 function balanceLabel(netCents: number): { text: string; tone: string } {
   if (netCents === 0) return { text: 'settled', tone: 'text-muted' };
@@ -18,24 +19,39 @@ function balanceLabel(netCents: number): { text: string; tone: string } {
 }
 
 /**
- * Public, read-only view of a group behind a share token. No auth: anyone with the link sees
- * the summary. Editing lives in the app, so the only action here is "sign in to edit", which
- * opens the real group (members-only, enforced server-side).
+ * Public, read-only view of a group behind a share token. Anyone with the link sees the
+ * summary. A signed-in visitor can claim an unclaimed seat (placeholder) that's theirs, which
+ * makes them a real member and opens the editable group. Members just open it directly.
  */
 export function SharedGroupPage(): ReactNode {
   const { token } = useParams<{ token: string }>();
   const { user, login } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [status, setStatus] = useState<'loading' | 'ready' | 'notfound'>('loading');
   const [summary, setSummary] = useState<SharedGroupSummary | null>(null);
+  const [claiming, setClaiming] = useState<string | null>(null);
 
-  // Open the real (editable) group. Signed-in members go straight there; everyone else is sent
-  // through sign-in and returned to the group afterward (editing is members-only server-side).
-  function openForEditing(groupId: string): void {
-    const dest = `/groups/${groupId}`;
-    if (user) navigate(dest);
-    else login(`${window.location.origin}${dest}`);
+  // Claim a seat. Signed out → sign in and return here (the button then claims). Signed in →
+  // merge the seat and drop into the now-editable group.
+  async function claimSeat(seatId: string): Promise<void> {
+    if (!token) return;
+    if (!user) {
+      login(window.location.href);
+      return;
+    }
+    setClaiming(seatId);
+    try {
+      const { groupId } = await groupsApi.claimSeat(token, seatId);
+      navigate(`/groups/${groupId}`);
+    } catch {
+      toast.error('Could not claim that seat — it may already be taken.');
+      setClaiming(null);
+    }
   }
+
+  const viewerIsMember = !!user && !!summary && summary.members.some((m) => m.userId === user.id);
+  const hasOpenSeats = !!summary && summary.members.some((m) => m.isPlaceholder);
 
   useEffect(() => {
     if (!token) {
@@ -119,13 +135,26 @@ export function SharedGroupPage(): ReactNode {
               <ul className="mt-3 space-y-2">
                 {summary.members.map((m, i) => {
                   const label = balanceLabel(m.netCents);
+                  const claimable = m.isPlaceholder && !viewerIsMember;
                   return (
-                    <li key={i} className="surface flex items-center justify-between rounded-xl px-4 py-3">
-                      <span className="flex items-center gap-3 font-medium">
+                    <li key={i} className="surface flex items-center justify-between gap-3 rounded-xl px-4 py-3">
+                      <span className="flex min-w-0 items-center gap-3 font-medium">
                         <Avatar name={m.displayName} />
-                        {m.displayName}
+                        <span className="truncate">{m.displayName}</span>
                       </span>
-                      <span className={`tnum text-sm font-medium ${label.tone}`}>{label.text}</span>
+                      <span className="flex shrink-0 items-center gap-3">
+                        <span className={`tnum text-sm font-medium ${label.tone}`}>{label.text}</span>
+                        {claimable && (
+                          <button
+                            type="button"
+                            onClick={() => void claimSeat(m.userId)}
+                            disabled={claiming === m.userId}
+                            className="rounded-full border border-accent px-2.5 py-1 text-xs font-medium text-accent transition hover:bg-accent-soft disabled:opacity-60"
+                          >
+                            {claiming === m.userId ? 'Claiming...' : 'This is me'}
+                          </button>
+                        )}
+                      </span>
                     </li>
                   );
                 })}
@@ -164,13 +193,24 @@ export function SharedGroupPage(): ReactNode {
               </section>
             )}
 
-            <button
-              type="button"
-              onClick={() => openForEditing(summary.groupId)}
-              className="btn-gradient mt-8 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 font-semibold transition active:scale-[0.98]"
-            >
-              <Icon name="arrow-up-right" size={16} /> {user ? 'Open in owewell' : 'Sign in to edit'}
-            </button>
+            {viewerIsMember ? (
+              <button
+                type="button"
+                onClick={() => navigate(`/groups/${summary.groupId}`)}
+                className="btn-gradient mt-8 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 font-semibold transition active:scale-[0.98]"
+              >
+                <Icon name="arrow-up-right" size={16} /> Open in owewell
+              </button>
+            ) : hasOpenSeats ? (
+              <p className="mt-8 text-sm text-muted">
+                See your name above? Tap <span className="font-medium text-accent">This is me</span> to claim
+                your seat and edit{user ? '.' : ' (you’ll sign in first).'}
+              </p>
+            ) : (
+              <p className="mt-8 text-sm text-muted">
+                Viewing only. Ask a member to add you to edit this group.
+              </p>
+            )}
           </>
         )}
       </main>
