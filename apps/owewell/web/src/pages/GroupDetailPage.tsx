@@ -427,7 +427,7 @@ export function GroupDetailPage(): ReactNode {
         suggested,
       });
       try {
-        await navigator.share({ title: `${group.name} — owewell`, text, url });
+        await navigator.share({ title: `${group.name} on owewell`, text, url });
       } catch {
         /* dismissed — the link stays visible below */
       }
@@ -440,7 +440,7 @@ export function GroupDetailPage(): ReactNode {
       await navigator.clipboard.writeText(shareLink);
       toast.success('Link copied.');
     } catch {
-      toast.error('Copy failed — select the link and copy it manually.');
+      toast.error('Copy failed. Select the link and copy it manually.');
     }
   }
 
@@ -766,7 +766,8 @@ export function GroupDetailPage(): ReactNode {
         {settlements.length > 0 && (
           <p className="mt-2 flex items-center gap-1.5 text-xs text-faint">
             <Icon name="undo" size={13} />
-            Locked — a payment&rsquo;s been recorded. Undo it below to edit or remove expenses.
+            A payment&rsquo;s been recorded, so this is locked. Undo it below to edit or remove
+            expenses.
           </p>
         )}
         {activity.length === 0 ? (

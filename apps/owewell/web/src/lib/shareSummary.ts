@@ -19,7 +19,7 @@ export function buildGroupSummary(input: GroupSummaryInput): string {
   const { groupName, memberCount, totalSpentCents, perPersonCents, totalSettledCents, suggested } = input;
   const people = `${memberCount} ${memberCount === 1 ? 'person' : 'people'}`;
   const lines: string[] = [
-    `${groupName} — owewell`,
+    `${groupName} on owewell`,
     `${Money.fromCents(totalSpentCents).format()} in bills across ${people} (${Money.fromCents(perPersonCents).format()} each)`,
   ];
   if (totalSettledCents > 0) {

@@ -332,7 +332,7 @@ export function QuickSplitPage(): ReactNode {
                 ),
               )}
             </div>
-            <p className="mt-6 text-sm font-medium text-muted">Try it right here — no sign-up:</p>
+            <p className="mt-6 text-sm font-medium text-muted">Try it right here, no sign-up:</p>
           </section>
         )}
 
