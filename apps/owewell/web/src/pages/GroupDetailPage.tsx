@@ -387,6 +387,10 @@ export function GroupDetailPage(): ReactNode {
   // You can be square (net 0) while the group still has debts between others.
   // Only call it "all settled" when there are no outstanding transfers at all.
   const groupSettled = suggested.length === 0;
+  // The whole group's outstanding money, not just yours: the sum of every positive balance
+  // (which equals the total the debtors owe, since balances net to zero). Shown as context so
+  // "You're square" doesn't read as "the group is done" when others still owe each other.
+  const totalUnsettled = balances.reduce((sum, b) => sum + Math.max(0, b.netCents), 0);
 
   return (
     <Shell>
@@ -516,6 +520,11 @@ export function GroupDetailPage(): ReactNode {
         >
           {settled ? (groupSettled ? 'All settled' : "You're square") : <MoneyText cents={Math.abs(myNet)} />}
         </p>
+        {totalUnsettled > 0 && (
+          <p className="mt-2 text-xs text-faint">
+            {Money.fromCents(totalUnsettled).format()} still unsettled across the group
+          </p>
+        )}
         {readOnly ? (
           <p className="mt-4 inline-flex items-center gap-1.5 text-sm text-muted">
             <Icon name="archive" size={15} /> Archived · read-only. Restore it to make changes.
