@@ -1,7 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Money } from '@aidenjang/shared';
 import { categoryMeta, type SharedGroupSummary } from '@owewell/core';
+import { useAuth } from '../auth/AuthContext';
 import { groupsApi } from '../lib/groups';
 import { Avatar } from '../components/Avatar';
 import { BrandMark } from '../components/BrandMark';
@@ -23,8 +24,18 @@ function balanceLabel(netCents: number): { text: string; tone: string } {
  */
 export function SharedGroupPage(): ReactNode {
   const { token } = useParams<{ token: string }>();
+  const { user, login } = useAuth();
+  const navigate = useNavigate();
   const [status, setStatus] = useState<'loading' | 'ready' | 'notfound'>('loading');
   const [summary, setSummary] = useState<SharedGroupSummary | null>(null);
+
+  // Open the real (editable) group. Signed-in members go straight there; everyone else is sent
+  // through sign-in and returned to the group afterward (editing is members-only server-side).
+  function openForEditing(groupId: string): void {
+    const dest = `/groups/${groupId}`;
+    if (user) navigate(dest);
+    else login(`${window.location.origin}${dest}`);
+  }
 
   useEffect(() => {
     if (!token) {
@@ -153,12 +164,13 @@ export function SharedGroupPage(): ReactNode {
               </section>
             )}
 
-            <Link
-              to={`/groups/${summary.groupId}`}
+            <button
+              type="button"
+              onClick={() => openForEditing(summary.groupId)}
               className="btn-gradient mt-8 inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 font-semibold transition active:scale-[0.98]"
             >
-              <Icon name="arrow-up-right" size={16} /> Sign in to edit
-            </Link>
+              <Icon name="arrow-up-right" size={16} /> {user ? 'Open in owewell' : 'Sign in to edit'}
+            </button>
           </>
         )}
       </main>
