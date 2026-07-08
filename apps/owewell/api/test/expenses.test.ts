@@ -268,6 +268,19 @@ describe('expenses — itemized, balances, delete', () => {
       code: 'NOT_FOUND',
     });
   });
+
+  test('an expense cannot be deleted once a payment has been recorded', async () => {
+    const e = await createExpense(db, alice, groupId, {
+      description: 'Dinner',
+      amountCents: 1000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }],
+    });
+    await recordSettlement(db, alice, groupId, { fromUserId: bob, toUserId: alice, amountCents: 500 });
+    await expect(deleteExpense(db, alice, groupId, e.id)).rejects.toMatchObject({ code: 'LOCKED' });
+    expect(await listExpenses(db, alice, groupId)).toHaveLength(1);
+  });
 });
 
 describe('adding a member re-splits shared equal expenses', () => {

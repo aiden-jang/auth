@@ -1,5 +1,5 @@
 import { computeItemizedSplit, computeItemizedPayers, computeSplit, type SplitMethod } from '@aidenjang/shared';
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
 import type { DB } from './db/client.js';
 import { requireMembership } from './groups.js';
 import {
@@ -12,7 +12,7 @@ import {
   settlements,
 } from './db/schema.js';
 
-export type ExpenseErrorCode = 'INVALID_PAYER' | 'INVALID_PARTICIPANT' | 'INVALID_SPLIT' | 'NOT_FOUND';
+export type ExpenseErrorCode = 'INVALID_PAYER' | 'INVALID_PARTICIPANT' | 'INVALID_SPLIT' | 'NOT_FOUND' | 'LOCKED';
 
 export class ExpenseError extends Error {
   constructor(
@@ -351,6 +351,12 @@ export async function deleteExpense(db: DB, personId: string, groupId: string, e
   await requireMembership(db, personId, groupId);
   const e = await db.select({ id: expenses.id }).from(expenses).where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId), isNull(expenses.deletedAt))).get();
   if (!e) throw new ExpenseError('NOT_FOUND', 'That expense is already gone.');
+  // Deleting recomputes balances, which would break a payment already recorded against them.
+  // So once anyone's marked paid, the ledger is locked — same rule as removing a member.
+  const settled = await db.select({ c: count() }).from(settlements).where(eq(settlements.groupId, groupId)).get();
+  if ((settled?.c ?? 0) > 0) {
+    throw new ExpenseError('LOCKED', "Can't delete an expense once a payment has been recorded.");
+  }
   await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, expenseId));
 }
 
