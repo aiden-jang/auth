@@ -17,14 +17,15 @@ import {
 } from "../api.js";
 
 const DEADPAN_LINES = [
-  "Pretending to think about it...",
   "Nobody has typed 'idk, you pick' yet. A first.",
-  "Three people. Three opinions. This'll go great.",
-  "The group chat is shaking.",
-  "Democracy, but for tacos.",
+  "Three people. Three opinions. Zero decisions.",
   "Someone will suggest the place from last time. Ignore them.",
   "Statistically, it's going to be tacos.",
   "You could just decide. But here we are.",
+  "One of you already ate. They're still voting.",
+  "The vegetarian is watching. Choose wisely.",
+  "No, not that place. You know why.",
+  "Democracy, but for tacos.",
 ];
 
 interface TeaserCard {
@@ -278,7 +279,7 @@ export default function Landing() {
         </h1>
 
         <p className="mt-5 text-lg text-muted max-w-md mx-auto lg:mx-0">
-          Everyone swipes. Majority wins. Dinner gets decided before anyone types "I'm fine with whatever."
+          Everyone swipes, majority wins, and the friendship survives another dinner. No "I'm fine with whatever" required.
         </p>
 
         <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">

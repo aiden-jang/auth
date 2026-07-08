@@ -43,7 +43,7 @@ export function MatchScreen({
         <div className="text-6xl">🤷</div>
         <h1 className="mt-4 font-display text-4xl font-bold">Nobody liked anything.</h1>
         <p className="mt-3 text-muted">
-          Genuinely impressive. You all swiped left on dinner. Maybe cereal.
+          A clean sweep of nos. Genuinely impressive. Cereal is still on the table, spiritually.
         </p>
         {isHost ? (
           <button
@@ -107,7 +107,7 @@ export function MatchScreen({
       </div>
 
       <p className="mt-4 text-muted">
-        {rightSwipes} of {totalParticipants} wanted it. Democracy works.
+        {rightSwipes} of {totalParticipants} wanted it. The rest will cope.
       </p>
 
       <div className="mt-8 flex flex-col gap-3">
@@ -122,7 +122,7 @@ export function MatchScreen({
             onClick={onAgain}
             className="rounded-full border border-white/15 px-8 py-3 text-lg font-semibold hover:bg-white/5 transition"
           >
-            Pick again (this one drops out)
+            Nope, again (this one&apos;s out)
           </button>
         ) : (
           <button

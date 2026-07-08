@@ -138,8 +138,8 @@ export function SwipeDeck({
         <div className="text-5xl">🧾</div>
         <h2 className="mt-4 font-display text-3xl font-bold">That's all of them.</h2>
         <p className="mt-2 text-muted">
-          Your votes are in. Now we wait for everyone else to stop overthinking
-          it. This is the longest part.
+          Your votes are in. Now we wait on everyone else to stop overthinking a
+          taco. This is the longest part.
         </p>
       </div>
     );
