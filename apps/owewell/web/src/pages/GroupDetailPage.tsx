@@ -18,6 +18,7 @@ import { groupsApi, type Balance, type GroupDetail, type GroupMember, type Group
 import { expensesApi, type Expense } from '../lib/expenses';
 import { settlementsApi, type Settlement, type SuggestedPayment } from '../lib/settlements';
 import { payLinks } from '../lib/payLinks';
+import { buildGroupSummary } from '../lib/shareSummary';
 import { invitesApi } from '../lib/invites';
 import { useGroupRealtime } from '../hooks/useGroupRealtime';
 
@@ -409,6 +410,34 @@ export function GroupDetailPage(): ReactNode {
       .sort((a, b) => b.cents - a.cents);
   })();
 
+  async function onShare(): Promise<void> {
+    if (!group) return;
+    const text = buildGroupSummary({
+      groupName: group.name,
+      memberCount: group.members.length,
+      totalSpentCents: totalSpent,
+      perPersonCents,
+      totalSettledCents: totalSettled,
+      suggested,
+    });
+    // Prefer the native share sheet (mobile); a dismissed sheet throws AbortError and is not
+    // an error. Fall back to the clipboard everywhere it isn't available (most desktops).
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `${group.name} — owewell`, text });
+        return;
+      }
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Summary copied to clipboard.');
+    } catch {
+      toast.error('Could not share the summary.');
+    }
+  }
+
   return (
     <Shell>
       <div className="flex items-center justify-between gap-3">
@@ -469,21 +498,31 @@ export function GroupDetailPage(): ReactNode {
               </span>
             )}
           </h1>
-          {isOwner && (
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuOpen((v) => !v);
-                }}
-                aria-label="Group options"
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-ink"
-              >
-                <Icon name="more" size={18} />
-              </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => void onShare()}
+              aria-label="Share summary"
+              title="Share summary"
+              className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-ink"
+            >
+              <Icon name="share" size={17} />
+            </button>
+            {isOwner && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen((v) => !v);
+                  }}
+                  aria-label="Group options"
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  className="grid h-9 w-9 place-items-center rounded-full text-muted transition hover:bg-surface2 hover:text-ink"
+                >
+                  <Icon name="more" size={18} />
+                </button>
               {menuOpen && (
                 <div
                   role="menu"
@@ -521,8 +560,9 @@ export function GroupDetailPage(): ReactNode {
                   </button>
                 </div>
               )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
