@@ -1,5 +1,5 @@
-import { computeSplit, computeItemizedSplit } from '@aidenjang/shared';
-import { and, count, desc, eq, inArray, isNull, or } from 'drizzle-orm';
+import { computeSplit, computeItemizedSplit, computeItemizedPayers } from '@aidenjang/shared';
+import { and, count, desc, eq, inArray, isNull } from 'drizzle-orm';
 import type { DB } from './db/client.js';
 import { getBalances } from './expenses.js';
 import { pruneOrphanPlaceholders } from './people.js';
@@ -64,6 +64,7 @@ export interface GroupSummary {
   archived: boolean;
   memberCount: number;
   netCents: number;
+  totalUnsettledCents: number;
 }
 
 /** Throws NOT_FOUND if the person is not a member (which doubles as "does not exist"). */
@@ -185,27 +186,77 @@ export async function listGroups(db: DB, personId: string): Promise<GroupSummary
     .all();
   const countMap = new Map(counts.map((r) => [r.groupId, Number(r.c)]));
 
-  // The caller's net per group: + what they paid, - what they owe, +/- settlements.
-  const net = new Map<string, number>(ids.map((id) => [id, 0]));
-  const bump = (g: string, d: number): void => {
-    net.set(g, (net.get(g) ?? 0) + d);
+  // Per-member net for every group at once, mirroring getBalances (including itemized per-item
+  // payers + proportional tax/tip) so the dashboard agrees with the group page. From this we
+  // read off the caller's net AND the group's total outstanding (sum of positive balances).
+  const net = new Map<string, Map<string, number>>(); // groupId -> personId -> cents
+  const bump = (groupId: string, memberId: string, d: number): void => {
+    let m = net.get(groupId);
+    if (!m) {
+      m = new Map();
+      net.set(groupId, m);
+    }
+    m.set(memberId, (m.get(memberId) ?? 0) + d);
   };
 
-  const paid = await db
-    .select({ groupId: expenses.groupId, amountCents: expenses.amountCents })
+  const exps = await db
+    .select({
+      id: expenses.id,
+      groupId: expenses.groupId,
+      payerId: expenses.payerId,
+      amountCents: expenses.amountCents,
+      splitMethod: expenses.splitMethod,
+      taxCents: expenses.taxCents,
+      tipCents: expenses.tipCents,
+    })
     .from(expenses)
-    .where(and(inArray(expenses.groupId, ids), eq(expenses.payerId, personId), isNull(expenses.deletedAt)))
+    .where(and(inArray(expenses.groupId, ids), isNull(expenses.deletedAt)))
     .all();
-  for (const e of paid) bump(e.groupId, e.amountCents);
+  const groupOfExpense = new Map(exps.map((e) => [e.id, e.groupId]));
 
-  const owed = await db
-    .select({ groupId: expenses.groupId, owedCents: expenseSplits.owedCents })
-    .from(expenseSplits)
-    .innerJoin(expenses, eq(expenseSplits.expenseId, expenses.id))
-    .where(and(eq(expenseSplits.personId, personId), inArray(expenses.groupId, ids), isNull(expenses.deletedAt)))
-    .all();
-  for (const s of owed) bump(s.groupId, -s.owedCents);
+  // Credit side: per-item payers for itemized expenses, else the single payer.
+  const itemizedIds = exps.filter((e) => e.splitMethod === 'ITEMIZED').map((e) => e.id);
+  const itemsByExpense = new Map<string, { amountCents: number; payerId: string | null }[]>();
+  if (itemizedIds.length) {
+    const itemRows = await db
+      .select({ expenseId: expenseItems.expenseId, amountCents: expenseItems.amountCents, payerId: expenseItems.payerId })
+      .from(expenseItems)
+      .where(inArray(expenseItems.expenseId, itemizedIds))
+      .all();
+    for (const it of itemRows) {
+      const arr = itemsByExpense.get(it.expenseId) ?? [];
+      arr.push({ amountCents: it.amountCents, payerId: it.payerId });
+      itemsByExpense.set(it.expenseId, arr);
+    }
+  }
+  for (const e of exps) {
+    const items = e.splitMethod === 'ITEMIZED' ? itemsByExpense.get(e.id) : undefined;
+    if (items && items.length > 0) {
+      const payers = computeItemizedPayers({
+        items: items.map((it) => ({ amountCents: it.amountCents, payerId: it.payerId ?? e.payerId })),
+        taxCents: e.taxCents,
+        tipCents: e.tipCents,
+      });
+      for (const p of payers) bump(e.groupId, p.userId, p.paidCents);
+    } else {
+      bump(e.groupId, e.payerId, e.amountCents);
+    }
+  }
 
+  // Debit side: everyone's owed shares.
+  if (exps.length) {
+    const splitRows = await db
+      .select({ expenseId: expenseSplits.expenseId, personId: expenseSplits.personId, owedCents: expenseSplits.owedCents })
+      .from(expenseSplits)
+      .where(inArray(expenseSplits.expenseId, exps.map((e) => e.id)))
+      .all();
+    for (const s of splitRows) {
+      const g = groupOfExpense.get(s.expenseId);
+      if (g) bump(g, s.personId, -s.owedCents);
+    }
+  }
+
+  // Settlements move money between the two parties.
   const setl = await db
     .select({
       groupId: settlements.groupId,
@@ -214,26 +265,27 @@ export async function listGroups(db: DB, personId: string): Promise<GroupSummary
       amountCents: settlements.amountCents,
     })
     .from(settlements)
-    .where(
-      and(
-        inArray(settlements.groupId, ids),
-        or(eq(settlements.fromPersonId, personId), eq(settlements.toPersonId, personId)),
-      ),
-    )
+    .where(inArray(settlements.groupId, ids))
     .all();
   for (const s of setl) {
-    if (s.fromPersonId === personId) bump(s.groupId, s.amountCents);
-    if (s.toPersonId === personId) bump(s.groupId, -s.amountCents);
+    bump(s.groupId, s.fromPersonId, s.amountCents);
+    bump(s.groupId, s.toPersonId, -s.amountCents);
   }
 
-  return mine.map((g) => ({
-    id: g.id,
-    name: g.name,
-    createdAt: g.createdAt,
-    archived: g.archivedAt !== null,
-    memberCount: countMap.get(g.id) ?? 0,
-    netCents: net.get(g.id) ?? 0,
-  }));
+  return mine.map((g) => {
+    const members = net.get(g.id);
+    let totalUnsettledCents = 0;
+    if (members) for (const v of members.values()) if (v > 0) totalUnsettledCents += v;
+    return {
+      id: g.id,
+      name: g.name,
+      createdAt: g.createdAt,
+      archived: g.archivedAt !== null,
+      memberCount: countMap.get(g.id) ?? 0,
+      netCents: members?.get(personId) ?? 0,
+      totalUnsettledCents,
+    };
+  });
 }
 
 export async function renameGroup(db: DB, personId: string, groupId: string, name: string): Promise<GroupDetail> {
