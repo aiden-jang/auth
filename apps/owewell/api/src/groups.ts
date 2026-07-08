@@ -169,7 +169,7 @@ export interface SharedGroupSummary {
   totalSpentCents: number;
   perPersonCents: number;
   totalSettledCents: number;
-  members: { displayName: string; netCents: number }[];
+  members: { userId: string; displayName: string; netCents: number; isPlaceholder: boolean }[];
   suggested: { fromName: string; toName: string; amountCents: number }[];
   breakdown: { category: string; cents: number }[];
 }
@@ -218,6 +218,14 @@ export async function getSharedSummary(db: DB, token: string): Promise<SharedGro
     .map(([category, cents]) => ({ category, cents }))
     .sort((a, b) => b.cents - a.cents);
 
+  // Which seats are unclaimed placeholders (claimable) vs real accounts.
+  const flags = await db
+    .select({ id: people.id, isPlaceholder: people.isPlaceholder })
+    .from(people)
+    .where(inArray(people.id, balances.map((b) => b.userId)))
+    .all();
+  const isPlaceholderById = new Map(flags.map((f) => [f.id, f.isPlaceholder]));
+
   return {
     groupId: g.id,
     groupName: g.name,
@@ -225,10 +233,74 @@ export async function getSharedSummary(db: DB, token: string): Promise<SharedGro
     totalSpentCents,
     perPersonCents: balances.length ? Math.round(totalSpentCents / balances.length) : 0,
     totalSettledCents,
-    members: balances.map((b) => ({ displayName: b.displayName, netCents: b.netCents })),
+    members: balances.map((b) => ({
+      userId: b.userId,
+      displayName: b.displayName,
+      netCents: b.netCents,
+      isPlaceholder: isPlaceholderById.get(b.userId) ?? false,
+    })),
     suggested,
     breakdown,
   };
+}
+
+/**
+ * Claim an unclaimed seat (placeholder) via a share token, merging it into the signed-in caller.
+ * Everything the placeholder was attached to — its membership, expenses paid, splits owed, and
+ * settlements — is repointed to the caller, who becomes a real member able to edit. The empty
+ * placeholder person is then pruned. Trust-based: anyone with the link may claim a seat.
+ */
+export async function claimPlaceholder(
+  db: DB,
+  callerPersonId: string,
+  token: string,
+  placeholderId: string,
+): Promise<{ groupId: string }> {
+  const g = await db.select({ id: groups.id }).from(groups).where(eq(groups.shareToken, token)).get();
+  if (!g) throw new GroupError('NOT_FOUND', 'This share link is not valid.');
+  const groupId = g.id;
+
+  if (placeholderId === callerPersonId) throw new GroupError('NOT_PLACEHOLDER', "That seat is already yours.");
+
+  // The seat must be an unclaimed placeholder that belongs to this group.
+  const seat = await db
+    .select({ role: groupMembers.role, isPlaceholder: people.isPlaceholder })
+    .from(groupMembers)
+    .innerJoin(people, eq(groupMembers.personId, people.id))
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.personId, placeholderId)))
+    .get();
+  if (!seat) throw new GroupError('NOT_FOUND', 'That seat is not in this group.');
+  if (!seat.isPlaceholder) throw new GroupError('NOT_PLACEHOLDER', 'That seat already belongs to an account.');
+
+  // The caller can't already be in the group (they'd end up with two seats).
+  const already = await db
+    .select({ id: groupMembers.id })
+    .from(groupMembers)
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.personId, callerPersonId)))
+    .get();
+  if (already) throw new GroupError('ALREADY_MEMBER', "You're already in this group.");
+
+  // Repoint every reference from the placeholder to the caller, scoped to this group.
+  const expIds = (await db.select({ id: expenses.id }).from(expenses).where(eq(expenses.groupId, groupId)).all()).map((e) => e.id);
+  await db
+    .update(groupMembers)
+    .set({ personId: callerPersonId })
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.personId, placeholderId)));
+  if (expIds.length) {
+    await db.update(expenses).set({ payerId: callerPersonId }).where(and(eq(expenses.groupId, groupId), eq(expenses.payerId, placeholderId)));
+    await db.update(expenseSplits).set({ personId: callerPersonId }).where(and(inArray(expenseSplits.expenseId, expIds), eq(expenseSplits.personId, placeholderId)));
+    await db.update(expenseItems).set({ payerId: callerPersonId }).where(and(inArray(expenseItems.expenseId, expIds), eq(expenseItems.payerId, placeholderId)));
+    const itemIds = (await db.select({ id: expenseItems.id }).from(expenseItems).where(inArray(expenseItems.expenseId, expIds)).all()).map((i) => i.id);
+    if (itemIds.length) {
+      await db.update(expenseItemShares).set({ personId: callerPersonId }).where(and(inArray(expenseItemShares.itemId, itemIds), eq(expenseItemShares.personId, placeholderId)));
+    }
+  }
+  await db.update(settlements).set({ fromPersonId: callerPersonId }).where(and(eq(settlements.groupId, groupId), eq(settlements.fromPersonId, placeholderId)));
+  await db.update(settlements).set({ toPersonId: callerPersonId }).where(and(eq(settlements.groupId, groupId), eq(settlements.toPersonId, placeholderId)));
+
+  // The placeholder is now unreferenced; clean it up.
+  await pruneOrphanPlaceholders(db);
+  return { groupId };
 }
 
 export async function createGroup(db: DB, personId: string, name: string): Promise<GroupDetail> {

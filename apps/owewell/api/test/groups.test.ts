@@ -12,6 +12,7 @@ import {
   setGroupArchived,
   getOrCreateShareToken,
   getSharedSummary,
+  claimPlaceholder,
 } from '../src/groups.js';
 import { createExpense, getBalances } from '../src/expenses.js';
 import { recordSettlement } from '../src/settlements.js';
@@ -147,6 +148,44 @@ describe('groups', () => {
 
     // An unknown token resolves to nothing, not someone else's group.
     expect(await getSharedSummary(db, 'not-a-real-token')).toBeNull();
+  });
+
+  test('claiming a placeholder seat merges its history into the caller', async () => {
+    const db = testDb();
+    const group = await createGroup(db, alice, 'Trip');
+    const bobSeat = (await addPlaceholderMember(db, alice, group.id, 'Bob')).userId;
+    const carolSeat = (await addPlaceholderMember(db, alice, group.id, 'Carol')).userId;
+    // Alice pays 1000 split with the Bob seat: that seat owes 500.
+    await createExpense(db, alice, group.id, {
+      description: 'Dinner',
+      amountCents: 1000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bobSeat }],
+    });
+    const token = await getOrCreateShareToken(db, alice, group.id);
+
+    const realBob = await seedPerson(db, 'Bob Real');
+    const { groupId } = await claimPlaceholder(db, realBob, token, bobSeat);
+    expect(groupId).toBe(group.id);
+
+    // realBob is now a member; the placeholder seat is gone, count unchanged.
+    const fetched = await getGroup(db, realBob, group.id);
+    const ids = fetched.members.map((m) => m.userId);
+    expect(ids).toContain(realBob);
+    expect(ids).not.toContain(bobSeat);
+    expect(fetched.members).toHaveLength(3);
+
+    // The seat's debt carried over.
+    const bal = Object.fromEntries((await getBalances(db, realBob, group.id)).map((b) => [b.userId, b.netCents]));
+    expect(bal[realBob]).toBe(-500);
+    expect(bal[alice]).toBe(500);
+
+    // Guards: the claimed seat can't be taken again, a current member can't claim, bad token fails.
+    const nate = await seedPerson(db, 'Nate');
+    await expect(claimPlaceholder(db, nate, token, bobSeat)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(claimPlaceholder(db, alice, token, carolSeat)).rejects.toMatchObject({ code: 'ALREADY_MEMBER' });
+    await expect(claimPlaceholder(db, nate, 'not-a-token', carolSeat)).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
 
   test('unknown group is NOT_FOUND', async () => {
