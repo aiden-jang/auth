@@ -391,6 +391,8 @@ export function GroupDetailPage(): ReactNode {
   // (which equals the total the debtors owe, since balances net to zero). Shown as context so
   // "You're square" doesn't read as "the group is done" when others still owe each other.
   const totalUnsettled = balances.reduce((sum, b) => sum + Math.max(0, b.netCents), 0);
+  // Total money spent on bills in this group (settlements aren't spending, so expenses only).
+  const totalSpent = expenses.reduce((sum, e) => sum + e.amountCents, 0);
 
   return (
     <Shell>
@@ -616,7 +618,14 @@ export function GroupDetailPage(): ReactNode {
       )}
 
       <section className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Activity</h2>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Activity</h2>
+          {totalSpent > 0 && (
+            <span className="tnum text-sm text-muted">
+              {Money.fromCents(totalSpent).format()} in bills
+            </span>
+          )}
+        </div>
         {activity.length === 0 ? (
           <div className="mt-3 rounded-2xl border border-dashed border-line p-8 text-center">
             <div className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-surface2 text-muted">
