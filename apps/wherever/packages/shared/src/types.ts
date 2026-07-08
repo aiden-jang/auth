@@ -40,6 +40,8 @@ export interface SessionFilters {
   maxPriceTier: PriceTier;
   /** Empty means no cuisine filter. */
   categories: string[];
+  /** Minimum star rating (0-5). 0 or unset means no rating filter. */
+  minRating?: number;
   /** Search center. Optional: the mock source ignores it; real sources need it. */
   lat?: number;
   lng?: number;

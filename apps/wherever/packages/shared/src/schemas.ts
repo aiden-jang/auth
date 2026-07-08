@@ -15,6 +15,7 @@ export const sessionFiltersSchema = z.object({
   radiusMeters: z.number().int().positive().max(50_000),
   maxPriceTier: priceTierSchema,
   categories: z.array(z.string().min(1).max(40)).max(20),
+  minRating: z.number().min(0).max(5).optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
 });

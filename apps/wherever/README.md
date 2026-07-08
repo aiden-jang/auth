@@ -22,7 +22,7 @@ A group picks a restaurant by swiping, instead of sending 60 messages and eating
 - **Realtime + API:** a Cloudflare Worker (Hono) with one **Durable Object per session** (`SessionRoom`) holding live vote state. See [ADR 0001](docs/adr/0001-durable-objects.md).
 - **Durable data:** Cloudflare D1 (SQLite) + Drizzle
 - **Validation:** Zod at every HTTP and WebSocket boundary
-- **Restaurant data:** Foursquare Places, behind a swappable `RestaurantSource` interface with a seeded mock fallback
+- **Restaurant data:** Google Places API (New), behind a swappable `RestaurantSource` interface with a seeded mock fallback (Foursquare kept as an alternate implementation)
 
 Runs entirely on free tiers.
 
@@ -41,8 +41,11 @@ pnpm --filter @wherever/worker dev    # http://localhost:8787
 pnpm --filter @wherever/web dev       # http://localhost:5173
 ```
 
-Foursquare needs a `FOURSQUARE_API_KEY` (`wrangler secret`); without it the seeded mock deck keeps
-the app fully playable.
+Set `RESTAURANT_SOURCE=google` and a `GOOGLE_PLACES_API_KEY` (`wrangler secret`) to use live data;
+without a key the seeded mock deck keeps the app fully playable. See
+`packages/worker/.dev.vars.example`. Restrict the key to the Places API and set a per-API usage
+quota to stay inside the budget. To use Foursquare instead, set `RESTAURANT_SOURCE=foursquare` and
+`FOURSQUARE_API_KEY`.
 
 ## Project layout
 
