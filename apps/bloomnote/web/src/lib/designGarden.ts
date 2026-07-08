@@ -205,7 +205,7 @@ export function friendlyError(raw: string): string {
   // didn't pass validateGarden() (out-of-range petal count, bad hex,
   // wrong array length, etc.)
   if (/invalid garden|invalid.+payload|content_sha256/i.test(raw)) {
-    return 'the AI got confused on that one. mind trying again — maybe with a slightly different note?'
+    return 'the AI got confused on that one. mind trying again, maybe with a slightly different note?'
   }
 
   // Stream ended without a complete event, or the model didn't call
