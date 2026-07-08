@@ -19,6 +19,7 @@ export const sessionFiltersSchema = z.object({
   minReviews: z.number().int().min(0).max(100_000).optional(),
   openNow: z.boolean().optional(),
   sort: z.enum(["popularity", "distance"]).optional(),
+  area: z.string().min(1).max(40).optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
 });

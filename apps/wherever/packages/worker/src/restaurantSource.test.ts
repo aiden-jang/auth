@@ -8,6 +8,7 @@ import {
   passesRating,
   passesReviews,
   photoProxyUrl,
+  resolveSearchCenter,
   type FoursquarePlace,
   type GooglePlace,
 } from "./restaurantSource.js";
@@ -170,6 +171,28 @@ describe("passesRating", () => {
     expect(passesRating(3.9, 4)).toBe(false);
     expect(passesRating(4, 4)).toBe(true);
     expect(passesRating(4.6, 4)).toBe(true);
+  });
+});
+
+describe("resolveSearchCenter", () => {
+  const base = { radiusMeters: 8000, maxPriceTier: 4 as const, categories: [] };
+
+  it("prefers a known neighborhood over lat/lng", () => {
+    const c = resolveSearchCenter({ ...base, area: "soho", lat: 51.5, lng: -0.1 });
+    expect(c.lat).toBeCloseTo(40.7233, 3);
+    expect(c.lng).toBeCloseTo(-74.003, 3);
+  });
+
+  it("falls back to shared lat/lng when the area is unknown or unset", () => {
+    expect(resolveSearchCenter({ ...base, lat: 51.5, lng: -0.1 })).toEqual({ lat: 51.5, lng: -0.1 });
+    expect(resolveSearchCenter({ ...base, area: "atlantis", lat: 51.5, lng: -0.1 })).toEqual({
+      lat: 51.5,
+      lng: -0.1,
+    });
+  });
+
+  it("falls back to the default center when nothing is provided", () => {
+    expect(resolveSearchCenter(base)).toEqual({ lat: 40.7128, lng: -74.006 });
   });
 });
 

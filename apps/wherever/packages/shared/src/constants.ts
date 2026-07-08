@@ -61,6 +61,44 @@ export function googleTypeFor(value: string): string | undefined {
   return CUISINE_OPTIONS.find((c) => c.value === value.trim().toLowerCase())?.googleType;
 }
 
+export interface Neighborhood {
+  value: string;
+  label: string;
+  lat: number;
+  lng: number;
+}
+
+/**
+ * Curated search centers so the host can pick a named area instead of "near me". NYC-scoped for
+ * now (the app defaults to NYC); supporting other cities would mean geocoding typed names, which
+ * is a separate paid call. Coordinates are approximate neighborhood centers.
+ */
+export const NEIGHBORHOODS: Neighborhood[] = [
+  { value: "soho", label: "SoHo", lat: 40.7233, lng: -74.003 },
+  { value: "tribeca", label: "Tribeca", lat: 40.7163, lng: -74.0086 },
+  { value: "west-village", label: "West Village", lat: 40.7358, lng: -74.0036 },
+  { value: "east-village", label: "East Village", lat: 40.7265, lng: -73.9815 },
+  { value: "lower-east-side", label: "Lower East Side", lat: 40.715, lng: -73.9843 },
+  { value: "chinatown", label: "Chinatown", lat: 40.7158, lng: -73.997 },
+  { value: "financial-district", label: "FiDi", lat: 40.7075, lng: -74.0113 },
+  { value: "chelsea", label: "Chelsea", lat: 40.7465, lng: -74.0014 },
+  { value: "flatiron", label: "Flatiron", lat: 40.7411, lng: -73.9897 },
+  { value: "midtown", label: "Midtown", lat: 40.7549, lng: -73.984 },
+  { value: "hells-kitchen", label: "Hell's Kitchen", lat: 40.7638, lng: -73.9918 },
+  { value: "upper-west-side", label: "Upper West Side", lat: 40.787, lng: -73.9754 },
+  { value: "upper-east-side", label: "Upper East Side", lat: 40.7736, lng: -73.9566 },
+  { value: "harlem", label: "Harlem", lat: 40.8116, lng: -73.9465 },
+  { value: "williamsburg", label: "Williamsburg", lat: 40.7081, lng: -73.9571 },
+  { value: "greenpoint", label: "Greenpoint", lat: 40.7304, lng: -73.9512 },
+  { value: "astoria", label: "Astoria", lat: 40.7644, lng: -73.9235 },
+  { value: "park-slope", label: "Park Slope", lat: 40.671, lng: -73.9814 },
+];
+
+/** Human label for a neighborhood value, or undefined if unknown. */
+export function neighborhoodLabel(value: string): string | undefined {
+  return NEIGHBORHOODS.find((n) => n.value === value)?.label;
+}
+
 export interface RadiusOption {
   meters: number;
   label: string;

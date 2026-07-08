@@ -1,5 +1,24 @@
 import type { PriceTier, Restaurant, SessionFilters } from "@wherever/shared";
-import { googleTypeFor } from "@wherever/shared";
+import { googleTypeFor, NEIGHBORHOODS } from "@wherever/shared";
+
+// Fallback center when the host neither picked an area nor shared a location; keeps the app
+// functional. NYC, matching the neighborhood set.
+const DEFAULT_CENTER = { lat: 40.7128, lng: -74.006 };
+
+/**
+ * Resolve the search center: a picked neighborhood wins, then the host's shared location, then
+ * the default. Exported for unit testing.
+ */
+export function resolveSearchCenter(filters: SessionFilters): { lat: number; lng: number } {
+  if (filters.area) {
+    const n = NEIGHBORHOODS.find((x) => x.value === filters.area);
+    if (n) return { lat: n.lat, lng: n.lng };
+  }
+  if (filters.lat != null && filters.lng != null) {
+    return { lat: filters.lat, lng: filters.lng };
+  }
+  return DEFAULT_CENTER;
+}
 
 /**
  * The boundary between the app and wherever restaurants come from. Swap the
@@ -92,18 +111,12 @@ export function mapFoursquarePlace(p: FoursquarePlace): Restaurant {
   };
 }
 
-// Fallback search center when the host did not share a location (e.g. denied
-// geolocation). Foursquare requires an `ll`; this keeps the app functional.
-const DEFAULT_LL = "40.7128,-74.0060"; // NYC
-
 export class FoursquareRestaurantSource implements RestaurantSource {
   constructor(private readonly apiKey: string) {}
 
   async fetchDeck(filters: SessionFilters): Promise<Restaurant[]> {
-    const ll =
-      filters.lat != null && filters.lng != null
-        ? `${filters.lat},${filters.lng}`
-        : DEFAULT_LL;
+    const center = resolveSearchCenter(filters);
+    const ll = `${center.lat},${center.lng}`;
 
     const params = new URLSearchParams({
       ll,
@@ -237,9 +250,6 @@ export function mapGooglePlace(
   };
 }
 
-// Fallback center when the host didn't share a location; keeps the app functional.
-const DEFAULT_CENTER = { lat: 40.7128, lng: -74.006 }; // NYC
-
 export class GooglePlacesRestaurantSource implements RestaurantSource {
   constructor(
     private readonly apiKey: string,
@@ -247,10 +257,7 @@ export class GooglePlacesRestaurantSource implements RestaurantSource {
   ) {}
 
   async fetchDeck(filters: SessionFilters): Promise<Restaurant[]> {
-    const center =
-      filters.lat != null && filters.lng != null
-        ? { lat: filters.lat, lng: filters.lng }
-        : DEFAULT_CENTER;
+    const center = resolveSearchCenter(filters);
 
     const res = await fetch("https://places.googleapis.com/v1/places:searchNearby", {
       method: "POST",
