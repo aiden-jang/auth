@@ -1,7 +1,7 @@
-import { useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { dollarsToCents } from '@aidenjang/shared';
 import { DEFAULT_EXPENSE_CATEGORY, type ExpenseCategory } from '@owewell/core';
-import { expensesApi, ocrReceipt, type Expense } from '../lib/expenses';
+import { expensesApi, type Expense } from '../lib/expenses';
 import type { GroupMember } from '../lib/groups';
 import { normalizeAmountInput } from '../lib/format';
 import { CategoryPicker } from './CategoryPicker';
@@ -56,34 +56,6 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
   );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [scanning, setScanning] = useState(false);
-
-  async function onScan(event: ChangeEvent<HTMLInputElement>): Promise<void> {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    setScanning(true);
-    setError(null);
-    try {
-      const receipt = await ocrReceipt(groupId, file);
-      if (receipt.items.length > 0) {
-        setItems(
-          receipt.items.map((item) => ({
-            name: item.name,
-            amount: centsToInput(item.amountCents),
-            participantIds: allMemberIds(),
-            payerId,
-          })),
-        );
-      }
-      setTax(receipt.taxCents ? centsToInput(receipt.taxCents) : '');
-      setTip(receipt.tipCents ? centsToInput(receipt.tipCents) : '');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not read that receipt.');
-    } finally {
-      setScanning(false);
-    }
-  }
 
   function updateItem(index: number, patch: Partial<ItemDraft>): void {
     setItems((prev) => prev.map((item, i) => (i === index ? { ...item, ...patch } : item)));
@@ -167,18 +139,15 @@ export function AddItemizedExpenseForm({ groupId, members, onCreated, editing }:
 
   return (
     <form onSubmit={(e) => void onSubmit(e)} className="space-y-3.5">
-      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-line-strong px-3 py-3 text-sm font-medium text-accent transition hover:bg-surface2">
+      <div
+        className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-line px-3 py-3 text-sm font-medium text-faint"
+        aria-disabled="true"
+        title="Receipt scanning is coming soon"
+      >
         <Icon name="scan" size={18} />
-        {scanning ? 'Reading the receipt...' : 'Scan a receipt photo'}
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          disabled={scanning}
-          onChange={(e) => void onScan(e)}
-          aria-label="Scan a receipt photo"
-        />
-      </label>
+        Scan a receipt photo
+        <span className="rounded-full bg-surface2 px-2 py-0.5 text-xs text-muted">coming soon</span>
+      </div>
 
       <input
         value={description}
