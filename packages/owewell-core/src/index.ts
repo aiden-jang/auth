@@ -209,7 +209,8 @@ export interface SharedGroupSummary {
   totalSpentCents: number;
   perPersonCents: number;
   totalSettledCents: number;
-  members: { displayName: string; netCents: number }[];
+  // isPlaceholder members are unclaimed seats a signed-in visitor can claim as their own.
+  members: { userId: string; displayName: string; netCents: number; isPlaceholder: boolean }[];
   suggested: { fromName: string; toName: string; amountCents: number }[];
   breakdown: { category: string; cents: number }[];
 }

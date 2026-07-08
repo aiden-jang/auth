@@ -8,6 +8,7 @@ import { getOrCreatePerson, type Person } from './people.js';
 import {
   GroupError,
   addPlaceholderMember,
+  claimPlaceholder,
   createGroup,
   deleteGroup,
   getGroup,
@@ -341,6 +342,16 @@ app.post('/owewell/groups/:id/invites', async (c) => {
 
 app.post('/owewell/invites/:token/accept', async (c) => {
   const result = await acceptInvite(createDb(c.env), c.get('person').id, c.req.param('token'));
+  c.executionCtx.waitUntil(notifyGroupChanged(c.env, result.groupId));
+  return c.json(result);
+});
+
+// Claim an unclaimed seat (placeholder) via a share token. Requires sign-in (auth guard above);
+// the token authorizes the claim. The caller merges into the placeholder and becomes a member.
+app.post('/owewell/shared/:token/claim', async (c) => {
+  const parsed = z.object({ personId: z.string().min(1) }).safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const result = await claimPlaceholder(createDb(c.env), c.get('person').id, c.req.param('token'), parsed.data.personId);
   c.executionCtx.waitUntil(notifyGroupChanged(c.env, result.groupId));
   return c.json(result);
 });
