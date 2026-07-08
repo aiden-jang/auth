@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Money } from '@aidenjang/shared';
 import { categoryMeta, type SharedGroupSummary } from '@owewell/core';
 import { useAuth } from '../auth/AuthContext';
@@ -28,24 +28,28 @@ export function SharedGroupPage(): ReactNode {
   const { user, login } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'ready' | 'notfound'>('loading');
   const [summary, setSummary] = useState<SharedGroupSummary | null>(null);
   const [claiming, setClaiming] = useState<string | null>(null);
+  const autoClaimed = useRef(false);
 
-  // Claim a seat. Signed out → sign in and return here (the button then claims). Signed in →
-  // merge the seat and drop into the now-editable group.
+  // Claim a seat. Signed out → sign in and come back with ?claim=<seat> so we finish
+  // automatically. Signed in → merge the seat and drop into the now-editable group.
   async function claimSeat(seatId: string): Promise<void> {
     if (!token) return;
     if (!user) {
-      login(window.location.href);
+      login(`${window.location.origin}/s/${token}?claim=${seatId}`);
       return;
     }
     setClaiming(seatId);
     try {
       const { groupId } = await groupsApi.claimSeat(token, seatId);
       navigate(`/groups/${groupId}`);
-    } catch {
-      toast.error('Could not claim that seat — it may already be taken.');
+    } catch (err) {
+      // Surfaces the server's reason, e.g. "You're already in this group." for a member, or a
+      // taken/invalid seat.
+      toast.error(err instanceof Error ? err.message : 'Could not claim that seat.');
       setClaiming(null);
     }
   }
@@ -66,6 +70,17 @@ export function SharedGroupPage(): ReactNode {
       })
       .catch(() => setStatus('notfound'));
   }, [token]);
+
+  // Returning from sign-in with ?claim=<seat>: finish the claim now and head to the group.
+  // Already-members just go straight in. Runs once; the param is cleared so a refresh won't retry.
+  useEffect(() => {
+    const seatId = searchParams.get('claim');
+    if (status !== 'ready' || !summary || !user || !seatId || autoClaimed.current) return;
+    autoClaimed.current = true;
+    setSearchParams({}, { replace: true });
+    if (viewerIsMember) navigate(`/groups/${summary.groupId}`);
+    else void claimSeat(seatId);
+  }, [status, summary, user, searchParams, viewerIsMember]);
 
   return (
     <div className="flex min-h-screen flex-col">
