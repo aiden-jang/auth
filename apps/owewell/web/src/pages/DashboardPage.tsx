@@ -167,10 +167,13 @@ export function DashboardPage(): ReactNode {
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium">{group.name}</span>
           <span className="block text-sm text-muted">
-            {group.memberCount} {group.memberCount === 1 ? 'person' : 'people'}
+            <span className="whitespace-nowrap">
+              {group.memberCount} {group.memberCount === 1 ? 'person' : 'people'}
+              {group.totalUnsettledCents > 0 && ' ·'}
+            </span>
             {group.totalUnsettledCents > 0 && (
-              <span className="text-faint">
-                {' · '}
+              <span className="whitespace-nowrap text-faint">
+                {' '}
                 {Money.fromCents(group.totalUnsettledCents).format()} unsettled
               </span>
             )}
