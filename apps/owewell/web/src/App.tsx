@@ -4,7 +4,6 @@ import { useAuth } from './auth/AuthContext';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { DashboardPage } from './pages/DashboardPage';
 import { GroupDetailPage } from './pages/GroupDetailPage';
-import { InvitePage } from './pages/InvitePage';
 import { QuickSplitPage } from './pages/QuickSplitPage';
 import { SharedGroupPage } from './pages/SharedGroupPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -31,7 +30,6 @@ export function App(): ReactNode {
     <div className="flex min-h-screen flex-col">
       <div className="flex flex-1 flex-col">
         <Routes>
-          <Route path="/invite/:token" element={<InvitePage />} />
           <Route path="/s/:token" element={<SharedGroupPage />} />
           <Route path="/split" element={<QuickSplitPage />} />
           <Route element={<ProtectedRoute />}>

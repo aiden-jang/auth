@@ -19,7 +19,6 @@ import { expensesApi, type Expense } from '../lib/expenses';
 import { settlementsApi, type Settlement, type SuggestedPayment } from '../lib/settlements';
 import { payLinks } from '../lib/payLinks';
 import { buildGroupSummary } from '../lib/shareSummary';
-import { invitesApi } from '../lib/invites';
 import { useGroupRealtime } from '../hooks/useGroupRealtime';
 
 function balanceLabel(netCents: number): { text: string; tone: string } {
@@ -81,7 +80,6 @@ export function GroupDetailPage(): ReactNode {
   const [allGroups, setAllGroups] = useState<GroupSummary[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingMemberName, setEditingMemberName] = useState('');
@@ -255,23 +253,6 @@ export function GroupDetailPage(): ReactNode {
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not remove them.');
-    }
-  }
-
-  async function createInviteLink(): Promise<void> {
-    setMemberError(null);
-    try {
-      const invite = await invitesApi.create(id);
-      const link = `${window.location.origin}/invite/${invite.token}`;
-      setInviteLink(link);
-      try {
-        await navigator.clipboard.writeText(link);
-        toast.success('Invite link copied to your clipboard.');
-      } catch {
-        toast.success('Invite link ready below.');
-      }
-    } catch (err) {
-      setMemberError(err instanceof Error ? err.message : 'Could not create a link.');
     }
   }
 
@@ -790,26 +771,22 @@ export function GroupDetailPage(): ReactNode {
                     <span className="tnum font-semibold">
                       {Money.fromCents(item.expense.amountCents).format()}
                     </span>
-                    {(
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setEditingExpense(item.expense)}
-                          aria-label={`Edit ${item.expense.description}`}
-                          className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-ink group-hover:opacity-100"
-                        >
-                          <Icon name="pencil" size={15} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void deleteExpense(item.expense.id)}
-                          aria-label={`Delete ${item.expense.description}`}
-                          className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-neg group-hover:opacity-100"
-                        >
-                          <Icon name="x" size={16} />
-                        </button>
-                      </>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setEditingExpense(item.expense)}
+                      aria-label={`Edit ${item.expense.description}`}
+                      className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-ink group-hover:opacity-100"
+                    >
+                      <Icon name="pencil" size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void deleteExpense(item.expense.id)}
+                      aria-label={`Delete ${item.expense.description}`}
+                      className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-neg group-hover:opacity-100"
+                    >
+                      <Icon name="x" size={16} />
+                    </button>
                   </div>
                 </li>
               ) : (
@@ -838,16 +815,14 @@ export function GroupDetailPage(): ReactNode {
                     <span className="tnum font-medium text-pos">
                       {Money.fromCents(item.settlement.amountCents).format()}
                     </span>
-                    {(
-                      <button
-                        type="button"
-                        onClick={() => void undoSettlement(item.settlement.id)}
-                        aria-label="Undo payment"
-                        className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-neg group-hover:opacity-100"
-                      >
-                        <Icon name="undo" size={15} />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => void undoSettlement(item.settlement.id)}
+                      aria-label="Undo payment"
+                      className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-neg group-hover:opacity-100"
+                    >
+                      <Icon name="undo" size={15} />
+                    </button>
                   </div>
                 </li>
               ),
@@ -1032,57 +1007,36 @@ export function GroupDetailPage(): ReactNode {
               })}
             </ul>
 
-            {(
-              <>
-                <form onSubmit={(e) => void onAddMember(e)} className="mt-3 flex gap-2">
-                  <input
-                    type="text"
-                    value={memberName}
-                    onChange={(e) => setMemberName(e.target.value)}
-                    placeholder="Add someone by name"
-                    className="flex-1 rounded-xl border border-line bg-field px-3.5 py-2.5 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
-                  />
-                  <button
-                    type="submit"
-                    className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface2 px-4 py-2.5 text-sm font-medium transition hover:border-accent active:scale-[0.98]"
-                  >
-                    <Icon name="user-plus" size={16} /> Add
-                  </button>
-                </form>
-                {memberError && <p className="mt-2 text-sm font-medium text-neg">{memberError}</p>}
-                <div className="mt-3">
-                  <button
-                    type="button"
-                    onClick={() => void createInviteLink()}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-accent transition hover:underline"
-                  >
-                    <Icon name="link" size={15} /> Or invite someone on owewell with a link
-                  </button>
-                  {inviteLink && (
-                    <input
-                      readOnly
-                      value={inviteLink}
-                      onFocus={(e) => e.target.select()}
-                      aria-label="Invite link"
-                      className="mt-2 w-full rounded-xl border border-line bg-field px-3 py-2.5 text-sm text-muted outline-none"
-                    />
-                  )}
-                </div>
-              </>
-            )}
+            <form onSubmit={(e) => void onAddMember(e)} className="mt-3 flex gap-2">
+              <input
+                type="text"
+                value={memberName}
+                onChange={(e) => setMemberName(e.target.value)}
+                placeholder="Add someone by name"
+                className="flex-1 rounded-xl border border-line bg-field px-3.5 py-2.5 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+              />
+              <button
+                type="submit"
+                className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface2 px-4 py-2.5 text-sm font-medium transition hover:border-accent active:scale-[0.98]"
+              >
+                <Icon name="user-plus" size={16} /> Add
+              </button>
+            </form>
+            {memberError && <p className="mt-2 text-sm font-medium text-neg">{memberError}</p>}
+            <p className="mt-3 text-xs text-muted">
+              Added someone by name? Share the group link (top right) so they can claim their spot.
+            </p>
           </div>
         )}
       </section>
 
-      {(
-        <button
-          type="button"
-          onClick={() => setSheetOpen(true)}
-          className="btn-gradient fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full px-6 py-3.5 font-semibold shadow-xl shadow-black/30 transition active:scale-[0.97]"
-        >
-          <Icon name="plus" size={20} /> Add expense
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => setSheetOpen(true)}
+        className="btn-gradient fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full px-6 py-3.5 font-semibold shadow-xl shadow-black/30 transition active:scale-[0.97]"
+      >
+        <Icon name="plus" size={20} /> Add expense
+      </button>
 
       <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Add to the tab">
         <div className="mb-4 inline-flex w-full rounded-full border border-line bg-field p-1">

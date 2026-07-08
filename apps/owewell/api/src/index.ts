@@ -41,7 +41,6 @@ import {
   recordSettlement,
 } from './settlements.js';
 import { extractReceipt } from './ocr.js';
-import { InviteError, acceptInvite, createInvite, getInviteInfo } from './invites.js';
 import { QuickSplitError, createQuickSplit } from './quicksplit.js';
 import { notifyGroupChanged } from './realtime.js';
 
@@ -65,12 +64,6 @@ app.get('/owewell/me', async (c) => {
     user: { id: user.id, email: user.email, displayName: user.displayName },
     personId: person.id,
   });
-});
-
-// Public invite lookup so the landing page can show the group before the visitor signs in.
-// Registered before the auth guard below.
-app.get('/owewell/invites/:token', async (c) => {
-  return c.json({ invite: await getInviteInfo(createDb(c.env), c.req.param('token')) });
 });
 
 // Public, read-only group summary for a share link. No auth by design: anyone with the token
@@ -132,18 +125,12 @@ app.post('/owewell/groups/:id/share', async (c) => {
   return c.json({ token });
 });
 
-// Add a member. { name } adds a name-only placeholder. { email } (invite a real account) is
-// handled by the invite flow, added in a later step.
-const addMemberBody = z.union([
-  z.object({ name: z.string().trim().min(1).max(80) }),
-  z.object({ email: z.string().email() }),
-]);
+// Add a member: a name-only placeholder seat. Real people join by claiming their seat via the
+// group's share link (see /owewell/shared/:token/claim); there's no separate invite flow.
+const addMemberBody = z.object({ name: z.string().trim().min(1).max(80) });
 app.post('/owewell/groups/:id/members', async (c) => {
   const parsed = addMemberBody.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
-  if ('email' in parsed.data) {
-    return c.json({ error: 'USE_INVITE', message: 'Invite real accounts with a link (coming next).' }, 501);
-  }
   const member = await addPlaceholderMember(createDb(c.env), c.get('person').id, c.req.param('id'), parsed.data.name);
   c.executionCtx.waitUntil(notifyGroupChanged(c.env, c.req.param('id')));
   return c.json({ member }, 201);
@@ -332,20 +319,6 @@ app.post('/owewell/groups/:id/ocr', async (c) => {
   }
 });
 
-const createInviteBody = z.object({ email: z.string().email().optional() });
-app.post('/owewell/groups/:id/invites', async (c) => {
-  const parsed = createInviteBody.safeParse(await c.req.json().catch(() => ({})));
-  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
-  const invite = await createInvite(createDb(c.env), c.get('person').id, c.req.param('id'), parsed.data.email);
-  return c.json({ invite }, 201);
-});
-
-app.post('/owewell/invites/:token/accept', async (c) => {
-  const result = await acceptInvite(createDb(c.env), c.get('person').id, c.req.param('token'));
-  c.executionCtx.waitUntil(notifyGroupChanged(c.env, result.groupId));
-  return c.json(result);
-});
-
 // Claim an unclaimed seat (placeholder) via a share token. Requires sign-in (auth guard above);
 // the token authorizes the claim. The caller merges into the placeholder and becomes a member.
 app.post('/owewell/shared/:token/claim', async (c) => {
@@ -429,10 +402,6 @@ app.onError((err, c) => {
   }
   if (err instanceof SettlementError) {
     return c.json({ error: err.code, message: err.message }, err.code === 'NOT_FOUND' ? 404 : 422);
-  }
-  if (err instanceof InviteError) {
-    const status = err.code === 'NOT_FOUND' ? 404 : err.code === 'EXPIRED' ? 410 : 409;
-    return c.json({ error: err.code, message: err.message }, status);
   }
   if (err instanceof QuickSplitError) {
     return c.json({ error: err.code, message: err.message }, 422);
