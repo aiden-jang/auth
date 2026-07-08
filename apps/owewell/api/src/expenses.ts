@@ -73,6 +73,18 @@ export interface MemberBalance {
   owedCents: number;
 }
 
+/**
+ * Once any payment is recorded, changing or removing an expense would break the settlement
+ * that was logged against the old balances — so the ledger locks. Throws LOCKED if the group
+ * has any settlement. (Mirrors the member-removal rule.)
+ */
+async function assertUnlocked(db: DB, groupId: string): Promise<void> {
+  const settled = await db.select({ c: count() }).from(settlements).where(eq(settlements.groupId, groupId)).get();
+  if ((settled?.c ?? 0) > 0) {
+    throw new ExpenseError('LOCKED', "Can't change or delete an expense once a payment has been recorded.");
+  }
+}
+
 async function memberPersonIds(db: DB, groupId: string): Promise<Set<string>> {
   const rows = await db.select({ personId: groupMembers.personId }).from(groupMembers).where(eq(groupMembers.groupId, groupId)).all();
   return new Set(rows.map((r) => r.personId));
@@ -129,6 +141,7 @@ export async function createExpense(db: DB, personId: string, groupId: string, i
 /** Replace a simple (non-itemized) expense in place, recomputing its splits. Preserves createdAt. */
 export async function updateExpense(db: DB, personId: string, groupId: string, expenseId: string, input: CreateExpenseInput): Promise<ExpenseView> {
   await requireMembership(db, personId, groupId);
+  await assertUnlocked(db, groupId);
   const existing = await db
     .select({ createdAt: expenses.createdAt })
     .from(expenses)
@@ -230,6 +243,7 @@ export async function createItemizedExpense(db: DB, personId: string, groupId: s
 /** Replace an itemized expense in place: recompute item splits, swap items + shares. Preserves createdAt. */
 export async function updateItemizedExpense(db: DB, personId: string, groupId: string, expenseId: string, input: CreateItemizedExpenseInput): Promise<ExpenseView> {
   await requireMembership(db, personId, groupId);
+  await assertUnlocked(db, groupId);
   const existing = await db
     .select({ createdAt: expenses.createdAt })
     .from(expenses)
@@ -351,12 +365,7 @@ export async function deleteExpense(db: DB, personId: string, groupId: string, e
   await requireMembership(db, personId, groupId);
   const e = await db.select({ id: expenses.id }).from(expenses).where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId), isNull(expenses.deletedAt))).get();
   if (!e) throw new ExpenseError('NOT_FOUND', 'That expense is already gone.');
-  // Deleting recomputes balances, which would break a payment already recorded against them.
-  // So once anyone's marked paid, the ledger is locked — same rule as removing a member.
-  const settled = await db.select({ c: count() }).from(settlements).where(eq(settlements.groupId, groupId)).get();
-  if ((settled?.c ?? 0) > 0) {
-    throw new ExpenseError('LOCKED', "Can't delete an expense once a payment has been recorded.");
-  }
+  await assertUnlocked(db, groupId);
   await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, expenseId));
 }
 
