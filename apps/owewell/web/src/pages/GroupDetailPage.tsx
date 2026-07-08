@@ -389,6 +389,8 @@ export function GroupDetailPage(): ReactNode {
   // How much has already been paid back, and the even-split average across the members.
   const totalSettled = settlements.reduce((sum, s) => sum + s.amountCents, 0);
   const perPersonCents = group.members.length ? Math.round(totalSpent / group.members.length) : 0;
+  // A brand-new group has no expenses or payments yet — show a "nothing yet" hero, not "settled".
+  const hasActivity = expenses.length > 0 || settlements.length > 0;
   // Spend grouped by category, biggest first, for the "where it went" breakdown.
   const spendByCategory = (() => {
     const totals = new Map<string, number>();
@@ -573,14 +575,30 @@ export function GroupDetailPage(): ReactNode {
 
       <div className="glass mt-5 rounded-3xl p-6 sm:p-7">
         <p className="text-sm font-medium text-muted">
-          {settled ? 'Your standing here' : owed ? "You're owed" : 'You owe'}
+          {!hasActivity
+            ? 'Nothing on the tab yet'
+            : settled
+              ? 'Your standing here'
+              : owed
+                ? "You're owed"
+                : 'You owe'}
         </p>
         <p
           className={`mt-1 font-display text-5xl font-extrabold tracking-tight sm:text-6xl ${
             settled ? 'text-ink' : owed ? 'text-gradient' : 'text-neg'
           }`}
         >
-          {settled ? (groupSettled ? 'All settled' : "You're square") : <MoneyText cents={Math.abs(myNet)} />}
+          {!hasActivity ? (
+            'Nothing yet'
+          ) : settled ? (
+            groupSettled ? (
+              'All settled'
+            ) : (
+              "You're square"
+            )
+          ) : (
+            <MoneyText cents={Math.abs(myNet)} />
+          )}
         </p>
         {totalUnsettled > 0 && (
           <p className="mt-2 text-xs text-faint">
@@ -592,13 +610,17 @@ export function GroupDetailPage(): ReactNode {
             {Money.fromCents(totalSettled).format()} settled so far
           </p>
         )}
-        <button
-          type="button"
-          onClick={() => setPaymentOpen(true)}
-          className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition hover:underline"
-        >
-          <Icon name="wallet" size={15} /> Record a payment
-        </button>
+        {hasActivity ? (
+          <button
+            type="button"
+            onClick={() => setPaymentOpen(true)}
+            className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-accent transition hover:underline"
+          >
+            <Icon name="wallet" size={15} /> Record a payment
+          </button>
+        ) : (
+          <p className="mt-4 text-sm text-muted">Add an expense to get the tab going.</p>
+        )}
       </div>
 
       {shareLink && (
