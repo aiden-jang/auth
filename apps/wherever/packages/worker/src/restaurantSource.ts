@@ -187,6 +187,24 @@ export function googleTypesFor(categories: string[]): string[] {
   return types.length > 0 ? [...new Set(types)] : ["restaurant"];
 }
 
+/**
+ * A Google photo resource name looks like `places/<id>/photos/<ref>`. We only ever splice this
+ * into `https://places.googleapis.com/v1/<name>/media`, so validate it tightly to keep the photo
+ * route from being turned into an open proxy.
+ */
+export function isValidPhotoRef(ref: string): boolean {
+  return /^places\/[A-Za-z0-9_-]+\/photos\/[A-Za-z0-9_-]+$/.test(ref);
+}
+
+/**
+ * Build the URL the client's <img> loads. It points at our own /api/photo route (never Google
+ * directly) so the API key stays server-side. `base` is the Worker's public origin in prod and
+ * empty in dev, where a relative URL is proxied by Vite.
+ */
+export function photoProxyUrl(name: string, base = ""): string {
+  return `${base}/api/photo?ref=${encodeURIComponent(name)}`;
+}
+
 /** Great-circle distance in meters between two lat/lng points. */
 export function haversineMeters(
   a: { lat: number; lng: number },
@@ -205,9 +223,15 @@ export function haversineMeters(
 
 /**
  * Pure mapping from a Google place to our domain shape. Google's Nearby Search (New) doesn't
- * return distance, so we compute it from the search center. Unit-tested.
+ * return distance, so we compute it from the search center. `photoBase` is the Worker's public
+ * origin used to build the photo-proxy URL (empty in dev). Unit-tested.
  */
-export function mapGooglePlace(p: GooglePlace, center: { lat: number; lng: number }): Restaurant {
+export function mapGooglePlace(
+  p: GooglePlace,
+  center: { lat: number; lng: number },
+  photoBase = "",
+): Restaurant {
+  const photoName = p.photos?.[0]?.name;
   return {
     id: p.id,
     name: p.displayName?.text ?? "Unknown spot",
@@ -218,9 +242,9 @@ export function mapGooglePlace(p: GooglePlace, center: { lat: number; lng: numbe
     distanceMeters: p.location
       ? haversineMeters(center, { lat: p.location.latitude, lng: p.location.longitude })
       : 0,
-    // Photos need a Worker proxy so the API key stays server-side and the Place Photo SKU is
-    // controlled; wired in a follow-up. Deck renders fine without images (like the mock).
-    imageUrl: null,
+    // Route through our own /api/photo proxy so the API key never reaches the client and the
+    // paid Place Photo SKU is fetched (and edge-cached) on demand.
+    imageUrl: photoName ? photoProxyUrl(photoName, photoBase) : null,
     address: p.formattedAddress ?? null,
   };
 }
@@ -229,7 +253,10 @@ export function mapGooglePlace(p: GooglePlace, center: { lat: number; lng: numbe
 const DEFAULT_CENTER = { lat: 40.7128, lng: -74.006 }; // NYC
 
 export class GooglePlacesRestaurantSource implements RestaurantSource {
-  constructor(private readonly apiKey: string) {}
+  constructor(
+    private readonly apiKey: string,
+    private readonly publicApiBase = "",
+  ) {}
 
   async fetchDeck(filters: SessionFilters): Promise<Restaurant[]> {
     const center =
@@ -243,7 +270,8 @@ export class GooglePlacesRestaurantSource implements RestaurantSource {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": this.apiKey,
         // Field mask drives the billing tier: request only what the deck shows. rating +
-        // priceLevel bump the SKU tier; reviews and other Preferred fields are deliberately omitted.
+        // priceLevel are already the top tier, so adding photos (a lower tier) costs nothing
+        // extra here; fetching the photo bytes is a separate SKU, billed by /api/photo.
         "X-Goog-FieldMask": [
           "places.id",
           "places.displayName",
@@ -253,6 +281,7 @@ export class GooglePlacesRestaurantSource implements RestaurantSource {
           "places.userRatingCount",
           "places.priceLevel",
           "places.formattedAddress",
+          "places.photos",
         ].join(","),
       },
       body: JSON.stringify({
@@ -273,7 +302,7 @@ export class GooglePlacesRestaurantSource implements RestaurantSource {
     const data = (await res.json()) as { places?: GooglePlace[] };
     return (data.places ?? [])
       .filter((p) => p.id && p.displayName?.text)
-      .map((p) => mapGooglePlace(p, center))
+      .map((p) => mapGooglePlace(p, center, this.publicApiBase))
       // Google filters by cuisine + radius server-side; price and rating are filtered here.
       .filter((r) => r.priceTier <= filters.maxPriceTier)
       .filter((r) => passesRating(r.rating, filters.minRating));
@@ -283,10 +312,11 @@ export class GooglePlacesRestaurantSource implements RestaurantSource {
 export function createRestaurantSource(
   kind: string,
   apiKey?: string,
+  publicApiBase?: string,
 ): RestaurantSource {
   switch (kind) {
     case "google":
-      if (apiKey) return new GooglePlacesRestaurantSource(apiKey);
+      if (apiKey) return new GooglePlacesRestaurantSource(apiKey, publicApiBase);
       // No key configured: degrade to mock instead of failing.
       return new MockRestaurantSource();
     case "foursquare":

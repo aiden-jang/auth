@@ -303,7 +303,7 @@ export class SessionRoom extends DurableObject<Env> {
   private async fetchFreshDeck(meta: SessionMeta): Promise<Restaurant[]> {
     const kind = this.env.RESTAURANT_SOURCE ?? "mock";
     const apiKey = kind === "google" ? this.env.GOOGLE_PLACES_API_KEY : this.env.FOURSQUARE_API_KEY;
-    const source = createRestaurantSource(kind, apiKey);
+    const source = createRestaurantSource(kind, apiKey, this.env.PUBLIC_API_BASE);
     const all = await source.fetchDeck(meta.filters);
     const visited = await this.getVisited(meta.code);
     const seen = new Set(visited.map((v) => v.restaurantId));
