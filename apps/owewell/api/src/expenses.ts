@@ -63,6 +63,10 @@ export interface MemberBalance {
   userId: string;
   displayName: string;
   netCents: number;
+  /** What they paid on bills (excludes settlements). */
+  paidCents: number;
+  /** Their share of the bills (excludes settlements). */
+  owedCents: number;
 }
 
 async function memberPersonIds(db: DB, groupId: string): Promise<Set<string>> {
@@ -360,6 +364,14 @@ export async function getBalances(db: DB, personId: string, groupId: string): Pr
   const bump = (p: string, d: number): void => {
     net.set(p, (net.get(p) ?? 0) + d);
   };
+  // Track the raw bill figures behind the net, so the UI can show "paid X, share Y" and not
+  // just the verdict. `paid` is what they covered on expenses; `owed` is their share of the
+  // bills. Settlements move the net around but aren't spending, so they don't touch these.
+  const paid = new Map<string, number>(members.map((m) => [m.personId, 0]));
+  const owed = new Map<string, number>(members.map((m) => [m.personId, 0]));
+  const add = (map: Map<string, number>, p: string, d: number): void => {
+    map.set(p, (map.get(p) ?? 0) + d);
+  };
 
   const exps = await db.select({ id: expenses.id, payerId: expenses.payerId, amountCents: expenses.amountCents, splitMethod: expenses.splitMethod, taxCents: expenses.taxCents, tipCents: expenses.tipCents }).from(expenses).where(and(eq(expenses.groupId, groupId), isNull(expenses.deletedAt))).all();
 
@@ -388,14 +400,21 @@ export async function getBalances(db: DB, personId: string, groupId: string): Pr
         taxCents: e.taxCents,
         tipCents: e.tipCents,
       });
-      for (const p of payers) bump(p.userId, p.paidCents);
+      for (const p of payers) {
+        bump(p.userId, p.paidCents);
+        add(paid, p.userId, p.paidCents);
+      }
     } else {
       bump(e.payerId, e.amountCents);
+      add(paid, e.payerId, e.amountCents);
     }
   }
   if (exps.length) {
     const splitRows = await db.select({ personId: expenseSplits.personId, owedCents: expenseSplits.owedCents }).from(expenseSplits).where(inArray(expenseSplits.expenseId, exps.map((e) => e.id))).all();
-    for (const s of splitRows) bump(s.personId, -s.owedCents);
+    for (const s of splitRows) {
+      bump(s.personId, -s.owedCents);
+      add(owed, s.personId, s.owedCents);
+    }
   }
 
   const setl = await db.select({ fromPersonId: settlements.fromPersonId, toPersonId: settlements.toPersonId, amountCents: settlements.amountCents }).from(settlements).where(eq(settlements.groupId, groupId)).all();
@@ -404,5 +423,11 @@ export async function getBalances(db: DB, personId: string, groupId: string): Pr
     bump(s.toPersonId, -s.amountCents);
   }
 
-  return members.map((m) => ({ userId: m.personId, displayName: m.displayName, netCents: net.get(m.personId) ?? 0 }));
+  return members.map((m) => ({
+    userId: m.personId,
+    displayName: m.displayName,
+    netCents: net.get(m.personId) ?? 0,
+    paidCents: paid.get(m.personId) ?? 0,
+    owedCents: owed.get(m.personId) ?? 0,
+  }));
 }
