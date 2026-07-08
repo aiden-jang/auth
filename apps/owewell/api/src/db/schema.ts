@@ -28,8 +28,6 @@ export const groups = sqliteTable('groups', {
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
-  // Set when the owner archives the group: it drops off the active list but keeps its ledger.
-  archivedAt: integer('archived_at', { mode: 'timestamp' }),
   // Unguessable token for the public, read-only share page. Null until a member creates a link.
   shareToken: text('share_token').unique(),
 });
