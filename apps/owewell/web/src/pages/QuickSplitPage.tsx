@@ -303,11 +303,38 @@ export function QuickSplitPage(): ReactNode {
     <div className="flex-1">
       {user ? <AppHeader /> : <PublicHeader />}
       <main className="mx-auto max-w-xl animate-rise px-4 py-10">
-        <h1 className="font-display text-4xl font-semibold tracking-tight">Split a bill</h1>
-        <p className="mt-2 text-base text-muted">
-          Somebody paid, everybody forgot. Add the group, drop in the damage, and find out who owes
-          who. No account unless you get attached.
-        </p>
+        {user ? (
+          <>
+            <h1 className="font-display text-4xl font-semibold tracking-tight">Split a bill</h1>
+            <p className="mt-2 text-base text-muted">
+              Somebody paid, everybody forgot. Add the group, drop in the damage, and find out who
+              owes who. No account unless you get attached.
+            </p>
+          </>
+        ) : (
+          <section className="mb-9">
+            <p className="text-sm font-semibold text-accent">owewell</p>
+            <h1 className="mt-1 font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl">
+              Split the bill.
+              <br />
+              Keep the friends.
+            </h1>
+            <p className="mt-3 text-base text-muted">
+              Who owes who, sorted in about ten seconds. Add people, punch in what got spent, and
+              let the math do the awkward part.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs">
+              {['No account needed', 'Works on your phone', 'Save it when you get attached'].map(
+                (t) => (
+                  <span key={t} className="rounded-full border border-line bg-field px-3 py-1 text-muted">
+                    {t}
+                  </span>
+                ),
+              )}
+            </div>
+            <p className="mt-6 text-sm font-medium text-muted">Try it right here — no sign-up:</p>
+          </section>
+        )}
 
         {/* People — shared across every item */}
         <div className="glass mt-6 space-y-2 rounded-3xl p-5">
