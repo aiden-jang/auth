@@ -377,6 +377,7 @@ export function GroupDetailPage(): ReactNode {
     return { avatar: nameOf(payers[0]!), label };
   }
   const balanceByUser = Object.fromEntries(balances.map((b) => [b.userId, b.netCents]));
+  const balanceOf = Object.fromEntries(balances.map((b) => [b.userId, b]));
   const isOwner = group.members.find((m) => m.userId === user?.id)?.role === 'OWNER';
   // Archived groups are read-only: history + balances stay visible, but nothing can be edited
   // until the group is restored.
@@ -393,6 +394,9 @@ export function GroupDetailPage(): ReactNode {
   const totalUnsettled = balances.reduce((sum, b) => sum + Math.max(0, b.netCents), 0);
   // Total money spent on bills in this group (settlements aren't spending, so expenses only).
   const totalSpent = expenses.reduce((sum, e) => sum + e.amountCents, 0);
+  // How much has already been paid back, and the even-split average across the members.
+  const totalSettled = settlements.reduce((sum, s) => sum + s.amountCents, 0);
+  const perPersonCents = group.members.length ? Math.round(totalSpent / group.members.length) : 0;
 
   return (
     <Shell>
@@ -527,6 +531,11 @@ export function GroupDetailPage(): ReactNode {
             {Money.fromCents(totalUnsettled).format()} still unsettled across the group
           </p>
         )}
+        {totalSettled > 0 && (
+          <p className="mt-1 text-xs text-faint">
+            {Money.fromCents(totalSettled).format()} settled so far
+          </p>
+        )}
         {readOnly ? (
           <p className="mt-4 inline-flex items-center gap-1.5 text-sm text-muted">
             <Icon name="archive" size={15} /> Archived · read-only. Restore it to make changes.
@@ -623,6 +632,9 @@ export function GroupDetailPage(): ReactNode {
           {totalSpent > 0 && (
             <span className="tnum text-sm text-muted">
               {Money.fromCents(totalSpent).format()} in bills
+              {perPersonCents > 0 && (
+                <span className="text-faint"> · {Money.fromCents(perPersonCents).format()} each</span>
+              )}
             </span>
           )}
         </div>
@@ -760,6 +772,7 @@ export function GroupDetailPage(): ReactNode {
             <ul className="space-y-2">
               {group.members.map((member) => {
                 const label = balanceLabel(balanceByUser[member.userId] ?? 0);
+                const bal = balanceOf[member.userId];
                 const isSelf = member.userId === user?.id;
                 const canLeave = isSelf && member.role !== 'OWNER' && !readOnly;
                 const canRemove = isOwner && !isSelf && member.role !== 'OWNER' && !readOnly;
@@ -840,25 +853,33 @@ export function GroupDetailPage(): ReactNode {
                       <>
                         <span className="flex items-center gap-3 font-medium">
                           <Avatar name={member.displayName} />
-                          <span className="flex items-center gap-1.5">
-                            {member.displayName}
-                            {member.role === 'OWNER' && (
-                              <span className="rounded bg-surface2 px-1.5 py-0.5 text-xs text-muted">
-                                owner
+                          <span className="flex flex-col">
+                            <span className="flex items-center gap-1.5">
+                              {member.displayName}
+                              {member.role === 'OWNER' && (
+                                <span className="rounded bg-surface2 px-1.5 py-0.5 text-xs text-muted">
+                                  owner
+                                </span>
+                              )}
+                              {member.isPlaceholder && !readOnly && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingMemberId(member.userId);
+                                    setEditingMemberName(member.displayName);
+                                  }}
+                                  aria-label={`Rename ${member.displayName}`}
+                                  className="grid h-6 w-6 place-items-center rounded-full text-faint transition hover:bg-surface2 hover:text-ink"
+                                >
+                                  <Icon name="pencil" size={13} />
+                                </button>
+                              )}
+                            </span>
+                            {bal && (bal.paidCents > 0 || bal.owedCents > 0) && (
+                              <span className="tnum text-xs font-normal text-faint">
+                                paid {Money.fromCents(bal.paidCents).format()} · share{' '}
+                                {Money.fromCents(bal.owedCents).format()}
                               </span>
-                            )}
-                            {member.isPlaceholder && !readOnly && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingMemberId(member.userId);
-                                  setEditingMemberName(member.displayName);
-                                }}
-                                aria-label={`Rename ${member.displayName}`}
-                                className="grid h-6 w-6 place-items-center rounded-full text-faint transition hover:bg-surface2 hover:text-ink"
-                              >
-                                <Icon name="pencil" size={13} />
-                              </button>
                             )}
                           </span>
                         </span>

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { addPlaceholderMember, createGroup } from '../src/groups.js';
+import { recordSettlement } from '../src/settlements.js';
 import {
   ExpenseError,
   createExpense,
@@ -169,6 +170,27 @@ describe('expenses — itemized, balances, delete', () => {
     expect(balances[bob]).toBe(-500);
     expect(balances[carl]).toBe(0);
     expect(Object.values(balances).reduce((a, b) => a + b, 0)).toBe(0);
+  });
+
+  test('balances report each member paid and share, and settlements leave them alone', async () => {
+    // Alice pays 3000 split evenly among three: each share 1000.
+    await createExpense(db, alice, groupId, {
+      description: 'Dinner',
+      amountCents: 3000,
+      payerId: alice,
+      splitMethod: 'EQUAL',
+      participants: [{ userId: alice }, { userId: bob }, { userId: carl }],
+    });
+    const byId = Object.fromEntries((await getBalances(db, alice, groupId)).map((b) => [b.userId, b]));
+    expect(byId[alice]).toMatchObject({ paidCents: 3000, owedCents: 1000, netCents: 2000 });
+    expect(byId[bob]).toMatchObject({ paidCents: 0, owedCents: 1000, netCents: -1000 });
+    expect(byId[carl]).toMatchObject({ paidCents: 0, owedCents: 1000, netCents: -1000 });
+
+    // A settlement moves the net but is not spending, so paid/share stay put.
+    await recordSettlement(db, alice, groupId, { fromUserId: bob, toUserId: alice, amountCents: 1000 });
+    const after = Object.fromEntries((await getBalances(db, alice, groupId)).map((b) => [b.userId, b]));
+    expect(after[bob]).toMatchObject({ paidCents: 0, owedCents: 1000, netCents: 0 });
+    expect(after[alice]).toMatchObject({ paidCents: 3000, owedCents: 1000, netCents: 1000 });
   });
 
   test('an item with no payer falls back to the expense payer', async () => {

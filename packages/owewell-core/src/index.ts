@@ -68,6 +68,10 @@ export interface Balance {
   userId: string;
   displayName: string;
   netCents: number;
+  /** What they paid on bills, excluding settlements. */
+  paidCents: number;
+  /** Their share of the bills, excluding settlements. */
+  owedCents: number;
 }
 
 // --- Expenses ---------------------------------------------------------------
