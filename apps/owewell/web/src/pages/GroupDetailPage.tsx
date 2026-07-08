@@ -763,6 +763,12 @@ export function GroupDetailPage(): ReactNode {
             </span>
           )}
         </div>
+        {settlements.length > 0 && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-faint">
+            <Icon name="undo" size={13} />
+            Locked — a payment&rsquo;s been recorded. Undo it below to edit or remove expenses.
+          </p>
+        )}
         {activity.length === 0 ? (
           <div className="mt-3 rounded-2xl border border-dashed border-line p-8 text-center">
             <div className="mx-auto grid h-11 w-11 place-items-center rounded-2xl bg-surface2 text-muted">
