@@ -43,7 +43,7 @@ function NamePrompt({ onSubmit }: { onSubmit: (name: string) => void }) {
 function DisconnectBanner() {
   return (
     <div className="fixed top-0 inset-x-0 z-40 bg-flare/90 text-ink text-center text-sm font-medium py-2">
-      Connection lost.{" "}
+      Connection dropped. Not blaming anyone.{" "}
       <button onClick={() => location.reload()} className="underline font-semibold">
         Reload to rejoin
       </button>
@@ -224,8 +224,8 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
 
       <div className="w-full mt-10">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-xl font-bold">Who's in</h2>
-          <span className="text-sm text-muted">{count} here</span>
+          <h2 className="font-display text-xl font-bold">The committee</h2>
+          <span className="text-sm text-muted">{count} {count === 1 ? "opinion" : "opinions"}</span>
         </div>
         <div className="flex flex-col gap-2">
           {session?.participants.length ? (
