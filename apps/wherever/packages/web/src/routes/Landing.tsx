@@ -22,6 +22,9 @@ const DEADPAN_LINES = [
   "Three people. Three opinions. This'll go great.",
   "The group chat is shaking.",
   "Democracy, but for tacos.",
+  "Someone will suggest the place from last time. Ignore them.",
+  "Statistically, it's going to be tacos.",
+  "You could just decide. But here we are.",
 ];
 
 interface TeaserCard {
@@ -120,7 +123,7 @@ function FilterFields({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <FieldLabel>Cuisine (any, if none picked)</FieldLabel>
+        <FieldLabel>Cravings (pick some, or leave it to fate)</FieldLabel>
         <div className="flex flex-wrap gap-2">
           {CUISINE_OPTIONS.map((c) => {
             const on = filters.categories.includes(c.value);
@@ -143,7 +146,7 @@ function FilterFields({
       </div>
 
       <div className="flex flex-col gap-2">
-        <FieldLabel>Within</FieldLabel>
+        <FieldLabel>How far you'll actually go</FieldLabel>
         <div className="flex gap-2">
           {RADIUS_OPTIONS.map((o) => (
             <button
@@ -160,7 +163,7 @@ function FilterFields({
       </div>
 
       <div className="flex flex-col gap-2">
-        <FieldLabel>Min rating</FieldLabel>
+        <FieldLabel>Standards</FieldLabel>
         <div className="flex gap-2">
           {RATING_OPTIONS.map((o) => {
             const on = (filters.minRating ?? 0) === o.value;
@@ -180,7 +183,7 @@ function FilterFields({
       </div>
 
       <div className="flex flex-col gap-2">
-        <FieldLabel>Up to</FieldLabel>
+        <FieldLabel>Budget, realistically</FieldLabel>
         <div className="flex gap-2">
           {PRICE_OPTIONS.map((o) => (
             <button
@@ -228,7 +231,7 @@ function CreateForm({ onError }: { onError: (m: string) => void }) {
       <input className={inputClass} placeholder="Your name" value={name} maxLength={24} onChange={(e) => setName(e.target.value)} autoFocus />
       <FilterFields filters={filters} onChange={setFilters} />
       <button type="submit" disabled={!name.trim() || busy} className="rounded-2xl bg-ember px-6 py-3 text-lg font-semibold text-ink disabled:opacity-50 hover:brightness-110 transition">
-        {busy ? "Spinning it up..." : "Create the session"}
+        {busy ? "Shuffling the deck..." : "Deal the cards"}
       </button>
     </form>
   );
@@ -275,7 +278,7 @@ export default function Landing() {
         </h1>
 
         <p className="mt-5 text-lg text-muted max-w-md mx-auto lg:mx-0">
-          Everyone swipes. Majority wins. Dinner is decided before the group chat even starts typing.
+          Everyone swipes. Majority wins. Dinner gets decided before anyone types "I'm fine with whatever."
         </p>
 
         <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
