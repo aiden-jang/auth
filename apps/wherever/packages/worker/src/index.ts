@@ -16,6 +16,13 @@ const CREATE_WINDOW_MS = 60_000;
 
 const app = new Hono<{ Bindings: Env }>();
 
+// Log the real error server-side (visible in `wrangler tail` / Workers Logs) while keeping the
+// client response generic. Without this, Hono swallows the cause as a bare "Internal Server Error".
+app.onError((err, c) => {
+  console.error("Unhandled error:", err);
+  return c.json({ error: "Something broke on our end." }, 500);
+});
+
 app.use("/api/*", cors());
 
 app.get("/api/health", (c) =>

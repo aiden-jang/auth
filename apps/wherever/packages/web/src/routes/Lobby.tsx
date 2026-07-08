@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import type { Participant, SessionFilters } from "@wherever/shared";
-import { cuisineLabel, PRICE_OPTIONS, RADIUS_OPTIONS } from "@wherever/shared";
+import { cuisineLabel, PRICE_OPTIONS, RADIUS_OPTIONS, SORT_OPTIONS } from "@wherever/shared";
 import { recallName, rememberName } from "../api.js";
 import { useSessionSocket } from "../useSessionSocket.js";
 import { SwipeDeck } from "../components/SwipeDeck.js";
@@ -62,6 +62,12 @@ function FilterSummary({ filters }: { filters: SessionFilters }) {
     `up to ${PRICE_OPTIONS.find((o) => o.tier === filters.maxPriceTier)?.label ?? "$$$$"}`,
   ];
   if (filters.minRating && filters.minRating > 0) chips.push(`${filters.minRating.toFixed(1)}+ stars`);
+  if (filters.minReviews && filters.minReviews > 0) chips.push(`${filters.minReviews}+ reviews`);
+  if (filters.openNow) chips.push("open now");
+  if (filters.sort === "distance") {
+    const sortLabel = SORT_OPTIONS.find((o) => o.value === "distance")?.label ?? "closest";
+    chips.push(sortLabel.toLowerCase());
+  }
   chips.push(
     filters.categories.length > 0
       ? filters.categories.map(cuisineLabel).join(", ")
