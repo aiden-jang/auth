@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { PriceTier, RestaurantSort, SessionFilters } from "@wherever/shared";
 import {
   CUISINE_OPTIONS,
+  isInNYC,
   MIN_REVIEWS_OPTIONS,
   NEIGHBORHOODS,
   PRICE_OPTIONS,
@@ -110,9 +111,11 @@ const segOff = "bg-black/40 text-cream border-white/10 hover:border-white/30";
 function FilterFields({
   filters,
   onChange,
+  showAreas,
 }: {
   filters: SessionFilters;
   onChange: (next: SessionFilters) => void;
+  showAreas: boolean;
 }) {
   function toggleCuisine(value: string) {
     const has = filters.categories.includes(value);
@@ -126,37 +129,39 @@ function FilterFields({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <FieldLabel>Where, geographically</FieldLabel>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            aria-pressed={!filters.area}
-            onClick={() => onChange({ ...filters, area: undefined })}
-            className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-              !filters.area ? "bg-acid text-ink border-acid font-semibold" : "border-white/10 text-cream hover:border-white/30"
-            }`}
-          >
-            📍 Near me
-          </button>
-          {NEIGHBORHOODS.map((n) => {
-            const on = filters.area === n.value;
-            return (
-              <button
-                key={n.value}
-                type="button"
-                aria-pressed={on}
-                onClick={() => onChange({ ...filters, area: n.value })}
-                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                  on ? "bg-acid text-ink border-acid font-semibold" : "border-white/10 text-cream hover:border-white/30"
-                }`}
-              >
-                {n.label}
-              </button>
-            );
-          })}
+      {showAreas && (
+        <div className="flex flex-col gap-2">
+          <FieldLabel>Where, geographically</FieldLabel>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              aria-pressed={!filters.area}
+              onClick={() => onChange({ ...filters, area: undefined })}
+              className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                !filters.area ? "bg-acid text-ink border-acid font-semibold" : "border-white/10 text-cream hover:border-white/30"
+              }`}
+            >
+              📍 Near me
+            </button>
+            {NEIGHBORHOODS.map((n) => {
+              const on = filters.area === n.value;
+              return (
+                <button
+                  key={n.value}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => onChange({ ...filters, area: n.value })}
+                  className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                    on ? "bg-acid text-ink border-acid font-semibold" : "border-white/10 text-cream hover:border-white/30"
+                  }`}
+                >
+                  {n.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <FieldLabel>Cravings (pick some, or leave it to fate)</FieldLabel>
@@ -307,7 +312,15 @@ function CreateForm({ onError }: { onError: (m: string) => void }) {
   const navigate = useNavigate();
   const [name, setName] = useState(recallName());
   const [filters, setFilters] = useState<SessionFilters>(DEFAULT_FILTERS);
+  const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Resolve location up front so we know whether to offer the NYC neighborhood shortcuts, and
+  // reuse it at submit (getLocation caches, so this won't prompt twice).
+  useEffect(() => {
+    getLocation().then(setLoc);
+  }, []);
+  const showAreas = loc != null && isInNYC(loc.lat, loc.lng);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -315,10 +328,10 @@ function CreateForm({ onError }: { onError: (m: string) => void }) {
     setBusy(true);
     try {
       rememberName(name.trim());
-      const loc = await getLocation();
+      const here = loc ?? (await getLocation());
       const code = await createSession(name.trim(), {
         ...filters,
-        ...(loc ?? {}),
+        ...(here ?? {}),
       });
       navigate(`/s/${code}`);
     } catch (err) {
@@ -330,7 +343,7 @@ function CreateForm({ onError }: { onError: (m: string) => void }) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <input className={inputClass} placeholder="Your name" value={name} maxLength={24} onChange={(e) => setName(e.target.value)} autoFocus />
-      <FilterFields filters={filters} onChange={setFilters} />
+      <FilterFields filters={filters} onChange={setFilters} showAreas={showAreas} />
       <button type="submit" disabled={!name.trim() || busy} className="rounded-2xl bg-ember px-6 py-3 text-lg font-semibold text-ink disabled:opacity-50 hover:brightness-110 transition">
         {busy ? "Shuffling the deck..." : "Deal the cards"}
       </button>
