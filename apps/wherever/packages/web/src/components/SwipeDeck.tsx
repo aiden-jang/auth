@@ -139,7 +139,7 @@ export function SwipeDeck({
         <h2 className="mt-4 font-display text-3xl font-bold">That's all of them.</h2>
         <p className="mt-2 text-muted">
           Your votes are in. Now we wait for everyone else to stop overthinking
-          it. Results land in the next build step.
+          it. This is the longest part.
         </p>
       </div>
     );

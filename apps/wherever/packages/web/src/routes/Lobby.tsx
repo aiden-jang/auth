@@ -241,7 +241,7 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
             Start swiping
           </button>
         ) : (
-          <p className="text-center text-muted">Waiting for the host to start. Sit tight.</p>
+          <p className="text-center text-muted">The host hasn't started yet. Gentle peer pressure is an option.</p>
         )}
       </div>
 
