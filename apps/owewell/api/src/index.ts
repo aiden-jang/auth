@@ -11,6 +11,8 @@ import {
   createGroup,
   deleteGroup,
   getGroup,
+  getOrCreateShareToken,
+  getSharedSummary,
   listGroups,
   removeMember,
   renameGroup,
@@ -70,6 +72,14 @@ app.get('/owewell/invites/:token', async (c) => {
   return c.json({ invite: await getInviteInfo(createDb(c.env), c.req.param('token')) });
 });
 
+// Public, read-only group summary for a share link. No auth by design: anyone with the token
+// may view (never edit). Registered before the auth guard below. 404 for an unknown token.
+app.get('/owewell/shared/:token', async (c) => {
+  const summary = await getSharedSummary(createDb(c.env), c.req.param('token'));
+  if (!summary) return c.json({ error: 'NOT_FOUND' }, 404);
+  return c.json({ summary });
+});
+
 // Everything else under /owewell requires a signed-in user (validated against the shared
 // auth service), resolved to this app's local person.
 app.use('/owewell/*', async (c, next) => {
@@ -113,6 +123,12 @@ app.post('/owewell/groups/:id/archive', async (c) => {
 app.delete('/owewell/groups/:id', async (c) => {
   await deleteGroup(createDb(c.env), c.get('person').id, c.req.param('id'));
   return c.json({ ok: true });
+});
+
+// Create (or fetch) the group's public read-only share token. Members only.
+app.post('/owewell/groups/:id/share', async (c) => {
+  const token = await getOrCreateShareToken(createDb(c.env), c.get('person').id, c.req.param('id'));
+  return c.json({ token });
 });
 
 // Add a member. { name } adds a name-only placeholder. { email } (invite a real account) is

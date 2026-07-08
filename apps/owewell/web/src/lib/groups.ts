@@ -1,8 +1,8 @@
-import type { Balance, GroupDetail, GroupMember, GroupSummary } from '@owewell/core';
+import type { Balance, GroupDetail, GroupMember, GroupSummary, SharedGroupSummary } from '@owewell/core';
 import { api } from './api';
 
 // Re-export the shared contract so components can keep importing group types from here.
-export type { Balance, GroupDetail, GroupMember, GroupRole, GroupSummary } from '@owewell/core';
+export type { Balance, GroupDetail, GroupMember, GroupRole, GroupSummary, SharedGroupSummary } from '@owewell/core';
 
 export const groupsApi = {
   list: (): Promise<GroupSummary[]> =>
@@ -37,4 +37,10 @@ export const groupsApi = {
   remove: (id: string): Promise<void> => api.del(`/groups/${id}`).then(() => undefined),
   removeMember: (id: string, userId: string): Promise<void> =>
     api.del(`/groups/${id}/members/${userId}`).then(() => undefined),
+  // Create (or fetch) the group's public read-only share token. Members only.
+  createShareLink: (id: string): Promise<string> =>
+    api.post<{ token: string }>(`/groups/${id}/share`, {}).then((r) => r.token),
+  // Public: fetch a group's read-only summary by share token (works signed-out).
+  sharedSummary: (token: string): Promise<SharedGroupSummary> =>
+    api.get<{ summary: SharedGroupSummary }>(`/shared/${token}`).then((r) => r.summary),
 };

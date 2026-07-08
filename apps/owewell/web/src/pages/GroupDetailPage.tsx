@@ -412,6 +412,14 @@ export function GroupDetailPage(): ReactNode {
 
   async function onShare(): Promise<void> {
     if (!group) return;
+    let url: string;
+    try {
+      const token = await groupsApi.createShareLink(group.id);
+      url = `${window.location.origin}/s/${token}`;
+    } catch {
+      toast.error('Could not create a share link.');
+      return;
+    }
     const text = buildGroupSummary({
       groupName: group.name,
       memberCount: group.members.length,
@@ -424,17 +432,17 @@ export function GroupDetailPage(): ReactNode {
     // an error. Fall back to the clipboard everywhere it isn't available (most desktops).
     try {
       if (navigator.share) {
-        await navigator.share({ title: `${group.name} — owewell`, text });
+        await navigator.share({ title: `${group.name} — owewell`, text, url });
         return;
       }
     } catch (err) {
       if ((err as Error)?.name === 'AbortError') return;
     }
     try {
-      await navigator.clipboard.writeText(text);
-      toast.success('Summary copied to clipboard.');
+      await navigator.clipboard.writeText(`${text}\n\n${url}`);
+      toast.success('Share link copied to clipboard.');
     } catch {
-      toast.error('Could not share the summary.');
+      toast.error('Could not copy the share link.');
     }
   }
 

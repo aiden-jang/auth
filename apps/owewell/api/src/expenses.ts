@@ -359,9 +359,15 @@ export async function deleteExpense(db: DB, personId: string, groupId: string, e
   await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, expenseId));
 }
 
-/** Net per member from live expenses + settlements; always sums to zero. */
+/** Net per member from live expenses + settlements; always sums to zero. Members-only. */
 export async function getBalances(db: DB, personId: string, groupId: string): Promise<MemberBalance[]> {
   await requireMembership(db, personId, groupId);
+  return computeBalances(db, groupId);
+}
+
+/** The balance math with no access check. Callers (getBalances, the public share summary) are
+ *  responsible for deciding who may see it. */
+export async function computeBalances(db: DB, groupId: string): Promise<MemberBalance[]> {
   const members = await db
     .select({ personId: groupMembers.personId, displayName: people.displayName, joinedAt: groupMembers.joinedAt })
     .from(groupMembers)

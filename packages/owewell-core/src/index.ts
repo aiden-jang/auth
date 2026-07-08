@@ -201,6 +201,19 @@ export interface SuggestedPayment {
   amountCents: number;
 }
 
+/** Read-only group view served on the public share page (no payment handles, no line items). */
+export interface SharedGroupSummary {
+  groupId: string;
+  groupName: string;
+  memberCount: number;
+  totalSpentCents: number;
+  perPersonCents: number;
+  totalSettledCents: number;
+  members: { displayName: string; netCents: number }[];
+  suggested: { fromName: string; toName: string; amountCents: number }[];
+  breakdown: { category: string; cents: number }[];
+}
+
 // --- Invites ----------------------------------------------------------------
 
 export type InviteStatus = 'pending' | 'accepted' | 'expired';
