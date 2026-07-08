@@ -52,7 +52,9 @@ function Shell({ children }: { children: ReactNode }): ReactNode {
   return (
     <div className="flex-1">
       <AppHeader />
-      <main className="mx-auto max-w-2xl animate-rise px-4 pb-28 pt-8">{children}</main>
+      <main className="mx-auto max-w-2xl animate-rise px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-8">
+        {children}
+      </main>
     </div>
   );
 }
@@ -1038,9 +1040,10 @@ export function GroupDetailPage(): ReactNode {
       <button
         type="button"
         onClick={() => setSheetOpen(true)}
-        className="btn-gradient fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full px-6 py-3.5 font-semibold shadow-xl shadow-black/30 transition active:scale-[0.97]"
+        aria-label="Add expense"
+        className="btn-gradient fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] right-5 z-40 flex items-center gap-2 rounded-full p-4 font-semibold shadow-xl shadow-black/30 transition active:scale-[0.97] sm:px-6 sm:py-3.5"
       >
-        <Icon name="plus" size={20} /> Add expense
+        <Icon name="plus" size={20} /> <span className="hidden sm:inline">Add expense</span>
       </button>
 
       <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Add to the tab">
