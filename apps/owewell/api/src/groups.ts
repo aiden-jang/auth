@@ -701,9 +701,10 @@ async function unaddFromLedger(db: DB, groupId: string, personId: string, ownerI
 }
 
 /** Remove a member. Owner can remove others; the owner can't be removed (delete the group
- * instead). Removal "un-adds" the member — their share is re-split among the people who remain
- * and anything they paid is handed to the owner — so the ledger stays correct with no
- * settlements invented. */
+ * instead). Only allowed before any payment is recorded: removal re-splits the member out of the
+ * expenses, which would invalidate settlements already logged — so once anyone's been marked
+ * paid, removal is blocked. In the allowed case their share re-splits among the people who
+ * remain and anything they paid is handed to the owner; no settlements are invented. */
 export async function removeMember(db: DB, actingPersonId: string, groupId: string, targetPersonId: string): Promise<void> {
   await requireMembership(db, actingPersonId, groupId);
   const target = await db
@@ -717,6 +718,16 @@ export async function removeMember(db: DB, actingPersonId: string, groupId: stri
   }
   if (targetPersonId !== actingPersonId) {
     await requireOwner(db, actingPersonId, groupId);
+  }
+
+  // Removal re-splits expenses, which would break any payment already recorded against the old
+  // split. So it's only allowed while the group has no settlements yet.
+  const settled = await db.select({ c: count() }).from(settlements).where(eq(settlements.groupId, groupId)).get();
+  if ((settled?.c ?? 0) > 0) {
+    throw new GroupError(
+      'HAS_ACTIVITY',
+      'You can only remove someone before any payments are recorded. A payment has already been logged here.',
+    );
   }
 
   const owner = await db
