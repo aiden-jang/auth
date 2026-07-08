@@ -814,14 +814,16 @@ export function GroupDetailPage(): ReactNode {
                     >
                       <Icon name="pencil" size={15} />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => void deleteExpense(item.expense.id)}
-                      aria-label={`Delete ${item.expense.description}`}
-                      className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-neg group-hover:opacity-100"
-                    >
-                      <Icon name="x" size={16} />
-                    </button>
+                    {settlements.length === 0 && (
+                      <button
+                        type="button"
+                        onClick={() => void deleteExpense(item.expense.id)}
+                        aria-label={`Delete ${item.expense.description}`}
+                        className="grid h-8 w-8 place-items-center rounded-full text-faint opacity-0 transition hover:bg-surface2 hover:text-neg group-hover:opacity-100"
+                      >
+                        <Icon name="x" size={16} />
+                      </button>
+                    )}
                   </div>
                 </li>
               ) : (
