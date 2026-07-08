@@ -22,8 +22,8 @@ function NamePrompt({ onSubmit }: { onSubmit: (name: string) => void }) {
         }}
         className="w-full max-w-sm text-center"
       >
-        <h1 className="font-display text-3xl font-bold">Who are you, then?</h1>
-        <p className="mt-2 text-muted">The group needs a name to ignore.</p>
+        <h1 className="font-display text-3xl font-bold">And you are?</h1>
+        <p className="mt-2 text-muted">The group needs a name to overrule.</p>
         <input
           className="mt-6 w-full rounded-2xl bg-black/40 border border-white/10 px-4 py-3 text-lg outline-none focus:border-ember transition-colors"
           placeholder="Your name"
@@ -133,7 +133,7 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
       <main className="flex-1 flex items-center justify-center px-6 text-center">
         <div className="max-w-sm">
           <div className="text-6xl">🫥</div>
-          <h1 className="mt-4 font-display text-4xl font-bold">No session here.</h1>
+          <h1 className="mt-4 font-display text-4xl font-bold">This code leads nowhere.</h1>
           <p className="mt-3 text-muted">{error}</p>
           <Link
             to="/"
