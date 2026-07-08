@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   MockRestaurantSource,
   googleTypesFor,
+  isValidPhotoRef,
   mapFoursquarePlace,
   mapGooglePlace,
   passesRating,
+  photoProxyUrl,
   type FoursquarePlace,
   type GooglePlace,
 } from "./restaurantSource.js";
@@ -65,16 +67,26 @@ describe("mapGooglePlace", () => {
       formattedAddress: "7 Carmine St",
       photos: [{ name: "places/g1/photos/x" }],
     };
-    expect(mapGooglePlace(p, center)).toEqual({
+    expect(mapGooglePlace(p, center, "https://api.example.com")).toEqual({
       id: "g1",
       name: "Joe's Pizza",
       category: "Pizza restaurant",
       priceTier: 2,
       rating: 4.5, // Google is already 0-5
       distanceMeters: 0, // same point as the center
-      imageUrl: null, // photos come later via a Worker proxy
+      // Photo routed through our proxy so the API key stays server-side.
+      imageUrl: "https://api.example.com/api/photo?ref=places%2Fg1%2Fphotos%2Fx",
       address: "7 Carmine St",
     });
+  });
+
+  it("uses a relative proxy URL when no base is given (dev)", () => {
+    const p: GooglePlace = {
+      id: "g3",
+      displayName: { text: "Snap Shack" },
+      photos: [{ name: "places/g3/photos/abc" }],
+    };
+    expect(mapGooglePlace(p, center).imageUrl).toBe("/api/photo?ref=places%2Fg3%2Fphotos%2Fabc");
   });
 
   it("computes distance from the search center", () => {
@@ -96,6 +108,30 @@ describe("mapGooglePlace", () => {
     expect(mapGooglePlace(base, center).rating).toBeNull();
     expect(mapGooglePlace(base, center).category).toBe("Food");
     expect(mapGooglePlace(base, center).distanceMeters).toBe(0); // no location
+    expect(mapGooglePlace(base, center).imageUrl).toBeNull(); // no photos
+  });
+});
+
+describe("isValidPhotoRef", () => {
+  it("accepts a well-formed photo resource name", () => {
+    expect(isValidPhotoRef("places/ChIJ_abc-123/photos/AeXy_9-Z")).toBe(true);
+  });
+
+  it("rejects anything that could escape the media path", () => {
+    expect(isValidPhotoRef("places/x/photos/y/../../evil")).toBe(false);
+    expect(isValidPhotoRef("../secrets")).toBe(false);
+    expect(isValidPhotoRef("places/x/media")).toBe(false);
+    expect(isValidPhotoRef("https://evil.example/x")).toBe(false);
+    expect(isValidPhotoRef("")).toBe(false);
+  });
+});
+
+describe("photoProxyUrl", () => {
+  it("encodes the ref and honors the base", () => {
+    expect(photoProxyUrl("places/g1/photos/x")).toBe("/api/photo?ref=places%2Fg1%2Fphotos%2Fx");
+    expect(photoProxyUrl("places/g1/photos/x", "https://api.example.com")).toBe(
+      "https://api.example.com/api/photo?ref=places%2Fg1%2Fphotos%2Fx",
+    );
   });
 });
 

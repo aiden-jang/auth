@@ -33,9 +33,11 @@ not hard caps:
   `priceLevel` set the SKU tier; reviews and other Preferred fields are omitted.
 - The deck is fetched **once per session** and cached in the `SessionRoom`, so a
   whole group swiping costs one search, not one per person.
-- **Photos are deferred.** Place Photos is a separate SKU and returning a photo
-  URL would expose the key, so `imageUrl` is `null` until a Worker proxy is
-  built. The deck renders fine without images (same as the mock).
+- **Photos go through a Worker proxy.** Place Photos is a separate paid SKU and
+  the raw media URL needs the API key, so `imageUrl` points at our own
+  `/api/photo` route (validated ref, key server-side). The route edge-caches for
+  30 days, so each photo hits the SKU at most once per width. The deck still
+  renders fine without images when a place has none.
 
 ## Consequences
 
@@ -57,4 +59,6 @@ Costs / tradeoffs:
   cuisine and radius). Fine at `maxResultCount: 20`.
 - Cost safety depends on the quota being set on the key, which is an external
   console step, not something the code can enforce.
-- Photos are a known follow-up (Worker proxy + SKU control) rather than shipped.
+- The photo proxy adds a small always-on cost path: a cache miss is one Place
+  Photo SKU call plus Worker egress. The 30-day edge cache keeps repeats free,
+  but a fresh deck of unseen places still pays per first view.
