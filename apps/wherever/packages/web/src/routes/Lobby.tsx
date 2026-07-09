@@ -41,10 +41,17 @@ function NamePrompt({ onSubmit }: { onSubmit: (name: string) => void }) {
   );
 }
 
-function DisconnectBanner() {
+function DisconnectBanner({ reconnecting }: { reconnecting: boolean }) {
+  if (reconnecting) {
+    return (
+      <div className="fixed top-0 inset-x-0 z-40 bg-white/10 backdrop-blur text-cream text-center text-sm font-medium py-2">
+        Connection dropped. Reconnecting...
+      </div>
+    );
+  }
   return (
     <div className="fixed top-0 inset-x-0 z-40 bg-flare/90 text-ink text-center text-sm font-medium py-2">
-      Connection dropped. Not blaming anyone.{" "}
+      Still can&apos;t reach the table.{" "}
       <button onClick={() => location.reload()} className="underline font-semibold">
         Reload to rejoin
       </button>
@@ -203,10 +210,13 @@ export default function Lobby() {
 }
 
 function LobbyRoom({ code, displayName }: { code: string; displayName: string }) {
-  const { session, deck, alreadyVoted, progress, match, visited, error, status, reactions, send } =
+  const { session, deck, alreadyVoted, progress, match, visited, error, status, everConnected, reactions, send } =
     useSessionSocket(code, displayName);
   const [copied, setCopied] = useState(false);
   const toasts = useJoinLeaveToasts(session?.participants);
+  // Only surface a banner once we've connected at least once: "connecting" then is a drop,
+  // not the initial handshake.
+  const showBanner = everConnected && status !== "open";
 
   const me = session?.participants.find((p) => p.displayName === displayName);
   const isHost = me?.isHost ?? false;
@@ -254,7 +264,7 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
   if (session?.status === "swiping") {
     return (
       <main className="relative flex-1 flex flex-col items-center justify-center overflow-hidden px-6 py-10">
-        {status === "closed" && <DisconnectBanner />}
+        {showBanner && <DisconnectBanner reconnecting={status === "connecting"} />}
         <Toasts toasts={toasts} />
         <FloatingReactions reactions={reactions} />
         {deck && deck.length > 0 ? (
@@ -300,7 +310,7 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
 
   return (
     <main className="flex-1 flex flex-col items-center px-6 pb-16 w-full max-w-md mx-auto">
-      {status === "closed" && <DisconnectBanner />}
+      {showBanner && <DisconnectBanner reconnecting={status === "connecting"} />}
       <Toasts toasts={toasts} />
       <div className="w-full text-center mt-4">
         <p className="text-sm text-muted">Share this code. Or the link. Whatever is less effort.</p>
