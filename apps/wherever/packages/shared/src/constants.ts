@@ -6,6 +6,13 @@
 
 import type { PriceTier, RestaurantSort } from "./types.js";
 
+/**
+ * Emojis the group can throw at each other mid-round. Kept to a fixed set and validated at the
+ * boundary so a reaction can never carry arbitrary text.
+ */
+export const REACTION_EMOJIS = ["🔥", "😍", "🤤", "😂", "👀", "🙅"] as const;
+export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
+
 export interface CuisineOption {
   value: string;
   label: string;

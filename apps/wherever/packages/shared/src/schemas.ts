@@ -3,6 +3,7 @@
 // Worker / Durable Object trusts it.
 
 import { z } from "zod";
+import { REACTION_EMOJIS } from "./constants.js";
 
 export const priceTierSchema = z.union([
   z.literal(1),
@@ -48,6 +49,11 @@ const decideNowSchema = z.object({ type: z.literal("decide_now") });
 
 const againSchema = z.object({ type: z.literal("again") });
 
+const reactSchema = z.object({
+  type: z.literal("react"),
+  emoji: z.enum(REACTION_EMOJIS),
+});
+
 /** Discriminated union of everything a client may send over the socket. */
 export const clientMessageSchema = z.discriminatedUnion("type", [
   joinSchema,
@@ -55,6 +61,7 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
   swipeSchema,
   decideNowSchema,
   againSchema,
+  reactSchema,
 ]);
 
 export type CreateSessionInput = z.infer<typeof createSessionSchema>;
