@@ -7,6 +7,7 @@ import { useSessionSocket } from "../useSessionSocket.js";
 import { SwipeDeck, DeckSkeleton } from "../components/SwipeDeck.js";
 import { MatchScreen } from "../components/MatchScreen.js";
 import { ReactionBar, FloatingReactions } from "../components/Reactions.js";
+import { buzz } from "../components/haptics.js";
 
 function initials(name: string): string {
   return name.trim().slice(0, 2).toUpperCase();
@@ -236,6 +237,14 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
   const isHost = me?.isHost ?? false;
   const count = session?.participants.length ?? 0;
 
+  const [codeCopied, setCodeCopied] = useState(false);
+  async function copyCode() {
+    await navigator.clipboard.writeText(code).catch(() => {});
+    buzz(8);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 1200);
+  }
+
   // Prefer the native share sheet (one tap to Messages/WhatsApp on mobile); fall back to copy.
   async function shareInvite() {
     const url = location.href;
@@ -342,9 +351,14 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
       <Toasts toasts={toasts} />
       <div className="w-full text-center mt-4">
         <p className="text-sm text-muted">Share this code. Or the link. Whatever is less effort.</p>
-        <div className="mt-3 font-display text-5xl font-extrabold tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-r from-ember via-flare to-grape">
+        <button
+          onClick={copyCode}
+          aria-label="Copy the session code"
+          className="mt-3 block w-full font-display text-5xl font-extrabold tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-r from-ember via-flare to-grape active:scale-95 transition"
+        >
           {code}
-        </div>
+        </button>
+        <p className="mt-1 text-xs text-muted">{codeCopied ? "Copied the code." : "Tap the code to copy it"}</p>
         <button onClick={shareInvite} className="mt-4 rounded-full border border-white/15 px-5 py-2 text-sm font-medium hover:bg-white/5 active:scale-95 transition">
           {copied ? "Copied. Go paste it." : "Invite the group"}
         </button>
