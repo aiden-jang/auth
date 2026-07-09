@@ -196,14 +196,6 @@ export default function Lobby() {
   const { code = "" } = useParams();
   const [name, setName] = useState(recallName());
 
-  // Put the code in the tab title so a session is findable among open tabs; reset on leave.
-  useEffect(() => {
-    document.title = code ? `${code} · Wherever, Honestly` : "Wherever, Honestly";
-    return () => {
-      document.title = "Wherever, Honestly";
-    };
-  }, [code]);
-
   if (!name) {
     return (
       <NamePrompt
@@ -225,6 +217,20 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
   // Only surface a banner once we've connected at least once: "connecting" then is a drop,
   // not the initial handshake.
   const showBanner = everConnected && status !== "open";
+
+  // Reflect the round in the tab title: the winner when decided, "Swiping" mid-round, else the
+  // code. Findable among open tabs and a tiny bit of delight when it lands.
+  useEffect(() => {
+    document.title =
+      match?.kind === "match"
+        ? `🍽 ${match.restaurant.name} · Wherever, Honestly`
+        : session?.status === "swiping"
+          ? `Swiping · ${code}`
+          : `${code} · Wherever, Honestly`;
+  }, [code, session?.status, match]);
+  useEffect(() => () => {
+    document.title = "Wherever, Honestly";
+  }, []);
 
   const me = session?.participants.find((p) => p.displayName === displayName);
   const isHost = me?.isHost ?? false;
