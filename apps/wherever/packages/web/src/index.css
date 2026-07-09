@@ -157,4 +157,8 @@ body {
   .reaction-rise {
     animation: none;
   }
+  /* Tailwind's pulse (presence dot, swipe hint) is decorative; hold it still. */
+  .animate-pulse {
+    animation: none;
+  }
 }
