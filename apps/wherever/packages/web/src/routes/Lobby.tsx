@@ -196,6 +196,14 @@ export default function Lobby() {
   const { code = "" } = useParams();
   const [name, setName] = useState(recallName());
 
+  // Put the code in the tab title so a session is findable among open tabs; reset on leave.
+  useEffect(() => {
+    document.title = code ? `${code} · Wherever, Honestly` : "Wherever, Honestly";
+    return () => {
+      document.title = "Wherever, Honestly";
+    };
+  }, [code]);
+
   if (!name) {
     return (
       <NamePrompt
