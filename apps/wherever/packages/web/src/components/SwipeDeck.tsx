@@ -11,6 +11,7 @@ import { RestaurantPhoto } from "./RestaurantPhoto.js";
 import { buzz } from "./haptics.js";
 
 const SWIPE_THRESHOLD = 110;
+const HINT_KEY = "wherever:swipe-hint-seen";
 
 function CardFace({ restaurant }: { restaurant: Restaurant }) {
   return (
@@ -126,18 +127,43 @@ export function SwipeDeck({
   });
   const [exitDir, setExitDir] = useState<SwipeDirection>("right");
 
+  // First-run gesture hint: shown once ever, then remembered.
+  const [showHint, setShowHint] = useState(() => {
+    try {
+      return !localStorage.getItem(HINT_KEY);
+    } catch {
+      return false;
+    }
+  });
+  const dismissHint = useCallback(() => {
+    setShowHint(false);
+    try {
+      localStorage.setItem(HINT_KEY, "1");
+    } catch {
+      /* private mode; fine */
+    }
+  }, []);
+
   const commit = useCallback(
     (dir: SwipeDirection) => {
       const current = restaurants[index];
       if (!current) return;
       // A light tap on a like, a slightly firmer double-tap on a pass.
       buzz(dir === "right" ? 12 : [8, 20]);
+      dismissHint();
       setExitDir(dir);
       onSwipe(current.id, dir);
       setIndex((i) => i + 1);
     },
-    [index, restaurants, onSwipe],
+    [index, restaurants, onSwipe, dismissHint],
   );
+
+  // Don't let the hint linger if they just sit there.
+  useEffect(() => {
+    if (!showHint) return;
+    const t = setTimeout(dismissHint, 5000);
+    return () => clearTimeout(t);
+  }, [showHint, dismissHint]);
 
   // Desktop: arrow keys swipe.
   useEffect(() => {
@@ -194,6 +220,14 @@ export function SwipeDeck({
           />
         </AnimatePresence>
       </div>
+
+      {showHint && (
+        <p className="mt-4 text-center text-xs text-muted animate-pulse">
+          Drag the card, or tap below. <span className="text-flare">✕ pass</span>
+          {" · "}
+          <span className="text-acid">♥ eat</span>
+        </p>
+      )}
 
       <div className="mt-8 flex items-center justify-center gap-6">
         <button
