@@ -94,7 +94,16 @@ export class SessionRoom extends DurableObject<Env> {
         return this.handleDecideNow(ws);
       case "again":
         return this.handleAgain(ws);
+      case "react":
+        return this.handleReact(ws, msg.emoji);
     }
+  }
+
+  /** Fan an ephemeral emoji reaction out to everyone in the session. */
+  private handleReact(ws: WebSocket, emoji: string): void {
+    const att = ws.deserializeAttachment() as SocketAttachment | null;
+    if (!att) return;
+    this.broadcast({ type: "reaction", emoji, from: att.displayName });
   }
 
   override async webSocketClose(ws: WebSocket): Promise<void> {

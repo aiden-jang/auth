@@ -1,11 +1,43 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { VisitedPlace } from "@wherever/shared";
+import type { Restaurant, VisitedPlace } from "@wherever/shared";
 import type { MatchState } from "../useSessionSocket.js";
 import { distanceLabel, priceLabel, reviewCountLabel } from "./cardStyle.js";
 import { RestaurantPhoto } from "./RestaurantPhoto.js";
 import { Confetti } from "./Confetti.js";
 import { buzz } from "./haptics.js";
+import { renderShareCard } from "./shareCard.js";
+
+const APP_URL = "wherever.aidenjang.com";
+
+/**
+ * Share the verdict. Prefers the native share sheet with a generated image (the viral bit);
+ * falls back to sharing text, then to copying. Returns how it resolved so the UI can confirm.
+ */
+async function shareVerdict(restaurant: Restaurant): Promise<"shared" | "copied"> {
+  const text = `We're eating at ${restaurant.name}. Decided by swipe, not by group chat. ${APP_URL}`;
+  const blob = await renderShareCard(restaurant).catch(() => null);
+  const file = blob ? new File([blob], "wherever.png", { type: "image/png" }) : null;
+
+  if (file && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ title: "Wherever, Honestly", text, files: [file] });
+      return "shared";
+    } catch {
+      // User dismissed the sheet or it failed; fall through to text/copy.
+    }
+  }
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Wherever, Honestly", text });
+      return "shared";
+    } catch {
+      /* fall through */
+    }
+  }
+  await navigator.clipboard.writeText(text).catch(() => {});
+  return "copied";
+}
 
 function History({ visited }: { visited: VisitedPlace[] }) {
   if (visited.length === 0) return null;
@@ -81,7 +113,7 @@ function WinnerScreen({
   navigate: ReturnType<typeof useNavigate>;
 }) {
   const { restaurant, rightSwipes, totalParticipants } = match;
-  const [shared, setShared] = useState(false);
+  const [shareState, setShareState] = useState<"idle" | "sharing" | "shared" | "copied">("idle");
 
   // Celebrate once when the verdict lands: confetti + a short victory buzz.
   const [celebrate, setCelebrate] = useState(true);
@@ -92,20 +124,20 @@ function WinnerScreen({
   }, []);
 
   async function share() {
-    const text = `We're eating at ${restaurant.name}. Decided by swipe, not by group chat.`;
-    const url = window.location.origin;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "Wherever, Honestly", text, url });
-      } else {
-        await navigator.clipboard.writeText(`${text} ${url}`);
-        setShared(true);
-        setTimeout(() => setShared(false), 1800);
-      }
-    } catch {
-      // User dismissed the share sheet; nothing to do.
-    }
+    setShareState("sharing");
+    const how = await shareVerdict(restaurant);
+    setShareState(how);
+    if (how === "copied") setTimeout(() => setShareState("idle"), 1800);
   }
+
+  const shareLabel =
+    shareState === "sharing"
+      ? "Rounding everyone up..."
+      : shareState === "copied"
+        ? "Copied. Go gloat."
+        : shareState === "shared"
+          ? "Sent. It's official."
+          : "Tell the group it's settled";
 
   return (
     <div className="relative text-center max-w-sm mx-auto w-full">
@@ -143,10 +175,19 @@ function WinnerScreen({
       <div className="mt-8 flex flex-col gap-3">
         <button
           onClick={share}
-          className="rounded-full bg-ember px-8 py-3 text-lg font-semibold text-ink hover:brightness-110 active:scale-[0.98] transition"
+          disabled={shareState === "sharing"}
+          className="rounded-full bg-ember px-8 py-3 text-lg font-semibold text-ink hover:brightness-110 active:scale-[0.98] disabled:opacity-70 transition"
         >
-          {shared ? "Copied. Go gloat." : "Tell the group it's settled"}
+          {shareLabel}
         </button>
+        <a
+          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${restaurant.name} ${restaurant.address ?? ""}`.trim())}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-full border border-white/15 px-8 py-3 text-lg font-semibold hover:bg-white/5 active:scale-[0.98] transition"
+        >
+          Get directions ↗
+        </a>
         {isHost ? (
           <button
             onClick={onAgain}

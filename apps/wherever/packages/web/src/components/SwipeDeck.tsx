@@ -87,6 +87,28 @@ function TopCard({
   );
 }
 
+/** Card-shaped placeholder shown while the first deck is being fetched. */
+export function DeckSkeleton() {
+  return (
+    <div className="w-full max-w-sm mx-auto">
+      <div className="relative h-[360px]">
+        <div
+          className="absolute inset-0 rounded-[28px] bg-ink-soft border border-white/10 overflow-hidden animate-pulse"
+          style={{ transform: "scale(0.95) translateY(14px)" }}
+        />
+        <div className="absolute inset-0 rounded-[28px] bg-ink-soft border border-white/10 overflow-hidden animate-pulse">
+          <div className="h-48 bg-white/5" />
+          <div className="p-5 space-y-3">
+            <div className="h-6 w-2/3 rounded bg-white/10" />
+            <div className="h-4 w-1/2 rounded bg-white/5" />
+          </div>
+        </div>
+      </div>
+      <p className="mt-8 text-center text-sm text-muted">Rounding up the options...</p>
+    </div>
+  );
+}
+
 export function SwipeDeck({
   restaurants,
   alreadyVoted = [],

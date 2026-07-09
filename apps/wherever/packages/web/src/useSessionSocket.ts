@@ -19,6 +19,13 @@ export type MatchState =
   | { kind: "none" }
   | null;
 
+/** A reaction floating on screen; auto-removed after its animation. */
+export interface FloatingReaction {
+  id: string;
+  emoji: string;
+  from: string;
+}
+
 /** A stable id per session code so a reconnect keeps the same identity + votes. */
 function clientIdFor(code: string): string {
   const key = `cid:${code}`;
@@ -44,6 +51,7 @@ export function useSessionSocket(code: string, displayName: string) {
   const [visited, setVisited] = useState<VisitedPlace[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("connecting");
+  const [reactions, setReactions] = useState<FloatingReaction[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -95,6 +103,13 @@ export function useSessionSocket(code: string, displayName: string) {
           return setMatch({ kind: "none" });
         case "history":
           return setVisited(msg.visited);
+        case "reaction": {
+          const id = crypto.randomUUID();
+          setReactions((prev) => [...prev, { id, emoji: msg.emoji, from: msg.from }]);
+          // Drop it after the float animation so the list can't grow unbounded.
+          setTimeout(() => setReactions((prev) => prev.filter((r) => r.id !== id)), 2600);
+          return;
+        }
         case "error":
           return setError(msg.message);
       }
@@ -107,5 +122,5 @@ export function useSessionSocket(code: string, displayName: string) {
     wsRef.current?.send(JSON.stringify(message));
   }, []);
 
-  return { session, deck, alreadyVoted, progress, match, visited, error, status, send };
+  return { session, deck, alreadyVoted, progress, match, visited, error, status, reactions, send };
 }

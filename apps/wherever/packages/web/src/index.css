@@ -121,6 +121,27 @@ body {
   animation: pop-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* Emoji reactions floating up during a round. */
+@keyframes reaction-rise {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    transform: translateY(-12px) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-180px) scale(1.15);
+    opacity: 0;
+  }
+}
+
+.reaction-rise {
+  animation: reaction-rise 2.4s ease-out forwards;
+  will-change: transform, opacity;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .aurora,
   .float {
@@ -130,6 +151,10 @@ body {
     display: none;
   }
   .pop-in {
+    animation: none;
+  }
+  /* Keep reactions visible but still; the JS timeout still clears them. */
+  .reaction-rise {
     animation: none;
   }
 }
