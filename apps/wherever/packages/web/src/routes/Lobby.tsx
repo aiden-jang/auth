@@ -222,8 +222,22 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
   const isHost = me?.isHost ?? false;
   const count = session?.participants.length ?? 0;
 
-  async function copyLink() {
-    await navigator.clipboard.writeText(location.href);
+  // Prefer the native share sheet (one tap to Messages/WhatsApp on mobile); fall back to copy.
+  async function shareInvite() {
+    const url = location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Wherever, Honestly",
+          text: "Come decide where we're eating. Swipe on it:",
+          url,
+        });
+        return;
+      } catch {
+        // User dismissed the sheet; fall through to copy.
+      }
+    }
+    await navigator.clipboard.writeText(url).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -317,8 +331,8 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
         <div className="mt-3 font-display text-5xl font-extrabold tracking-[0.3em] text-transparent bg-clip-text bg-gradient-to-r from-ember via-flare to-grape">
           {code}
         </div>
-        <button onClick={copyLink} className="mt-4 rounded-full border border-white/15 px-5 py-2 text-sm font-medium hover:bg-white/5 transition">
-          {copied ? "Copied. Go paste it." : "Copy invite link"}
+        <button onClick={shareInvite} className="mt-4 rounded-full border border-white/15 px-5 py-2 text-sm font-medium hover:bg-white/5 active:scale-95 transition">
+          {copied ? "Copied. Go paste it." : "Invite the group"}
         </button>
         {session?.filters && <FilterSummary filters={session.filters} />}
       </div>
