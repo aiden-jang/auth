@@ -51,6 +51,7 @@ export function useSessionSocket(code: string, displayName: string) {
   const [visited, setVisited] = useState<VisitedPlace[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("connecting");
+  const [everConnected, setEverConnected] = useState(false);
   const [reactions, setReactions] = useState<FloatingReaction[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -61,22 +62,13 @@ export function useSessionSocket(code: string, displayName: string) {
     // In prod the Worker may live on another origin; in dev Vite proxies /ws.
     const wsBase =
       import.meta.env.VITE_WS_BASE ?? `${proto}://${location.host}`;
-    const ws = new WebSocket(`${wsBase}/ws/${code}`);
-    wsRef.current = ws;
 
-    ws.onopen = () => {
-      setStatus("open");
-      ws.send(
-        JSON.stringify({
-          type: "join",
-          code,
-          displayName,
-          clientId: clientIdFor(code),
-        }),
-      );
-    };
-    ws.onclose = () => setStatus("closed");
-    ws.onmessage = (event) => {
+    let disposed = false;
+    let attempts = 0;
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    const MAX_ATTEMPTS = 6;
+
+    const handleMessage = (event: MessageEvent) => {
       const msg = JSON.parse(event.data as string) as ServerMessage;
       switch (msg.type) {
         case "session_state":
@@ -115,12 +107,48 @@ export function useSessionSocket(code: string, displayName: string) {
       }
     };
 
-    return () => ws.close();
+    const connect = () => {
+      const ws = new WebSocket(`${wsBase}/ws/${code}`);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        attempts = 0;
+        setStatus("open");
+        setEverConnected(true);
+        ws.send(
+          JSON.stringify({
+            type: "join",
+            code,
+            displayName,
+            clientId: clientIdFor(code),
+          }),
+        );
+      };
+      ws.onmessage = handleMessage;
+      ws.onclose = () => {
+        if (disposed) return;
+        // Auto-reconnect with capped exponential backoff; the DO restores our
+        // identity + votes from the stable clientId on rejoin.
+        if (attempts >= MAX_ATTEMPTS) return setStatus("closed");
+        attempts += 1;
+        setStatus("connecting");
+        const delay = Math.min(1000 * 2 ** (attempts - 1), 5000);
+        reconnectTimer = setTimeout(connect, delay);
+      };
+    };
+
+    connect();
+
+    return () => {
+      disposed = true;
+      clearTimeout(reconnectTimer);
+      wsRef.current?.close();
+    };
   }, [code, displayName]);
 
   const send = useCallback((message: ClientMessage) => {
     wsRef.current?.send(JSON.stringify(message));
   }, []);
 
-  return { session, deck, alreadyVoted, progress, match, visited, error, status, reactions, send };
+  return { session, deck, alreadyVoted, progress, match, visited, error, status, everConnected, reactions, send };
 }
