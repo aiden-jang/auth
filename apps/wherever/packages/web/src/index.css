@@ -19,6 +19,17 @@
   color-scheme: dark;
 }
 
+/* Keyboard focus indicator across every interactive control (mouse clicks stay ring-free via
+   :focus-visible). Outline follows border-radius in modern browsers, so rounded buttons get a
+   rounded ring. */
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--color-acid);
+  outline-offset: 2px;
+}
+
 html,
 body,
 #root {
