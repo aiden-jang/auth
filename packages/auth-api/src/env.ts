@@ -6,7 +6,7 @@ export interface Env {
   DB: D1Database;
   // Fixed-window rate limiter, one instance per action:ip.
   RATE_LIMITER: DurableObjectNamespace<RateLimiter>;
-  // The built login/account UI (apps/auth/web/dist), served for non-API routes.
+  // The built login/account UI (packages/auth-web/dist), served for non-API routes.
   ASSETS: Fetcher;
   // Shared parent domain for the session cookie (e.g. ".aidenjang.com"). Unset in local dev
   // (host-only cookie).

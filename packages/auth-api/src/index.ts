@@ -183,7 +183,10 @@ app.get('/auth/google/callback', async (c) => {
     path: '/auth/google',
     ...(c.env.COOKIE_DOMAIN ? { domain: c.env.COOKIE_DOMAIN } : {}),
   });
-  const fail = (): Response => c.redirect(new URL('/login?error=google_failed', c.req.url).toString());
+  // Land back on the UI origin (APP_URL) rather than the Worker's own origin — matters in dev,
+  // where the callback runs on the Worker (:34100) but the app is served by Vite (:34110).
+  const uiBase = c.env.APP_URL ?? new URL(c.req.url).origin;
+  const fail = (): Response => c.redirect(new URL('/login?error=google_failed', uiBase).toString());
 
   const clientId = c.env.GOOGLE_CLIENT_ID;
   const clientSecret = c.env.GOOGLE_CLIENT_SECRET;
@@ -209,7 +212,7 @@ app.get('/auth/google/callback', async (c) => {
   const user = await upsertGoogleUser(db, identity);
   const { token, expiresAt } = await createSession(db, user.id);
   setSessionCookie(c, token, expiresAt);
-  return c.redirect(safeAppRedirect(saved.r ?? '', c.req.url));
+  return c.redirect(safeAppRedirect(saved.r ?? '', uiBase));
 });
 
 app.post('/auth/logout', async (c) => {

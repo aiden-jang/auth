@@ -7,9 +7,10 @@ contract lives.
 
 ## What's here
 
-- **`apps/auth`** — the auth service. `api` is a Hono Worker (D1 sessions, Turnstile,
-  per-IP rate limiting via a Durable Object) serving the `/auth/*` API + login/account UI; `web`
-  is the React front end. Live at [accounts.aidenjang.com](https://accounts.aidenjang.com).
+- **`packages/auth-api`** + **`packages/auth-web`** — the auth service. `auth-api` is a Hono Worker
+  (D1 sessions, Turnstile, per-IP rate limiting via a Durable Object) serving the `/auth/*` API and
+  the built `auth-web` login/account UI from one origin. Live at
+  [accounts.aidenjang.com](https://accounts.aidenjang.com).
 - **`packages/auth-client`** — `@aidenjang/auth-client`, **published to npm**: `loginUrl`/`logoutUrl`
   builders + the `AuthUser` session shape. Apps depend on this as a versioned package.
 - **`packages/config`** — the strict shared tsconfig base (`noUncheckedIndexedAccess`,

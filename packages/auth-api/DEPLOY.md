@@ -4,13 +4,13 @@
 `/health`) and the login/account UI (static assets) on one origin, `accounts.aidenjang.com`.
 Identity D1: `aidenjang-identity` (its `database_id` is already in `wrangler.toml`). Free tier.
 
-All commands run from `apps/auth/api`.
+All commands run from `packages/auth-api`.
 
 ## Routine redeploy (the usual case)
 
 ```bash
 pnpm exec wrangler deploy   # ship an API/config change (uses the last-built UI assets)
-# or, if the UI (apps/auth/web) changed:
+# or, if the UI (packages/auth-web) changed:
 pnpm run deploy             # builds auth-web, then wrangler deploy
 ```
 

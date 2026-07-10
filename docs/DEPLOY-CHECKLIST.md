@@ -1,6 +1,6 @@
 # auth deploy checklist
 
-Deploy mechanics live in [../apps/auth/DEPLOY.md](../apps/auth/DEPLOY.md); this is the pre-flight,
+Deploy mechanics live in [../packages/auth-api/DEPLOY.md](../packages/auth-api/DEPLOY.md); this is the pre-flight,
 the cross-cutting dashboard steps, and rollback.
 
 > You run every credential-touching command (`wrangler deploy`, `wrangler secret put`,

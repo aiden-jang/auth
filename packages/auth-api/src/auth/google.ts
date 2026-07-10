@@ -24,10 +24,11 @@ export interface AuthedUser {
 
 /**
  * Resolve a post-login redirect target safely: allow only aidenjang.com hosts (or localhost in
- * dev), else fall back to the auth origin's /account. Blocks open-redirect via `return_to`.
+ * dev), else fall back to `${base}/account`. `base` is the UI origin (APP_URL). Blocks
+ * open-redirect via `return_to`.
  */
-export function safeAppRedirect(returnTo: string, requestUrl: string): string {
-  const origin = new URL(requestUrl).origin;
+export function safeAppRedirect(returnTo: string, base: string): string {
+  const origin = new URL(base).origin;
   if (returnTo) {
     try {
       const u = new URL(returnTo, origin);
