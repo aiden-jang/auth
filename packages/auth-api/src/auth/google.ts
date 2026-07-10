@@ -43,6 +43,18 @@ export function safeAppRedirect(returnTo: string, base: string): string {
   return new URL('/account', origin).toString();
 }
 
+/**
+ * Build the OAuth callback URL from the incoming request. Behind Cloudflare the Worker can see the
+ * request as `http` even though the public URL is `https`, and Google matches redirect_uri exactly
+ * — so force `https` for real hosts (localhost stays `http` for dev). Used for both the auth
+ * request and the token exchange so the two are byte-identical.
+ */
+export function googleCallbackUrl(requestUrl: string): string {
+  const u = new URL('/auth/google/callback', requestUrl);
+  if (u.hostname !== 'localhost' && u.hostname !== '127.0.0.1') u.protocol = 'https:';
+  return u.toString();
+}
+
 /** The consent-screen URL to redirect the user to. */
 export function googleAuthUrl(clientId: string, redirectUri: string, state: string): string {
   const params = new URLSearchParams({
@@ -88,18 +100,27 @@ export async function exchangeGoogleCode(
     }),
   });
   if (!res.ok) {
-    console.error('google token exchange failed', res.status);
+    // Google's body names the cause: invalid_grant, redirect_uri_mismatch, invalid_client, …
+    const body = await res.text().catch(() => '');
+    console.error('[google] token exchange HTTP', res.status, body.slice(0, 300));
     return null;
   }
   const data = (await res.json()) as { id_token?: string };
-  if (!data.id_token) return null;
+  if (!data.id_token) {
+    console.error('[google] token response had no id_token:', JSON.stringify(data).slice(0, 200));
+    return null;
+  }
 
   const claims = decodeJwtPayload(data.id_token);
   const sub = typeof claims?.sub === 'string' ? claims.sub : null;
   const email = typeof claims?.email === 'string' ? claims.email : null;
-  if (!sub || !email) return null;
+  if (!sub || !email) {
+    console.error('[google] id_token missing sub/email; claims keys:', Object.keys(claims ?? {}).join(','));
+    return null;
+  }
   if (claims?.aud !== clientId) {
-    console.error('google id_token audience mismatch');
+    // Usually a stray quote/whitespace in GOOGLE_CLIENT_ID (.dev.vars) — log both to compare.
+    console.error('[google] id_token aud mismatch. token aud:', String(claims?.aud), 'expected:', clientId);
     return null;
   }
   const name = typeof claims?.name === 'string' ? claims.name : email;
