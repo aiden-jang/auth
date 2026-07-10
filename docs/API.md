@@ -48,8 +48,10 @@ Register and login are rate-limited per IP (a `RateLimiter` Durable Object).
 
 ## Adding another app
 
-1. Create `apps/<app>/api` as a new Hono Worker with its own D1 and its own origin, serving
-   routes under an `/<app>/*` prefix.
-2. Validate sessions with `@aidenjang/auth-client` against the shared auth service; do not add
-   per-app login. Expose a same-origin `/<app>/me` for the frontend.
-3. Redirect to the shared auth origin for sign-in/out (`loginUrl` / `logoutUrl`).
+New apps live in their own repo and integrate with auth as a client:
+
+1. `pnpm add @aidenjang/auth-client`, and build the app as a Cloudflare Worker on its own origin.
+2. Validate sessions **server-side** by forwarding the incoming `platform_session` cookie to this
+   service's `/auth/me`; never add per-app login. Expose a same-origin `/me` for the frontend.
+3. Redirect to the shared auth origin for sign-in/out with `loginUrl` / `logoutUrl` (+ `return_to`).
+4. Add the app's origin to auth's `CORS_ORIGINS` if it calls `/auth/*` cross-origin.
