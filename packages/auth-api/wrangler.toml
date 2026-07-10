@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 # Served only on the custom domain (accounts.aidenjang.com), not a *.workers.dev route.
 workers_dev = false
 
-# Local dev port — matches the auth-web Vite proxy target (apps/auth/web/vite.config.ts).
+# Local dev port — matches the auth-web Vite proxy target (packages/auth-web/vite.config.ts).
 [dev]
 port = 34100
 
@@ -26,12 +26,12 @@ class_name = "RateLimiter"
 tag = "v1"
 new_sqlite_classes = ["RateLimiter"]
 
-# Serve the built login/account UI (apps/auth/web) from this same Worker, so the UI and
+# Serve the built login/account UI (packages/auth-web) from this same Worker, so the UI and
 # API share the accounts.aidenjang.com origin (no CORS between them, one deploy).
 # run_worker_first = true → the Worker routes everything; /auth/* + /health are the API,
 # the catch-all serves assets (real files + SPA fallback to index.html).
 [assets]
-directory = "../web/dist"
+directory = "../auth-web/dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
 run_worker_first = true
