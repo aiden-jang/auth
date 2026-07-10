@@ -17,6 +17,9 @@ pnpm run deploy             # builds auth-web, then wrangler deploy
 - No re-login needed: `wrangler login` stores credentials (`~/Library/Preferences/.wrangler/`)
   that persist across sessions. All `wrangler` commands reuse them until they expire.
 - It's `pnpm exec wrangler deploy` (runs the workspace binary), **not** `pnpm wrangler deploy`.
+- **If you added a migration**, apply it to remote D1 first:
+  `pnpm exec wrangler d1 migrations apply aidenjang-identity --remote`. A deploy does not run
+  migrations, so new columns/tables are missing until you do this and the app 500s on them.
 - Do **not** run bare `pnpm deploy` — that's pnpm's built-in command, unrelated. Use `pnpm run deploy`.
 
 ## Config / secrets (already set; change with the same command)
@@ -38,6 +41,17 @@ Currently set: `COOKIE_DOMAIN=.aidenjang.com`, `CORS_ORIGINS` (owewell + bloomno
   With neither set, Turnstile is skipped everywhere (widget hidden, backend check bypassed). Do
   **not** set only the secret — the backend would then reject every signup/login/forgot for a
   missing token, since the widget wouldn't render.
+- `GOOGLE_CLIENT_ID` **+** `GOOGLE_CLIENT_SECRET` (server) **+** `VITE_GOOGLE_ENABLED=true` (web
+  build) — "Continue with Google" needs all three, set together. In the Google Cloud console create
+  an OAuth **Web application** client and register the redirect URI
+  `https://accounts.aidenjang.com/auth/google/callback` (plus `http://localhost:34100/auth/google/callback`
+  for dev), then:
+  - build the web with the flag: `VITE_GOOGLE_ENABLED=true pnpm --filter @aidenjang/auth-web build`
+    (the deploy script runs the build, so export it in the deploy shell), and
+  - set the secrets: `echo "<id>" | pnpm exec wrangler secret put GOOGLE_CLIENT_ID` and the same for
+    `GOOGLE_CLIENT_SECRET`.
+  With none set, Google sign-in is hidden and `/auth/google*` returns 404. To let anyone (not just
+  test users) sign in, publish the OAuth consent screen to production.
 
 ## One-time account setup (done — reference)
 
