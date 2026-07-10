@@ -75,12 +75,14 @@ const publicUser = (u: {
   displayName: string;
   emailVerified: boolean;
   hasPassword: boolean;
+  hasGoogle: boolean;
 }) => ({
   id: u.id,
   email: u.email,
   displayName: u.displayName,
   emailVerified: u.emailVerified,
   hasPassword: u.hasPassword,
+  hasGoogle: u.hasGoogle,
 });
 
 // A precomputed hash so a login for a missing email costs the same as a real verify
@@ -122,7 +124,10 @@ app.post('/auth/register', async (c) => {
     html: `<p>Welcome to aidenjang. Confirm your email: <a href="${link(c.env, '/verify-email', verifyToken)}">verify email</a></p>`,
   });
 
-  return c.json({ user: { id, email, displayName, emailVerified: false, hasPassword: true } }, 201);
+  return c.json(
+    { user: { id, email, displayName, emailVerified: false, hasPassword: true, hasGoogle: false } },
+    201,
+  );
 });
 
 const loginBody = z.object({
@@ -158,22 +163,32 @@ app.post('/auth/login', async (c) => {
   }
   const { token, expiresAt } = await createSession(db, user.id);
   setSessionCookie(c, token, expiresAt);
-  return c.json({ user: publicUser({ ...user, hasPassword: user.passwordHash != null }) });
+  return c.json({
+    user: publicUser({ ...user, hasPassword: user.passwordHash != null, hasGoogle: user.googleId != null }),
+  });
 });
 
 // --- Google OAuth (authorization-code flow) ---
 
 const GOOGLE_STATE_COOKIE = 'g_oauth';
 
-app.get('/auth/google', (c) => {
+app.get('/auth/google', async (c) => {
   const clientId = c.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
     return c.json({ error: 'GOOGLE_DISABLED', message: 'Google sign-in is not configured.' }, 404);
   }
+  // `link=1` attaches Google to the signed-in account instead of logging in; it requires a live
+  // session up front so a logged-out visitor can't kick off a pointless link round-trip.
+  const link = c.req.query('link') === '1';
+  if (link) {
+    const cookie = getCookie(c, SESSION_COOKIE);
+    const authed = cookie ? await validateSession(createDb(c.env), cookie) : null;
+    if (!authed) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  }
   const state = crypto.randomUUID();
   const redirectUri = googleCallbackUrl(c.req.url);
   // Short-lived CSRF nonce + return target; SameSite=Lax so it survives the top-level redirect back.
-  setCookie(c, GOOGLE_STATE_COOKIE, JSON.stringify({ s: state, r: c.req.query('return_to') ?? '' }), {
+  setCookie(c, GOOGLE_STATE_COOKIE, JSON.stringify({ s: state, r: c.req.query('return_to') ?? '', link }), {
     httpOnly: true,
     secure: isSecureRequest(c),
     sameSite: 'Lax',
@@ -193,11 +208,21 @@ app.get('/auth/google/callback', async (c) => {
   // Land back on the UI origin (APP_URL) rather than the Worker's own origin — matters in dev,
   // where the callback runs on the Worker (:34100) but the app is served by Vite (:34110).
   const uiBase = c.env.APP_URL ?? new URL(c.req.url).origin;
+
+  let saved: { s?: string; r?: string; link?: boolean } | null = null;
+  try {
+    saved = raw ? (JSON.parse(raw) as { s?: string; r?: string; link?: boolean }) : null;
+  } catch {
+    saved = null;
+  }
+  const isLink = saved?.link === true;
   // Log the exact failure stage (visible in `wrangler tail` / the dev console) and pass a reason
-  // in the URL, so a black-box "Google sign-in failed" becomes debuggable.
+  // in the URL, so a black-box "Google sign-in failed" becomes debuggable. Link failures return to
+  // the account page (where the user started); login failures to /login.
   const fail = (reason: string): Response => {
     console.error('[google/callback] failed:', reason);
-    return c.redirect(new URL(`/login?error=google_failed&reason=${reason}`, uiBase).toString());
+    const dest = isLink ? '/account' : '/login';
+    return c.redirect(new URL(`${dest}?error=google_failed&reason=${reason}`, uiBase).toString());
   };
 
   const clientId = c.env.GOOGLE_CLIENT_ID;
@@ -210,12 +235,6 @@ app.get('/auth/google/callback', async (c) => {
   const state = c.req.query('state');
   if (!code || !state) return fail('missing_params');
 
-  let saved: { s?: string; r?: string } | null = null;
-  try {
-    saved = raw ? (JSON.parse(raw) as { s?: string; r?: string }) : null;
-  } catch {
-    saved = null;
-  }
   if (!saved) return fail('no_state_cookie');
   if (saved.s !== state) return fail('state_mismatch');
 
@@ -225,6 +244,28 @@ app.get('/auth/google/callback', async (c) => {
 
   try {
     const db = createDb(c.env);
+
+    if (isLink) {
+      // Attach this Google identity to the already-signed-in account. The live session proves the
+      // user owns the local account; completing OAuth proves they own the Google one. Emails need
+      // not match (linking a work Google to a personal account is fine).
+      const cookie = getCookie(c, SESSION_COOKIE);
+      const current = cookie ? await validateSession(db, cookie) : null;
+      if (!current) return fail('link_unauthenticated');
+      const taken = await db.select({ id: users.id }).from(users).where(eq(users.googleId, identity.sub)).get();
+      if (taken && taken.id !== current.id) return fail('google_already_linked');
+      await db
+        .update(users)
+        .set({
+          googleId: identity.sub,
+          // Only let Google vouch for the email if it's the same address on this account.
+          ...(identity.emailVerified && identity.email === current.email ? { emailVerified: true } : {}),
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, current.id));
+      return c.redirect(safeAppRedirect(saved.r ?? '/account', uiBase));
+    }
+
     const user = await upsertGoogleUser(db, identity);
     const { token, expiresAt } = await createSession(db, user.id);
     setSessionCookie(c, token, expiresAt);
@@ -402,6 +443,27 @@ app.post('/auth/set-password', async (c) => {
     .update(users)
     .set({ passwordHash: await hashPassword(parsed.data.newPassword), updatedAt: new Date() })
     .where(eq(users.id, row.id));
+  return c.json({ ok: true });
+});
+
+// Unlink Google from the signed-in account. Refuse if it would leave no way to sign in (a
+// Google-only account must set a password first), so the user can never lock themselves out.
+app.post('/auth/disconnect-google', async (c) => {
+  const cookie = getCookie(c, SESSION_COOKIE);
+  const db = createDb(c.env);
+  const sessionUser = cookie ? await validateSession(db, cookie) : null;
+  if (!sessionUser) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+
+  const row = await db.select().from(users).where(eq(users.id, sessionUser.id)).get();
+  if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!row.googleId) return c.json({ ok: true }); // already unlinked
+  if (!row.passwordHash)
+    return c.json(
+      { error: 'CANNOT_UNLINK', message: 'Set a password first so you are not locked out.' },
+      400,
+    );
+
+  await db.update(users).set({ googleId: null, updatedAt: new Date() }).where(eq(users.id, row.id));
   return c.json({ ok: true });
 });
 
