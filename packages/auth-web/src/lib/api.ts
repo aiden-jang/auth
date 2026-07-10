@@ -16,6 +16,8 @@ export interface AuthUser {
   email: string;
   displayName: string;
   emailVerified: boolean;
+  /** False for Google-only accounts, which can add a password from the account page. */
+  hasPassword: boolean;
 }
 
 async function req<T>(path: string, method: string, body?: unknown): Promise<T> {
@@ -52,6 +54,8 @@ export const authApi = {
     req<{ user: AuthUser }>('/auth/update-profile', 'POST', { displayName }),
   changePassword: (currentPassword: string, newPassword: string) =>
     req<{ ok: boolean }>('/auth/change-password', 'POST', { currentPassword, newPassword }),
+  setPassword: (newPassword: string) =>
+    req<{ ok: boolean }>('/auth/set-password', 'POST', { newPassword }),
   verifyEmail: (token: string) => req<{ ok: boolean }>('/auth/verify-email', 'POST', { token }),
   resendVerification: () => req<{ ok: boolean }>('/auth/resend-verification', 'POST'),
 };

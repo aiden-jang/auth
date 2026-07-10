@@ -19,6 +19,9 @@ export function AccountPage(): ReactNode {
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwDone, setPwDone] = useState(false);
+  // Tracks which action just succeeded, so the confirmation reads correctly (adding a first
+  // password does not sign other devices out, unlike a change).
+  const [pwWasSet, setPwWasSet] = useState(false);
 
   function resetPwForm(): void {
     setCurPw('');
@@ -29,6 +32,7 @@ export function AccountPage(): ReactNode {
 
   async function submitPassword(e: FormEvent): Promise<void> {
     e.preventDefault();
+    if (!user) return;
     if (newPw !== confirmPw) {
       setPwError('Those passwords do not match.');
       return;
@@ -36,12 +40,25 @@ export function AccountPage(): ReactNode {
     setPwSaving(true);
     setPwError(null);
     try {
-      await authApi.changePassword(curPw, newPw);
+      if (user.hasPassword) {
+        await authApi.changePassword(curPw, newPw);
+        setPwWasSet(false);
+      } else {
+        await authApi.setPassword(newPw);
+        setUser({ ...user, hasPassword: true });
+        setPwWasSet(true);
+      }
       setChangingPw(false);
       resetPwForm();
       setPwDone(true);
     } catch (err) {
-      setPwError(err instanceof Error ? err.message : 'Could not change your password.');
+      setPwError(
+        err instanceof Error
+          ? err.message
+          : user.hasPassword
+            ? 'Could not change your password.'
+            : 'Could not set your password.',
+      );
     } finally {
       setPwSaving(false);
     }
@@ -224,21 +241,30 @@ export function AccountPage(): ReactNode {
       <section aria-label="Security">
         {changingPw ? (
           <form onSubmit={(e) => void submitPassword(e)} className="space-y-3">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Change password</h2>
-            <div>
-              <label htmlFor="current-password" className={labelClass}>
-                Current password
-              </label>
-              <PasswordInput
-                id="current-password"
-                autoComplete="current-password"
-                placeholder="Current password"
-                value={curPw}
-                onChange={setCurPw}
-                required
-                autoFocus
-              />
-            </div>
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
+              {user.hasPassword ? 'Change password' : 'Set a password'}
+            </h2>
+            {!user.hasPassword && (
+              <p className="text-sm text-muted">
+                You signed up with Google. Add a password to also sign in with your email.
+              </p>
+            )}
+            {user.hasPassword && (
+              <div>
+                <label htmlFor="current-password" className={labelClass}>
+                  Current password
+                </label>
+                <PasswordInput
+                  id="current-password"
+                  autoComplete="current-password"
+                  placeholder="Current password"
+                  value={curPw}
+                  onChange={setCurPw}
+                  required
+                  autoFocus
+                />
+              </div>
+            )}
             <div>
               <label htmlFor="new-password" className={labelClass}>
                 New password
@@ -251,6 +277,7 @@ export function AccountPage(): ReactNode {
                 onChange={setNewPw}
                 required
                 minLength={8}
+                autoFocus={!user.hasPassword}
               />
             </div>
             <div>
@@ -277,7 +304,7 @@ export function AccountPage(): ReactNode {
                 className="btn-gradient cursor-pointer rounded-full px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={pwSaving}
               >
-                {pwSaving ? 'Saving...' : 'Update password'}
+                {pwSaving ? 'Saving...' : user.hasPassword ? 'Update password' : 'Set password'}
               </button>
               <button
                 type="button"
@@ -300,11 +327,15 @@ export function AccountPage(): ReactNode {
             }}
             className="cursor-pointer text-sm font-medium text-accent hover:underline"
           >
-            Change password
+            {user.hasPassword ? 'Change password' : 'Set a password'}
           </button>
         )}
         {pwDone && !changingPw && (
-          <p className="mt-2 text-sm text-pos">Password changed. You've been signed out on other devices.</p>
+          <p className="mt-2 text-sm text-pos">
+            {pwWasSet
+              ? 'Password set. You can now sign in with your email and password too.'
+              : "Password changed. You've been signed out on other devices."}
+          </p>
         )}
       </section>
 

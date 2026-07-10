@@ -74,7 +74,14 @@ const publicUser = (u: {
   email: string;
   displayName: string;
   emailVerified: boolean;
-}) => ({ id: u.id, email: u.email, displayName: u.displayName, emailVerified: u.emailVerified });
+  hasPassword: boolean;
+}) => ({
+  id: u.id,
+  email: u.email,
+  displayName: u.displayName,
+  emailVerified: u.emailVerified,
+  hasPassword: u.hasPassword,
+});
 
 // A precomputed hash so a login for a missing email costs the same as a real verify
 // (no account enumeration via timing). Computed once, lazily.
@@ -115,7 +122,7 @@ app.post('/auth/register', async (c) => {
     html: `<p>Welcome to aidenjang. Confirm your email: <a href="${link(c.env, '/verify-email', verifyToken)}">verify email</a></p>`,
   });
 
-  return c.json({ user: { id, email, displayName, emailVerified: false } }, 201);
+  return c.json({ user: { id, email, displayName, emailVerified: false, hasPassword: true } }, 201);
 });
 
 const loginBody = z.object({
@@ -151,7 +158,7 @@ app.post('/auth/login', async (c) => {
   }
   const { token, expiresAt } = await createSession(db, user.id);
   setSessionCookie(c, token, expiresAt);
-  return c.json({ user: publicUser(user) });
+  return c.json({ user: publicUser({ ...user, hasPassword: user.passwordHash != null }) });
 });
 
 // --- Google OAuth (authorization-code flow) ---
@@ -213,7 +220,6 @@ app.get('/auth/google/callback', async (c) => {
   if (saved.s !== state) return fail('state_mismatch');
 
   const redirectUri = googleCallbackUrl(c.req.url);
-  console.log('[google] redirect_uri (register this EXACT string in Google Console):', redirectUri);
   const identity = await exchangeGoogleCode(clientId, clientSecret, code, redirectUri);
   if (!identity) return fail('token_exchange');
 
@@ -365,6 +371,37 @@ app.post('/auth/change-password', async (c) => {
   await revokeAllSessions(db, row.id); // sign out everywhere...
   const { token, expiresAt } = await createSession(db, row.id); // ...then keep this device
   setSessionCookie(c, token, expiresAt);
+  return c.json({ ok: true });
+});
+
+// Add a password to a passwordless (Google-only) account, so the user can also sign in with email.
+// Unlike change-password there's no current password to verify — the live session is the proof of
+// ownership — but we hard-refuse if a password already exists so this can't bypass that check.
+app.post('/auth/set-password', async (c) => {
+  if (await overLimit(c, 'set-password', 10, 5 * MIN))
+    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  const cookie = getCookie(c, SESSION_COOKIE);
+  const db = createDb(c.env);
+  const sessionUser = cookie ? await validateSession(db, cookie) : null;
+  if (!sessionUser) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+
+  const parsed = z
+    .object({ newPassword: z.string().min(8).max(200) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+
+  const row = await db.select().from(users).where(eq(users.id, sessionUser.id)).get();
+  if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (row.passwordHash)
+    return c.json(
+      { error: 'PASSWORD_EXISTS', message: 'This account already has a password. Use change password instead.' },
+      400,
+    );
+
+  await db
+    .update(users)
+    .set({ passwordHash: await hashPassword(parsed.data.newPassword), updatedAt: new Date() })
+    .where(eq(users.id, row.id));
   return c.json({ ok: true });
 });
 
