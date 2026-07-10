@@ -27,6 +27,15 @@ export interface AuthUser {
   hasGoogle: boolean;
 }
 
+export interface SessionInfo {
+  id: string;
+  current: boolean;
+  device: string | null;
+  location: string | null;
+  lastSeenAt: string;
+  createdAt: string;
+}
+
 async function req<T>(path: string, method: string, body?: unknown): Promise<T> {
   const init: RequestInit = { method, credentials: 'include' };
   if (body !== undefined) {
@@ -53,6 +62,12 @@ export const authApi = {
   register: (email: string, password: string, displayName: string, turnstileToken?: string) =>
     req<{ user: AuthUser }>('/auth/register', 'POST', { email, password, displayName, turnstileToken }),
   logout: () => req<{ ok: boolean }>('/auth/logout', 'POST'),
+  magicLink: (email: string, returnTo?: string | null, turnstileToken?: string) =>
+    req<{ ok: boolean }>('/auth/magic-link', 'POST', {
+      email,
+      returnTo: returnTo ?? undefined,
+      turnstileToken,
+    }),
   forgot: (email: string, turnstileToken?: string) =>
     req<{ ok: boolean }>('/auth/forgot-password', 'POST', { email, turnstileToken }),
   reset: (token: string, newPassword: string) =>
@@ -64,6 +79,11 @@ export const authApi = {
   setPassword: (newPassword: string) =>
     req<{ ok: boolean }>('/auth/set-password', 'POST', { newPassword }),
   disconnectGoogle: () => req<{ ok: boolean }>('/auth/disconnect-google', 'POST'),
+  listSessions: () => req<{ sessions: SessionInfo[] }>('/auth/sessions', 'GET'),
+  revokeSession: (id: string) => req<{ ok: boolean }>('/auth/sessions/revoke', 'POST', { id }),
+  revokeOtherSessions: () => req<{ ok: boolean }>('/auth/sessions/revoke-others', 'POST'),
+  deleteAccount: (body: { password?: string; confirm?: string }) =>
+    req<{ ok: boolean }>('/auth/delete-account', 'POST', body),
   verifyEmail: (token: string) => req<{ ok: boolean }>('/auth/verify-email', 'POST', { token }),
   resendVerification: () => req<{ ok: boolean }>('/auth/resend-verification', 'POST'),
 };

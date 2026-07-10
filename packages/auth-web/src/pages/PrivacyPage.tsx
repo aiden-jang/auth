@@ -43,6 +43,11 @@ export function PrivacyPage(): ReactNode {
             while the game is running. Nothing survives the room.
           </li>
           <li>
+            <strong>Sessions:</strong> for the "active devices" list on your account, each sign-in
+            keeps a device label (like "Chrome on macOS") and a coarse city/country from Cloudflare,
+            not your raw IP. You can sign any of them out from your account page.
+          </li>
+          <li>
             <strong>Technical:</strong> standard request logs (IP, timestamp, error traces) kept
             briefly for debugging and abuse prevention, plus aggregate, cookieless page-view counts.
           </li>

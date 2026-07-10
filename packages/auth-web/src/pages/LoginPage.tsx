@@ -14,10 +14,17 @@ export function LoginPage(): ReactNode {
   const [password, setPassword] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
   const [error, setError] = useState<string | null>(
-    params.get('error') === 'google_failed' ? 'Google sign-in failed. Please try again.' : null,
+    params.get('error') === 'google_failed'
+      ? 'Google sign-in failed. Please try again.'
+      : params.get('error') === 'magic_failed'
+        ? 'That sign-in link is invalid or expired. Request a new one.'
+        : null,
   );
   const [loading, setLoading] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
+  // Magic-link mode: sign in via an emailed link instead of a password.
+  const [magicMode, setMagicMode] = useState(false);
+  const [magicSent, setMagicSent] = useState(false);
 
   const withReturn = (p: string) => (returnTo ? `${p}?return_to=${encodeURIComponent(returnTo)}` : p);
 
@@ -26,10 +33,16 @@ export function LoginPage(): ReactNode {
     setError(null);
     setLoading(true);
     try {
-      await authApi.login(email, password, turnstileToken);
-      window.location.href = safeReturnTo(returnTo) ?? '/account';
+      if (magicMode) {
+        await authApi.magicLink(email, returnTo, turnstileToken);
+        setMagicSent(true);
+        setLoading(false);
+      } else {
+        await authApi.login(email, password, turnstileToken);
+        window.location.href = safeReturnTo(returnTo) ?? '/account';
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not log in.');
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setLoading(false);
       // The token was consumed server-side; drop it and re-solve so a retry uses a fresh one.
       setTurnstileToken('');
@@ -39,67 +52,113 @@ export function LoginPage(): ReactNode {
 
   return (
     <AuthCard title="Welcome back" subtitle="One login for all of aidenjang's apps.">
-      <GoogleSignIn returnTo={returnTo} />
-      <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
-        <div>
-          <label htmlFor="email" className={labelClass}>
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            className={inputClass}
-            type="email"
-            autoComplete="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoFocus
-          />
-        </div>
-
-        <div>
-          <div className="mb-1.5 flex items-baseline justify-between">
-            <label htmlFor="password" className="text-sm font-medium text-muted">
-              Password
-            </label>
-            <Link to={withReturn('/forgot-password')} className="text-xs text-muted hover:text-ink">
-              Forgot?
-            </Link>
-          </div>
-          <PasswordInput
-            id="password"
-            name="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={setPassword}
-            required
-          />
-        </div>
-
-        {error && (
-          <p
-            role="alert"
-            className="rounded-lg border border-neg/30 bg-neg/10 px-3 py-2 text-sm font-medium text-neg"
+      {magicSent ? (
+        <div className="space-y-4">
+          <div
+            role="status"
+            className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-sm text-pos"
           >
-            {error}
+            Check your inbox. If <strong>{email}</strong> has an account, a sign-in link is on its
+            way. It expires in 15 minutes.
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setMagicSent(false);
+              setMagicMode(false);
+            }}
+            className="text-sm font-medium text-accent hover:underline"
+          >
+            Back to sign in
+          </button>
+        </div>
+      ) : (
+        <>
+          <GoogleSignIn returnTo={returnTo} />
+          <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+            <div>
+              <label htmlFor="email" className={labelClass}>
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                className={inputClass}
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+
+            {!magicMode && (
+              <div>
+                <div className="mb-1.5 flex items-baseline justify-between">
+                  <label htmlFor="password" className="text-sm font-medium text-muted">
+                    Password
+                  </label>
+                  <Link
+                    to={withReturn('/forgot-password')}
+                    className="text-xs text-muted hover:text-ink"
+                  >
+                    Forgot?
+                  </Link>
+                </div>
+                <PasswordInput
+                  id="password"
+                  name="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={setPassword}
+                  required
+                />
+              </div>
+            )}
+
+            {error && (
+              <p
+                role="alert"
+                className="rounded-lg border border-neg/30 bg-neg/10 px-3 py-2 text-sm font-medium text-neg"
+              >
+                {error}
+              </p>
+            )}
+
+            <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />
+
+            <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>
+              {loading
+                ? magicMode
+                  ? 'Sending...'
+                  : 'Signing in...'
+                : magicMode
+                  ? 'Email me a sign-in link'
+                  : 'Log in'}
+            </button>
+          </form>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMagicMode((m) => !m);
+              setError(null);
+            }}
+            className="mt-4 w-full text-center text-sm text-muted transition hover:text-ink"
+          >
+            {magicMode ? 'Use a password instead' : 'Email me a sign-in link instead'}
+          </button>
+
+          <p className="mt-5 text-center text-sm text-muted">
+            New here?{' '}
+            <Link to={withReturn('/signup')} className="font-medium text-accent hover:underline">
+              Create an account
+            </Link>
           </p>
-        )}
-
-        <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />
-
-        <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>
-          {loading ? 'Signing in...' : 'Log in'}
-        </button>
-      </form>
-
-      <p className="mt-5 text-center text-sm text-muted">
-        New here?{' '}
-        <Link to={withReturn('/signup')} className="font-medium text-accent hover:underline">
-          Create an account
-        </Link>
-      </p>
+        </>
+      )}
     </AuthCard>
   );
 }
