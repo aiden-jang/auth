@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { authApi, googleConnectUrl, googleEnabled, type AuthUser } from '../lib/api';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
+import { PasswordStrength } from '../components/PasswordStrength';
 import { APPS, appHref } from '../lib/apps';
 
 export function AccountPage(): ReactNode {
@@ -310,6 +311,7 @@ export function AccountPage(): ReactNode {
                 minLength={8}
                 autoFocus={!user.hasPassword}
               />
+              <PasswordStrength value={newPw} />
             </div>
             <div>
               <label htmlFor="confirm-new-password" className={labelClass}>
