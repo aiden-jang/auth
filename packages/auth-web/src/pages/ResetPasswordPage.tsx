@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { AuthCard, buttonClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
+import { PasswordStrength } from '../components/PasswordStrength';
 
 export function ResetPasswordPage(): ReactNode {
   const [params] = useSearchParams();
@@ -72,6 +73,7 @@ export function ResetPasswordPage(): ReactNode {
               minLength={8}
               autoFocus
             />
+            <PasswordStrength value={password} />
           </div>
 
           <div>
@@ -88,6 +90,9 @@ export function ResetPasswordPage(): ReactNode {
               required
               minLength={8}
             />
+            {confirmPassword && password !== confirmPassword && (
+              <p className="mt-1 text-xs text-neg">Passwords do not match.</p>
+            )}
           </div>
 
           {error && (

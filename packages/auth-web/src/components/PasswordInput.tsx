@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type KeyboardEvent, type ReactNode } from 'react';
 import { inputClass } from './AuthCard';
 
 interface PasswordInputProps {
@@ -31,9 +31,15 @@ export function PasswordInput({
   minLength,
 }: PasswordInputProps): ReactNode {
   const [show, setShow] = useState(false);
+  const [capsOn, setCapsOn] = useState(false);
+  const [focused, setFocused] = useState(false);
+
+  const trackCaps = (e: KeyboardEvent<HTMLInputElement>): void =>
+    setCapsOn(e.getModifierState('CapsLock'));
 
   return (
-    <div className="relative">
+    <>
+      <div className="relative">
       <input
         id={id}
         name={name}
@@ -41,6 +47,10 @@ export function PasswordInput({
         className={`${inputClass} pr-11`}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onKeyUp={trackCaps}
+        onKeyDown={trackCaps}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         autoComplete={autoComplete}
         placeholder={placeholder}
         required={required}
@@ -77,6 +87,10 @@ export function PasswordInput({
           </svg>
         )}
       </button>
-    </div>
+      </div>
+      {capsOn && focused && (
+        <p className="mt-1.5 text-xs font-medium text-accent">Caps Lock is on</p>
+      )}
+    </>
   );
 }

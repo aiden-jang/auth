@@ -4,6 +4,7 @@ import { authApi } from '../lib/api';
 import { safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
+import { PasswordStrength } from '../components/PasswordStrength';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { GoogleSignIn } from '../components/GoogleSignIn';
 
@@ -104,6 +105,9 @@ export function SignupPage(): ReactNode {
             onChange={(e) => setConfirmEmail(e.target.value)}
             required
           />
+          {confirmEmail && email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase() && (
+            <p className="mt-1 text-xs text-neg">Emails do not match.</p>
+          )}
         </div>
 
         <div>
@@ -120,6 +124,7 @@ export function SignupPage(): ReactNode {
             required
             minLength={8}
           />
+          <PasswordStrength value={password} />
         </div>
 
         <div>
@@ -136,6 +141,9 @@ export function SignupPage(): ReactNode {
             required
             minLength={8}
           />
+          {confirmPassword && password !== confirmPassword && (
+            <p className="mt-1 text-xs text-neg">Passwords do not match.</p>
+          )}
         </div>
 
         {error && (
