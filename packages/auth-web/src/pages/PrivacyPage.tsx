@@ -10,10 +10,12 @@ export function PrivacyPage(): ReactNode {
         nobody reads protects nobody.
       </p>
 
-      <Section heading="Which apps need an account">
-        Only two of them do. owewell and bloomnote share one login, so the account details below
-        apply there. wherever and is-it-a-dog need no account at all: they run on temporary room
-        codes and forget the room once everyone leaves.
+      <Section heading="Do you need an account">
+        No. Every app works without one. Signing in is optional and just saves your stuff across
+        your devices: your groups and expenses in owewell, the gardens you make in bloomnote.
+        wherever and is-it-a-dog run on throwaway room codes that clear when everyone leaves, so
+        there is nothing to save and nothing to sign in for. The account details below apply only
+        when you choose to sign in.
       </Section>
 
       <Section heading="What we collect">
