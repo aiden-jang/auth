@@ -79,20 +79,6 @@ pnpm --filter @is-it-a-dog/game-server run deploy    # → is-it-a-dog.aidenjang
 Verify: `https://is-it-a-dog.aidenjang.com/health`; **two-browser playthrough** — join the same
 room, strokes sync live, the AI guesses in chat, scoreboard updates, run it back; installable.
 
-## 5. wherever — FIRST deploy (no custom domain yet)
-
-Deploys to `workers.dev` until a domain is provisioned. Foursquare key optional (mock deck plays
-without it). Web is a separate deploy (the Worker has no `[assets]`).
-
-```bash
-pnpm --filter @wherever/worker exec wrangler secret put FOURSQUARE_API_KEY   # optional
-pnpm --filter @wherever/worker run deploy
-# deploy the web build per apps/wherever/DEPLOY.md
-```
-
-Verify: `/api/health` on the deployed origin (wherever namespaces its API under `/api`); create a
-session, join by code from a second browser, swipe, majority resolves.
-
 ## 6. Cross-cutting (dashboard / one-time)
 
 - **Login 403 (reported):** Cloudflare dashboard → Caching → **Purge Everything**, then retest in
