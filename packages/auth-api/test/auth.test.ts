@@ -5,6 +5,7 @@ import { createDb } from '../src/db/client.js';
 import { authTokens, users } from '../src/db/schema.js';
 import { issueToken } from '../src/auth/verification.js';
 import { hashToken } from '../src/auth/token.js';
+import { createSession } from '../src/auth/session.js';
 import type { Env } from '../src/env.js';
 
 // The test worker's bindings (local D1 + RateLimiter DO), typed as the app's Env.
@@ -241,5 +242,152 @@ describe('abuse controls', () => {
     expect(known.status).toBe(200);
     expect(unknown.status).toBe(200);
     expect(await known.text()).toBe(await unknown.text());
+  });
+});
+
+/** Create a Google-only (passwordless) account and a live session cookie for it. */
+async function registerGoogle(): Promise<{ id: string; email: string; cookie: string }> {
+  const id = crypto.randomUUID();
+  const email = freshEmail();
+  await db().insert(users).values({
+    id,
+    email,
+    passwordHash: null,
+    googleId: `g-${id}`,
+    displayName: 'Google User',
+    emailVerified: true,
+  });
+  const { token } = await createSession(db(), id);
+  return { id, email, cookie: `platform_session=${token}` };
+}
+
+/** A GET that does not follow redirects, so the 302 + Set-Cookie can be inspected. */
+async function getManual(path: string): Promise<Response> {
+  return SELF.fetch(`${BASE}${path}`, { redirect: 'manual' });
+}
+
+describe('set password (passwordless account)', () => {
+  it('lets a Google-only account add a password, then log in with it', async () => {
+    const g = await registerGoogle();
+    expect((await post('/auth/set-password', { newPassword: 'a-brand-new-password' }, g.cookie)).status).toBe(200);
+    expect((await post('/auth/login', { email: g.email, password: 'a-brand-new-password' })).status).toBe(200);
+  });
+
+  it('refuses when the account already has a password', async () => {
+    const { cookie } = await register();
+    const res = await post('/auth/set-password', { newPassword: 'another-password' }, cookie);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe('PASSWORD_EXISTS');
+  });
+
+  it('requires authentication', async () => {
+    expect((await post('/auth/set-password', { newPassword: 'a-brand-new-password' })).status).toBe(401);
+  });
+});
+
+describe('login for a Google-only account', () => {
+  it('points the user at Google instead of checking a password', async () => {
+    const g = await registerGoogle();
+    const res = await post('/auth/login', { email: g.email, password: 'anything-at-all' });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe('USE_GOOGLE');
+  });
+});
+
+describe('active sessions', () => {
+  it('lists sessions, flags the current one, and signs out the others', async () => {
+    const { email, password, cookie } = await register();
+    const second = sessionCookie(await post('/auth/login', { email, password }));
+    expect(second).toBeTruthy();
+
+    const list = (await (await get('/auth/sessions', cookie)).json()) as {
+      sessions: { id: string; current: boolean }[];
+    };
+    expect(list.sessions.length).toBe(2);
+    expect(list.sessions.filter((s) => s.current).length).toBe(1);
+
+    expect((await post('/auth/sessions/revoke-others', {}, cookie)).status).toBe(200);
+    expect((await get('/auth/me', cookie)).status).toBe(200); // current kept
+    expect((await get('/auth/me', second!)).status).toBe(401); // other revoked
+  });
+
+  it('revokes only the caller-owned session (no cross-user revoke)', async () => {
+    const a = await register();
+    const b = await register();
+    const bList = (await (await get('/auth/sessions', b.cookie)).json()) as { sessions: { id: string }[] };
+    const bId = bList.sessions[0]!.id;
+    // A tries to revoke B's session — scoped to A's own rows, so B stays signed in.
+    expect((await post('/auth/sessions/revoke', { id: bId }, a.cookie)).status).toBe(200);
+    expect((await get('/auth/me', b.cookie)).status).toBe(200);
+  });
+
+  it('requires authentication', async () => {
+    expect((await get('/auth/sessions')).status).toBe(401);
+  });
+});
+
+describe('disconnect Google', () => {
+  it('refuses to unlink when it would leave no way to sign in', async () => {
+    const g = await registerGoogle();
+    const res = await post('/auth/disconnect-google', {}, g.cookie);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe('CANNOT_UNLINK');
+  });
+
+  it('unlinks once a password exists', async () => {
+    const g = await registerGoogle();
+    expect((await post('/auth/set-password', { newPassword: 'safe-enough-password' }, g.cookie)).status).toBe(200);
+    expect((await post('/auth/disconnect-google', {}, g.cookie)).status).toBe(200);
+  });
+});
+
+describe('magic-link sign-in', () => {
+  it('does not reveal whether an account exists', async () => {
+    const { email } = await register();
+    const known = await post('/auth/magic-link', { email });
+    const unknown = await post('/auth/magic-link', { email: freshEmail() });
+    expect(known.status).toBe(200);
+    expect(unknown.status).toBe(200);
+    expect(await known.text()).toBe(await unknown.text());
+  });
+
+  it('signs in via a valid token and is single-use', async () => {
+    const { id } = await register();
+    const token = await issueToken(db(), id, 'magic');
+    const res = await getManual(`/auth/magic/callback?token=${token}`);
+    expect(res.status).toBe(302);
+    const cookie = sessionCookie(res);
+    expect(cookie).toBeTruthy();
+    expect((await get('/auth/me', cookie!)).status).toBe(200);
+
+    // Replaying the same token fails and bounces to the login page.
+    const replay = await getManual(`/auth/magic/callback?token=${token}`);
+    expect(replay.headers.get('location')).toContain('error=magic_failed');
+  });
+
+  it('rejects a missing/invalid token', async () => {
+    const res = await getManual('/auth/magic/callback?token=not-a-real-token');
+    expect(res.headers.get('location')).toContain('error=magic_failed');
+  });
+});
+
+describe('delete account', () => {
+  it('deletes with the correct password and blocks login afterward', async () => {
+    const { email, password, cookie } = await register();
+    expect((await post('/auth/delete-account', { password: 'wrong-password' }, cookie)).status).toBe(400);
+    expect((await post('/auth/delete-account', { password }, cookie)).status).toBe(200);
+    expect((await get('/auth/me', cookie)).status).toBe(401);
+    expect((await post('/auth/login', { email, password })).status).toBe(401);
+  });
+
+  it('deletes a Google-only account when the typed email confirms', async () => {
+    const g = await registerGoogle();
+    expect((await post('/auth/delete-account', { confirm: 'nope@wrong.dev' }, g.cookie)).status).toBe(400);
+    expect((await post('/auth/delete-account', { confirm: g.email }, g.cookie)).status).toBe(200);
+    expect((await get('/auth/me', g.cookie)).status).toBe(401);
+  });
+
+  it('requires authentication', async () => {
+    expect((await post('/auth/delete-account', { password: 'x' })).status).toBe(401);
   });
 });

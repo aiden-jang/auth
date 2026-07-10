@@ -510,6 +510,8 @@ app.post('/auth/set-password', async (c) => {
 // Unlink Google from the signed-in account. Refuse if it would leave no way to sign in (a
 // Google-only account must set a password first), so the user can never lock themselves out.
 app.post('/auth/disconnect-google', async (c) => {
+  if (await overLimit(c, 'disconnect-google', 10, 5 * MIN))
+    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
   const sessionUser = cookie ? await validateSession(db, cookie) : null;
