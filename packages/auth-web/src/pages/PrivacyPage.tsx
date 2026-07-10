@@ -3,7 +3,7 @@ import { LegalLayout, Section } from '../components/LegalLayout';
 
 export function PrivacyPage(): ReactNode {
   return (
-    <LegalLayout title="Privacy Policy" updated="July 6, 2026">
+    <LegalLayout title="Privacy Policy" updated="July 10, 2026">
       <p>
         Aiden Jang builds a small collection of personal apps under the name aidenjang. This is what
         they store, why, and who else sees it. Written to actually be read, because a privacy policy
@@ -19,9 +19,10 @@ export function PrivacyPage(): ReactNode {
       <Section heading="What we collect">
         <ul className="list-disc space-y-1.5 pl-5">
           <li>
-            <strong>Account:</strong> your email, display name, and a securely hashed password (never
-            the password itself). Email signs you in, verifies your address, and resets it if you
-            forget.
+            <strong>Account:</strong> your email and display name, plus a securely hashed password if
+            you sign up with one (never the password itself). You can also continue with Google, in
+            which case Google confirms your email and name for you and no password is stored. Email
+            signs you in, verifies your address, and resets it if you forget.
           </li>
           <li>
             <strong>owewell:</strong> the groups, expenses, splits, and settlements you enter,
