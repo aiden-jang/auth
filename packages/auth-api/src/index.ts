@@ -11,7 +11,7 @@ import { users } from './db/schema.js';
 import { hashPassword, verifyPassword } from './auth/password.js';
 import { createSession, revokeAllSessions, revokeSession, validateSession } from './auth/session.js';
 import { clearSessionCookie, getCookie, SESSION_COOKIE, setSessionCookie } from './auth/cookie.js';
-import { googleAuthUrl, exchangeGoogleCode, upsertGoogleUser, safeAppRedirect } from './auth/google.js';
+import { googleAuthUrl, googleCallbackUrl, exchangeGoogleCode, upsertGoogleUser, safeAppRedirect } from './auth/google.js';
 import { consumeToken, issueToken } from './auth/verification.js';
 import { sendEmail } from './email.js';
 import { verifyTurnstile } from './turnstile.js';
@@ -164,7 +164,7 @@ app.get('/auth/google', (c) => {
     return c.json({ error: 'GOOGLE_DISABLED', message: 'Google sign-in is not configured.' }, 404);
   }
   const state = crypto.randomUUID();
-  const redirectUri = new URL('/auth/google/callback', c.req.url).toString();
+  const redirectUri = googleCallbackUrl(c.req.url);
   // Short-lived CSRF nonce + return target; SameSite=Lax so it survives the top-level redirect back.
   setCookie(c, GOOGLE_STATE_COOKIE, JSON.stringify({ s: state, r: c.req.query('return_to') ?? '' }), {
     httpOnly: true,
@@ -186,15 +186,22 @@ app.get('/auth/google/callback', async (c) => {
   // Land back on the UI origin (APP_URL) rather than the Worker's own origin — matters in dev,
   // where the callback runs on the Worker (:34100) but the app is served by Vite (:34110).
   const uiBase = c.env.APP_URL ?? new URL(c.req.url).origin;
-  const fail = (): Response => c.redirect(new URL('/login?error=google_failed', uiBase).toString());
+  // Log the exact failure stage (visible in `wrangler tail` / the dev console) and pass a reason
+  // in the URL, so a black-box "Google sign-in failed" becomes debuggable.
+  const fail = (reason: string): Response => {
+    console.error('[google/callback] failed:', reason);
+    return c.redirect(new URL(`/login?error=google_failed&reason=${reason}`, uiBase).toString());
+  };
 
   const clientId = c.env.GOOGLE_CLIENT_ID;
   const clientSecret = c.env.GOOGLE_CLIENT_SECRET;
-  if (!clientId || !clientSecret) return fail();
+  if (!clientId || !clientSecret) return fail('not_configured');
 
+  const providerError = c.req.query('error');
+  if (providerError) return fail(`provider_${providerError}`);
   const code = c.req.query('code');
   const state = c.req.query('state');
-  if (c.req.query('error') || !code || !state) return fail();
+  if (!code || !state) return fail('missing_params');
 
   let saved: { s?: string; r?: string } | null = null;
   try {
@@ -202,17 +209,26 @@ app.get('/auth/google/callback', async (c) => {
   } catch {
     saved = null;
   }
-  if (!saved || saved.s !== state) return fail();
+  if (!saved) return fail('no_state_cookie');
+  if (saved.s !== state) return fail('state_mismatch');
 
-  const redirectUri = new URL('/auth/google/callback', c.req.url).toString();
+  const redirectUri = googleCallbackUrl(c.req.url);
+  console.log('[google] redirect_uri (register this EXACT string in Google Console):', redirectUri);
   const identity = await exchangeGoogleCode(clientId, clientSecret, code, redirectUri);
-  if (!identity) return fail();
+  if (!identity) return fail('token_exchange');
 
-  const db = createDb(c.env);
-  const user = await upsertGoogleUser(db, identity);
-  const { token, expiresAt } = await createSession(db, user.id);
-  setSessionCookie(c, token, expiresAt);
-  return c.redirect(safeAppRedirect(saved.r ?? '', uiBase));
+  try {
+    const db = createDb(c.env);
+    const user = await upsertGoogleUser(db, identity);
+    const { token, expiresAt } = await createSession(db, user.id);
+    setSessionCookie(c, token, expiresAt);
+    return c.redirect(safeAppRedirect(saved.r ?? '', uiBase));
+  } catch (err) {
+    // Most commonly a missing `google_id` column (remote D1 migration not applied) — surface it
+    // as a reason'd redirect instead of a raw 500 so it's debuggable in `wrangler tail`.
+    console.error('[google/callback] upsert/session error:', err);
+    return fail('session');
+  }
 });
 
 app.post('/auth/logout', async (c) => {

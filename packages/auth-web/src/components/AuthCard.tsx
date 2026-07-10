@@ -25,10 +25,14 @@ function BrandMark(): ReactNode {
 }
 
 function Wordmark(): ReactNode {
+  // Links home — accounts.aidenjang.com in prod, the local root in dev.
   return (
-    <div className="flex items-center gap-2 font-semibold tracking-tight">
+    <a
+      href="/"
+      className="inline-flex items-center gap-2 font-semibold tracking-tight transition-opacity hover:opacity-80"
+    >
       <BrandMark /> aidenjang
-    </div>
+    </a>
   );
 }
 
