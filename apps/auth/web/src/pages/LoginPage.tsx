@@ -14,6 +14,7 @@ export function LoginPage(): ReactNode {
   const [turnstileToken, setTurnstileToken] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetSignal, setResetSignal] = useState(0);
 
   const withReturn = (p: string) => (returnTo ? `${p}?return_to=${encodeURIComponent(returnTo)}` : p);
 
@@ -27,6 +28,9 @@ export function LoginPage(): ReactNode {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not log in.');
       setLoading(false);
+      // The token was consumed server-side; drop it and re-solve so a retry uses a fresh one.
+      setTurnstileToken('');
+      setResetSignal((n) => n + 1);
     }
   }
 
@@ -79,7 +83,7 @@ export function LoginPage(): ReactNode {
           </p>
         )}
 
-        <Turnstile onToken={setTurnstileToken} />
+        <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />
 
         <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>
           {loading ? 'Signing in...' : 'Log in'}
