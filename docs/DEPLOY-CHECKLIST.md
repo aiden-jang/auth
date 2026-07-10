@@ -64,21 +64,6 @@ Verify: `https://bloomnote.aidenjang.com/health`; compose a garden (real Gemini 
 SSE); the short link opens the recipient view; signed-in "my gardens" shows sent/received;
 `/privacy`+`/terms` reachable from the footer; installable.
 
-## 4. is-it-a-dog — FIRST deploy (4.6)
-
-Two Workers. Deploy the **ai-worker first** (the game-server's `AI_WORKER_URL` points at it), then
-the game-server. Vision keys are optional (mock plays without them).
-
-```bash
-# optional real vision model:
-pnpm --filter @is-it-a-dog/ai-worker exec wrangler secret put OPENAI_API_KEY   # or ANTHROPIC_API_KEY
-pnpm --filter @is-it-a-dog/ai-worker run deploy      # → is-it-a-dog-ai.<sub>.workers.dev
-pnpm --filter @is-it-a-dog/game-server run deploy    # → is-it-a-dog.aidenjang.com (builds client)
-```
-
-Verify: `https://is-it-a-dog.aidenjang.com/health`; **two-browser playthrough** — join the same
-room, strokes sync live, the AI guesses in chat, scoreboard updates, run it back; installable.
-
 ## 6. Cross-cutting (dashboard / one-time)
 
 - **Login 403 (reported):** Cloudflare dashboard → Caching → **Purge Everything**, then retest in

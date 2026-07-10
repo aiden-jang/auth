@@ -49,8 +49,6 @@ are a paid add-on, so point a **free external monitor** (e.g. UptimeRobot, 5-min
 | auth | `https://accounts.aidenjang.com/health` |
 | owewell | `https://owewell.aidenjang.com/health` |
 | bloomnote | `https://bloomnote.aidenjang.com/health` |
-| is-it-a-dog (game) | `https://is-it-a-dog.aidenjang.com/health` |
-| is-it-a-dog (ai) | `https://is-it-a-dog-ai.<subdomain>.workers.dev/health` (internal) |
 
 A green `/health` proves the worker is reachable and its runtime is up; it does not exercise D1/KV
 /DO, which surface via Workers Logs instead.
