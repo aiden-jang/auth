@@ -4,7 +4,7 @@ import {
   DEFAULT_CSP,
   enforceSameOrigin,
   securityHeaders,
-} from './index.js';
+} from './harden.js';
 
 describe('securityHeaders', () => {
   it('sets the core headers with the default CSP', () => {

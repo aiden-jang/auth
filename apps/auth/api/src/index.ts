@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { DEFAULT_CSP, harden } from '@aidenjang/http';
+import { DEFAULT_CSP, harden } from './harden.js';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Context } from 'hono';
