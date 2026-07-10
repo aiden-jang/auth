@@ -20,6 +20,7 @@ interface TurnstileApi {
     },
   ) => string;
   remove: (id: string) => void;
+  reset: (id: string) => void;
 }
 
 declare global {
@@ -51,7 +52,14 @@ function loadScript(): Promise<void> {
  * Calls onToken with the solved token, and with '' when it expires or errors so
  * the form re-requires a solve.
  */
-export function Turnstile({ onToken }: { onToken: (token: string) => void }): ReactNode {
+export function Turnstile({
+  onToken,
+  resetSignal = 0,
+}: {
+  onToken: (token: string) => void;
+  /** Bump this (e.g. after a failed submit) to discard the spent token and fetch a fresh one. */
+  resetSignal?: number;
+}): ReactNode {
   const ref = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
   // Keep the latest callback without re-running the render effect on every parent render.
@@ -81,6 +89,15 @@ export function Turnstile({ onToken }: { onToken: (token: string) => void }): Re
       widgetId.current = null;
     };
   }, []);
+
+  // Tokens are single-use; after a failed submit the parent bumps resetSignal to fetch a fresh
+  // one. Reusing the spent token fails siteverify as `timeout-or-duplicate` (the "widget says
+  // success but login 400s" bug). reset() re-runs the challenge, which re-fires the callback.
+  useEffect(() => {
+    if (resetSignal > 0 && widgetId.current && window.turnstile) {
+      window.turnstile.reset(widgetId.current);
+    }
+  }, [resetSignal]);
 
   if (!SITE_KEY) return null;
   return <div ref={ref} className="mt-1" />;
