@@ -1,101 +1,54 @@
-# platform
+# auth
 
-A monorepo that converges several of my side projects onto one Cloudflare-native stack: shared
-identity, shared tooling, one deploy story, and a hard **$0 hosting** constraint with **no cold
-starts**. It exists both to run these apps cheaply and to be a single, coherent place to show how
-I think about system design.
+The shared identity service for my apps, on a Cloudflare-native stack with a hard **$0 hosting**
+constraint and **no cold starts**. A small Worker at `accounts.aidenjang.com` issues a cookie that
+every app trusts, and a published SDK (`@aidenjang/auth-client`) is the one place the session
+contract lives.
 
-Every app is a Cloudflare Worker that serves its own SPA and its own API from one origin, backed
-by Durable Objects / D1 / KV as each needs. One small auth service issues a cookie that all of
-them trust. Nothing here runs on a container or a always-on VM, so idle cost is zero and there is
-no cold-start penalty.
+## What's here
 
-## The apps
+- **`apps/auth`** — the auth service. `api` is a Hono Worker (D1 sessions, Turnstile,
+  per-IP rate limiting via a Durable Object) serving the `/auth/*` API + login/account UI; `web`
+  is the React front end. Live at [accounts.aidenjang.com](https://accounts.aidenjang.com).
+- **`packages/auth-client`** — `@aidenjang/auth-client`, **published to npm**: `loginUrl`/`logoutUrl`
+  builders + the `AuthUser` session shape. Apps depend on this as a versioned package.
+- **`packages/config`** — the strict shared tsconfig base (`noUncheckedIndexedAccess`,
+  `exactOptionalPropertyTypes`, `verbatimModuleSyntax`) + flat ESLint config. Internal dev tooling.
 
-| App | What it is | Live | Stack highlights |
-| --- | --- | --- | --- |
-| **[bloomnote](apps/bloomnote)** | Write a note, an LLM grows someone a garden | [bloomnote.aidenjang.com](https://bloomnote.aidenjang.com) | Hono · KV short-links · Gemini via function-calling · SSE |
-| **[auth](apps/auth)** | Shared identity for all of the apps | [accounts.aidenjang.com](https://accounts.aidenjang.com) | Hono · D1 · sessions · Turnstile · per-IP rate limiting |
+## The apps that use it
 
-> Each in its own repo now: [owewell](https://owewell.aidenjang.com) (bill splitting), [wherever](https://wherever.aidenjang.com) (restaurant swiping), [is-it-a-dog](https://is-it-a-dog.aidenjang.com) (draw-and-guess vs an AI). They consume the published `@aidenjang/auth-client`.
+Each is its own repo now and consumes `@aidenjang/auth-client`:
 
-Each app's README covers what it is, the decisions behind it (including *why this and not something
-simpler*), and how it would scale.
+- [owewell](https://owewell.aidenjang.com) — split bills, settle up
+- [wherever](https://wherever.aidenjang.com) — group restaurant swiping
+- [is-it-a-dog](https://is-it-a-dog.aidenjang.com) — multiplayer draw-and-guess vs an AI
+- [bloomnote](https://bloomnote.aidenjang.com) — write a note, an LLM grows someone a garden
 
-## Why it's built this way
+## How auth works
 
-- **$0, no cold starts.** Cloudflare Workers bill per request with a generous free tier and boot in
-  ~milliseconds at the edge. Durable Objects give per-entity single-threaded state (game rooms,
-  bill groups, vote sessions) without a database round-trip on every message. D1 (SQLite) and KV
-  cover relational and key-value needs. The only thing I pay for is the domain.
-- **One Worker per app, serving SPA + API from one origin.** `run_worker_first` + static assets +
-  SPA fallback means no CORS, no separate frontend host, one deploy per app. The Worker routes
-  `/api` (or `/owewell`, `/rooms`, …); everything else falls through to the built SPA.
-- **Shared identity, validated server-side.** The auth service sets a `platform_session` cookie on
-  `.aidenjang.com`. Apps never read it in the browser — they forward it to `/auth/me` from their
-  own Worker (`@aidenjang/auth-client`), so the session secret never touches app JavaScript.
-- **Source-first internal packages.** Shared code (`@aidenjang/*`) is imported as TypeScript source
-  through pnpm workspaces — no build step between packages, one strict tsconfig, refactors cross
-  package boundaries in one commit. `@aidenjang/auth-client` additionally builds to `dist` and
-  publishes to npm for the apps that now live in their own repos.
+The service sets a `platform_session` cookie on `.aidenjang.com` (httpOnly, `SameSite=Lax`), so one
+login is valid across every `*.aidenjang.com` app. Apps never read the cookie in the browser — they
+forward it to `/auth/me` from their own Worker via `@aidenjang/auth-client`, so the session secret
+never touches app JavaScript. Sign-in and sign-out are full-page redirects to the auth origin.
 
-```
-                          accounts.aidenjang.com  ── auth Worker (D1 sessions, Turnstile)
-                                   ▲  sets platform_session cookie on .aidenjang.com
-                                   │  apps validate server-side via /auth/me
-        ┌──────────────────────────┼───────────────────────────┐
-        │                          │                            │
-  owewell.aidenjang.com     bloomnote.aidenjang.com     is-it-a-dog.aidenjang.com   …
-   Worker: SPA + /owewell    Worker: SPA + /api          Worker: SPA + /rooms
-   D1 + Drizzle              KV short-links               Durable Object game rooms
-   DO realtime fan-out       Gemini (SSE)                 ai-worker (vision) ◀ HTTP
-```
+Each app hardens its own responses (CSP/HSTS headers + a same-origin CSRF guard) with an inlined
+`harden()` middleware rather than a shared package, since each app tunes its own CSP.
 
-## Shared packages
+## Publishing `@aidenjang/auth-client`
 
-- **`@aidenjang/config`** — the strict tsconfig base (`noUncheckedIndexedAccess`,
-  `exactOptionalPropertyTypes`, `verbatimModuleSyntax`) + the flat ESLint config every package
-  extends.
-- **`@aidenjang/auth-client`** — `loginUrl`/`logoutUrl` builders + the session `AuthUser` shape.
-  The one place the session contract lives; published to npm for the standalone app repos.
-
-Security hardening (CSP/HSTS headers + a same-origin CSRF `harden()` middleware) is inlined per
-app rather than shared, since each app tunes its own CSP.
-
-## Repo layout
-
-```
-apps/
-  auth/        { api (Worker), web (React) }          shared identity service
-  bloomnote/   { api (Worker), web (React) }
-packages/
-  config/  auth-client/
-docs/
-  API.md  SECURITY.md  OBSERVABILITY.md
-```
-
-## Local development
-
-Requires **Node 22** (`.nvmrc`) and **pnpm** (via `corepack enable`).
+It builds to `dist` (`tsc`) and publishes to npm; the app repos install it as a versioned dep. After
+changing the session contract, bump the version and:
 
 ```bash
-pnpm install
-pnpm typecheck        # all packages
-pnpm lint             # flat ESLint across the workspace
-pnpm test             # per-package test suites
-pnpm build            # build everything
+pnpm --filter @aidenjang/auth-client publish --access public
 ```
 
-Each app runs on `wrangler dev` (Miniflare emulates D1/DO/KV locally) plus `vite` for its SPA.
-See the app's own README for its exact dev commands and ports, and its `DEPLOY.md` for deploys.
+## Deploy
 
-## Operations
+Auth runs on Cloudflare's free tier (Worker + D1). See [docs/DEPLOY-CHECKLIST.md](docs/DEPLOY-CHECKLIST.md).
 
-- **Deploy:** `wrangler deploy` per app; custom domains are provisioned on first deploy. Each app
-  has a `DEPLOY.md` runbook.
-- **CI:** `.github/workflows/ci.yml` runs typecheck + lint + build + tests on every push;
-  Dependabot keeps dependencies patched.
-- **Observability:** Workers Logs enabled on every Worker; Web Analytics + uptime documented in
-  [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md).
-- **Security & legal:** posture in [docs/SECURITY.md](docs/SECURITY.md); shared privacy policy +
-  terms served from the account app.
+## Docs
+
+- [docs/API.md](docs/API.md) — the `/auth/*` API + the session model
+- [docs/SECURITY.md](docs/SECURITY.md)
+- [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md)

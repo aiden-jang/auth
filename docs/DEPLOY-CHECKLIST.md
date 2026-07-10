@@ -35,20 +35,6 @@ Verify: `curl -sI https://accounts.aidenjang.com/health` shows the security head
 clears the session (the bug this fixes); `/login` still works.
 
 
-## 3. bloomnote — FIRST deploy (3.7)
-
-KV namespace already created. Needs the Gemini secret. Changed since the port: title fix, legal
-footer, **PWA manifest/SW**, **security headers**, **Workers Logs**.
-
-```bash
-pnpm --filter @bloomnote/api exec wrangler secret put GEMINI_API_KEY
-pnpm --filter @bloomnote/api run deploy
-```
-
-Verify: `https://bloomnote.aidenjang.com/health`; compose a garden (real Gemini call streams over
-SSE); the short link opens the recipient view; signed-in "my gardens" shows sent/received;
-`/privacy`+`/terms` reachable from the footer; installable.
-
 ## 6. Cross-cutting (dashboard / one-time)
 
 - **Login 403 (reported):** Cloudflare dashboard → Caching → **Purge Everything**, then retest in

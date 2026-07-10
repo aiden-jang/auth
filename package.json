@@ -1,9 +1,9 @@
 {
-  "name": "platform",
+  "name": "auth",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Monorepo for aidenjang's apps (auth, bloomnote) and shared packages, on Cloudflare.",
+  "description": "Auth service (accounts.aidenjang.com) + the published @aidenjang/auth-client SDK and shared config, on Cloudflare.",
   "engines": {
     "node": ">=22"
   },

@@ -1,23 +1,18 @@
-# platform API
+# auth API
 
-The platform is a set of independent Cloudflare Workers, not one backend. Two exist today:
+The auth service (`apps/auth`) is one shared Cloudflare Worker that owns identity for all of my
+apps: the `/auth/*` API plus the login/account UI. Every app trusts it.
 
-- **Auth service** — one shared Worker (`apps/auth`) that owns identity for the whole
-  platform: the `/auth/*` API plus the login/account UI. Every app trusts it.
-- **App Workers** — each app (in this repo, `apps/bloomnote`; others like owewell, wherever, and
-  is-it-a-dog now live in their own repos) serves its SPA + API on its own origin under an
-  app-specific prefix and trusts the auth service for identity.
-
-Each app is its own Worker on its own origin (frontend + that app's API share the origin, so
-the browser stays same-origin and no CORS is needed). Adding an app adds a Worker; it does not
-touch the others. Auth is the one shared service so there is a single identity across apps.
+Each app is its own Worker on its own origin in its own repo (owewell, wherever, is-it-a-dog,
+bloomnote). An app validates a request by forwarding the session cookie to this service and
+consuming `@aidenjang/auth-client`; the apps never talk to each other. See "Adding another app"
+below for the integration pattern.
 
 ## Base URLs
 
 | Service | Production | Local |
 | --- | --- | --- |
 | Auth (`/auth/*`, `/health`, login UI) | `https://accounts.aidenjang.com` | `http://localhost:34100` |
-| bloomnote (SPA + `/api/*`) | `https://bloomnote.aidenjang.com` | see `apps/bloomnote/DEPLOY.md` |
 
 ## Auth model
 
