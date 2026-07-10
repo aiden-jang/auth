@@ -16,10 +16,9 @@ no cold-start penalty.
 | --- | --- | --- | --- |
 | **[owewell](apps/owewell)** | Split bills, settle up, keep friends | [owewell.aidenjang.com](https://owewell.aidenjang.com) | Hono · D1 + Drizzle · Durable Object realtime · receipt OCR |
 | **[bloomnote](apps/bloomnote)** | Write a note, an LLM grows someone a garden | [bloomnote.aidenjang.com](https://bloomnote.aidenjang.com) | Hono · KV short-links · Gemini via function-calling · SSE |
-| **[is-it-a-dog](apps/is-it-a-dog)** | Multiplayer draw-and-guess vs an AI player | [is-it-a-dog.aidenjang.com](https://is-it-a-dog.aidenjang.com) | Durable Object game rooms · raw WebSockets · vision model |
 | **[auth](apps/auth)** | Shared identity for all of the above | [accounts.aidenjang.com](https://accounts.aidenjang.com) | Hono · D1 · sessions · Turnstile · per-IP rate limiting |
 
-> [wherever](https://wherever.aidenjang.com) (group restaurant swiping) lives in its own repo now.
+> [wherever](https://wherever.aidenjang.com) (group restaurant swiping) and [is-it-a-dog](https://is-it-a-dog.aidenjang.com) (draw-and-guess vs an AI) each live in their own repo now.
 
 Each app's README covers what it is, the decisions behind it (including *why this and not something
 simpler*), and how it would scale.
@@ -70,7 +69,6 @@ apps/
   auth/        { api (Worker), web (React) }          shared identity service
   owewell/     { api (Worker), web (React) }          + @owewell/core
   bloomnote/   { api (Worker), web (React) }
-  is-it-a-dog/ { packages/{game-server, ai-worker, client}, shared }
 packages/
   config/  auth-client/  http/  shared/  owewell-core/
 docs/

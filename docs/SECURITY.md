@@ -44,8 +44,6 @@ override rather than loosening the shared default.
 
 ## Known gaps / follow-ups
 
-- Security headers are wired into the three session/data Workers (auth, owewell, bloomnote). The
-  is-it-a-dog game/ai Workers and wherever still need their own `harden()` wiring with per-app CSP
-  (WebSocket `connect-src`, wherever's geolocation + places source) — tracked for a later pass.
+- Security headers are wired into the three session/data Workers (auth, owewell, bloomnote).
 - No secret scanning beyond git hygiene; secrets live only in `wrangler secret` / `.dev.vars`
   (gitignored), never committed.
