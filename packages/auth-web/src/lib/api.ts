@@ -11,6 +11,11 @@ export function googleLoginUrl(returnTo?: string | null): string {
   return `${BASE}/auth/google${q}`;
 }
 
+/** Full-page link that links Google to the signed-in account (requires an active session). */
+export function googleConnectUrl(returnTo = '/account'): string {
+  return `${BASE}/auth/google?link=1&return_to=${encodeURIComponent(returnTo)}`;
+}
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -18,6 +23,8 @@ export interface AuthUser {
   emailVerified: boolean;
   /** False for Google-only accounts, which can add a password from the account page. */
   hasPassword: boolean;
+  /** Whether a Google account is linked. */
+  hasGoogle: boolean;
 }
 
 async function req<T>(path: string, method: string, body?: unknown): Promise<T> {
@@ -56,6 +63,7 @@ export const authApi = {
     req<{ ok: boolean }>('/auth/change-password', 'POST', { currentPassword, newPassword }),
   setPassword: (newPassword: string) =>
     req<{ ok: boolean }>('/auth/set-password', 'POST', { newPassword }),
+  disconnectGoogle: () => req<{ ok: boolean }>('/auth/disconnect-google', 'POST'),
   verifyEmail: (token: string) => req<{ ok: boolean }>('/auth/verify-email', 'POST', { token }),
   resendVerification: () => req<{ ok: boolean }>('/auth/resend-verification', 'POST'),
 };

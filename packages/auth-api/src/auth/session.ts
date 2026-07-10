@@ -12,6 +12,8 @@ export interface SessionUser {
   emailVerified: boolean;
   /** Whether the account has a password set. False for Google-only accounts, which can add one. */
   hasPassword: boolean;
+  /** Whether a Google account is linked. */
+  hasGoogle: boolean;
 }
 
 /** Create a session, return the raw token (store the hash) and its expiry. */
@@ -36,6 +38,7 @@ export async function validateSession(db: DB, token: string): Promise<SessionUse
       displayName: users.displayName,
       emailVerified: users.emailVerified,
       passwordHash: users.passwordHash,
+      googleId: users.googleId,
       expiresAt: sessions.expiresAt,
     })
     .from(sessions)
@@ -53,6 +56,7 @@ export async function validateSession(db: DB, token: string): Promise<SessionUse
     displayName: row.displayName,
     emailVerified: row.emailVerified,
     hasPassword: row.passwordHash != null,
+    hasGoogle: row.googleId != null,
   };
 }
 
