@@ -3,6 +3,7 @@ import {
   AnimatePresence,
   motion,
   useMotionValue,
+  useReducedMotion,
   useTransform,
 } from "framer-motion";
 import type { Restaurant, SwipeDirection } from "@wherever/shared";
@@ -49,8 +50,10 @@ function TopCard({
   exitDir: SwipeDirection;
   onCommit: (dir: SwipeDirection) => void;
 }) {
+  const reduce = useReducedMotion();
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-220, 220], [-16, 16]);
+  // No tilt for motion-sensitive users; the card still tracks the drag horizontally.
+  const rotate = useTransform(x, [-220, 220], reduce ? [0, 0] : [-16, 16]);
   const yes = useTransform(x, [30, 130], [0, 1]);
   const nope = useTransform(x, [-130, -30], [1, 0]);
 
@@ -65,11 +68,11 @@ function TopCard({
         if (info.offset.x > SWIPE_THRESHOLD) onCommit("right");
         else if (info.offset.x < -SWIPE_THRESHOLD) onCommit("left");
       }}
-      exit={{
-        x: exitDir === "right" ? 700 : -700,
-        opacity: 0,
-        transition: { duration: 0.28 },
-      }}
+      exit={
+        reduce
+          ? { opacity: 0, transition: { duration: 0.12 } }
+          : { x: exitDir === "right" ? 700 : -700, opacity: 0, transition: { duration: 0.28 } }
+      }
     >
       <CardFace restaurant={restaurant} />
       <motion.span
