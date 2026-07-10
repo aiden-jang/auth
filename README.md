@@ -1,39 +1,107 @@
 # auth
 
-The shared identity service for my apps, on a Cloudflare-native stack with a hard **$0 hosting**
-constraint and **no cold starts**. A small Worker at `accounts.aidenjang.com` issues a cookie that
-every app trusts, and a published SDK (`@aidenjang/auth-client`) is the one place the session
-contract lives.
+The shared identity service behind my apps: one login that every `*.aidenjang.com` app trusts,
+running on a Cloudflare-native stack under a hard **$0 hosting** budget with **no cold starts**. A
+small Worker at [accounts.aidenjang.com](https://accounts.aidenjang.com) issues the session cookie,
+and a published SDK (`@aidenjang/auth-client`) is the single place the session contract lives.
 
-## What's here
+## The constraints that shaped it
 
-- **`packages/auth-api`** + **`packages/auth-web`** — the auth service. `auth-api` is a Hono Worker
-  (D1 sessions, Turnstile, per-IP rate limiting via a Durable Object) serving the `/auth/*` API and
-  the built `auth-web` login/account UI from one origin. Live at
-  [accounts.aidenjang.com](https://accounts.aidenjang.com).
-- **`packages/auth-client`** — `@aidenjang/auth-client`, **published to npm**: `loginUrl`/`logoutUrl`
-  builders + the `AuthUser` session shape. Apps depend on this as a versioned package.
-- **`packages/config`** — the strict shared tsconfig base (`noUncheckedIndexedAccess`,
-  `exactOptionalPropertyTypes`, `verbatimModuleSyntax`) + flat ESLint config. Internal dev tooling.
+- **$0 hosting.** Everything runs on Cloudflare's free tier: a Worker, D1 (SQLite), and a Durable
+  Object. No always-on server, no managed auth vendor.
+- **No cold starts.** Workers start per-request at the edge, so sign-in is fast from anywhere with
+  no warm-up.
+- **One login, many apps.** The session has to be valid across every app on a subdomain without each
+  app ever handling the session secret.
+
+Those three constraints drove most of the decisions below.
+
+## What it does
+
+- **Email + password** with PBKDF2 hashing, email verification, and password reset.
+- **Google sign-in** (OIDC authorization-code flow), including linking Google to an existing
+  password account and disconnecting it later.
+- **Passwordless magic links** as a third way in (single-use, 15-minute tokens).
+- **Account hub**: active-session list with per-device revoke and "sign out everywhere", plus
+  self-serve account deletion.
+- **Abuse controls**: per-IP, per-action rate limiting and a Turnstile challenge on the sensitive
+  flows.
+
+## How it works
+
+The Worker sets a `platform_session` cookie on `.aidenjang.com` (httpOnly, `SameSite=Lax`), so one
+sign-in covers every subdomain. The key move: **apps never read the cookie in the browser.** Each
+app forwards it to `/auth/me` from its own Worker via `@aidenjang/auth-client`, so the session secret
+never touches application JavaScript. Sign-in and sign-out are full-page redirects to the auth
+origin. The token stored in D1 is a SHA-256 hash of the cookie value, so a database leak never hands
+out live sessions.
+
+One Worker serves both the JSON API (`/auth/*`) and the built login/account SPA (Workers static
+assets), so the whole thing is a single origin with a single deploy.
+
+## The interesting bits (design decisions and trade-offs)
+
+**`http` behind Cloudflare broke `redirect_uri` matching.** Behind Cloudflare's TLS termination the
+Worker can see a request as `http` even though the public URL is `https`. Building the OAuth
+`redirect_uri` from the request URL therefore produced `http://...`, which failed Google's
+exact-string match. The fix forces `https` for any non-localhost host and runs the same helper for
+both the auth request and the token exchange, so the two are byte-identical. The same quirk was
+silently dropping the `Secure` flag on cookies in production, fixed the same way.
+
+**CSRF protection is intentionally left to `SameSite=Lax`, not an Origin check.** The session cookie
+is `SameSite=Lax`, so it is not attached to cross-site POSTs at all: a forged cross-origin request to
+`/auth/delete-account` arrives with no session and just 401s. Because the API is deliberately
+cross-origin-callable (a credentialed CORS allowlist for app frontends), turning on a same-origin
+Origin guard would add nothing and could break that intended capability. The state-changing GETs
+(`/auth/google/callback`, `/auth/magic/callback`) are safe because they require unforgeable tokens.
+This was a reasoned "leave it off", not an oversight.
+
+**Account linking is written to be un-takeover-able.** Linking Google to an existing account only
+happens by *verified* email, refuses if that Google identity is already attached to a different
+account, and only lets Google vouch for an email when it matches the account's. Disconnecting Google
+refuses if it would leave the account with no way to sign in, and a Google-only account can set a
+password first, so no one can lock themselves out.
+
+**No account enumeration, including timing.** `forgot-password` and `magic-link` always return the
+same 200 whether or not the email exists, and a login for a missing email still runs a dummy PBKDF2
+verify so it costs the same as a real one. (The one accepted leak: telling a Google-account holder to
+"use Google" reveals that account exists. It is rate-limited, and the usability win was judged worth
+it.)
+
+**Everything is enforced server-side.** The UI hints (password strength, "set a password first")
+are conveniences; every invariant, from lockout prevention to session ownership on revoke, is
+enforced in the Worker, and there are tests that prove a user cannot revoke another user's session.
+
+## Testing
+
+Tests run inside the **real Workers runtime** via `@cloudflare/vitest-pool-workers`, against an
+isolated in-memory D1 with the app's migrations applied per file, plus the live rate-limiter Durable
+Object. Coverage includes registration, login and sessions, verification and reset tokens, password
+change, Google-only accounts, magic links, session listing and revocation, and account deletion. The
+suite is kept **hermetic** by neutralizing any secrets a local `.dev.vars` would otherwise leak into
+the test Worker (so Turnstile is treated as unconfigured and no real email is sent). 43 tests.
+
+## Repo layout
+
+- **`packages/auth-api`** and **`packages/auth-web`**: the service. `auth-api` is a Hono Worker (D1
+  sessions, Turnstile, per-IP rate limiting via a Durable Object) that also serves the built
+  `auth-web` SPA from one origin.
+- **`packages/auth-client`**: `@aidenjang/auth-client`, **published to npm**. `loginUrl` / `logoutUrl`
+  builders plus the `AuthUser` session shape. Apps depend on this as a versioned package, so the
+  session contract has exactly one source of truth.
+- **`packages/config`**: the strict shared tsconfig base (`noUncheckedIndexedAccess`,
+  `exactOptionalPropertyTypes`, `verbatimModuleSyntax`) and flat ESLint config.
 
 ## The apps that use it
 
-Each is its own repo now and consumes `@aidenjang/auth-client`:
+Each is its own repo and consumes `@aidenjang/auth-client`:
 
-- [owewell](https://owewell.aidenjang.com) — split bills, settle up
-- [wherever](https://wherever.aidenjang.com) — group restaurant swiping
-- [is-it-a-dog](https://is-it-a-dog.aidenjang.com) — multiplayer draw-and-guess vs an AI
-- [bloomnote](https://bloomnote.aidenjang.com) — write a note, an LLM grows someone a garden
+- [owewell](https://owewell.aidenjang.com): split bills, settle up
+- [wherever](https://wherever.aidenjang.com): group restaurant swiping
+- [is-it-a-dog](https://is-it-a-dog.aidenjang.com): multiplayer draw-and-guess versus an AI
+- [bloomnote](https://bloomnote.aidenjang.com): write a note, an LLM grows someone a garden
 
-## How auth works
-
-The service sets a `platform_session` cookie on `.aidenjang.com` (httpOnly, `SameSite=Lax`), so one
-login is valid across every `*.aidenjang.com` app. Apps never read the cookie in the browser — they
-forward it to `/auth/me` from their own Worker via `@aidenjang/auth-client`, so the session secret
-never touches app JavaScript. Sign-in and sign-out are full-page redirects to the auth origin.
-
-Each app hardens its own responses (CSP/HSTS headers + a same-origin CSRF guard) with an inlined
-`harden()` middleware rather than a shared package, since each app tunes its own CSP.
+Signing in is optional in all of them. It saves and syncs your data; nothing gates on an account.
 
 ## Publishing `@aidenjang/auth-client`
 
@@ -46,10 +114,11 @@ pnpm --filter @aidenjang/auth-client publish --access public
 
 ## Deploy
 
-Auth runs on Cloudflare's free tier (Worker + D1). See [docs/DEPLOY-CHECKLIST.md](docs/DEPLOY-CHECKLIST.md).
+Runs on Cloudflare's free tier (Worker + D1 + Durable Object). See
+[docs/DEPLOY-CHECKLIST.md](docs/DEPLOY-CHECKLIST.md).
 
 ## Docs
 
-- [docs/API.md](docs/API.md) — the `/auth/*` API + the session model
+- [docs/API.md](docs/API.md): the `/auth/*` API and the session model
 - [docs/SECURITY.md](docs/SECURITY.md)
 - [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md)
