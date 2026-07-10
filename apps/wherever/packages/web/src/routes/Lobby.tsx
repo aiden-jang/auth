@@ -7,6 +7,7 @@ import { useSessionSocket } from "../useSessionSocket.js";
 import { SwipeDeck, DeckSkeleton } from "../components/SwipeDeck.js";
 import { MatchScreen } from "../components/MatchScreen.js";
 import { ReactionBar, FloatingReactions } from "../components/Reactions.js";
+import { LiveRegion } from "../components/LiveRegion.js";
 import { buzz } from "../components/haptics.js";
 
 function initials(name: string): string {
@@ -145,9 +146,15 @@ function Toasts({ toasts }: { toasts: Toast[] }) {
  * Toasts when someone joins or leaves, by diffing the participant list across session_state
  * pushes. The first snapshot seeds silently so existing members don't all toast on load.
  */
-function useJoinLeaveToasts(participants: Participant[] | undefined): Toast[] {
+function useJoinLeaveToasts(
+  participants: Participant[] | undefined,
+  onEvent?: (text: string) => void,
+): Toast[] {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const prev = useRef<Map<string, string> | null>(null);
+  // Keep the latest callback without re-running the diff effect when it changes identity.
+  const onEventRef = useRef(onEvent);
+  onEventRef.current = onEvent;
 
   useEffect(() => {
     if (!participants) return;
@@ -161,6 +168,7 @@ function useJoinLeaveToasts(participants: Participant[] | undefined): Toast[] {
     for (const [id, name] of before) if (!curr.has(id)) events.push(`${name} left`);
     if (events.length === 0) return;
 
+    onEventRef.current?.(events.join(". "));
     const added = events.map((text) => ({ id: crypto.randomUUID(), text }));
     setToasts((t) => [...t, ...added]);
     const ids = new Set<string>(added.map((a) => a.id));
@@ -214,7 +222,17 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
   const { session, deck, alreadyVoted, progress, match, visited, error, status, everConnected, reactions, send } =
     useSessionSocket(code, displayName);
   const [copied, setCopied] = useState(false);
-  const toasts = useJoinLeaveToasts(session?.participants);
+  const [announcement, setAnnouncement] = useState("");
+  const toasts = useJoinLeaveToasts(session?.participants, setAnnouncement);
+
+  // Announce the verdict to screen readers when it lands.
+  useEffect(() => {
+    if (match?.kind === "match") {
+      setAnnouncement(`Decided. Everyone's eating at ${match.restaurant.name}.`);
+    } else if (match?.kind === "none") {
+      setAnnouncement("No match. Nobody agreed on anything.");
+    }
+  }, [match]);
   // Only surface a banner once we've connected at least once: "connecting" then is a drop,
   // not the initial handshake.
   const showBanner = everConnected && status !== "open";
@@ -288,6 +306,7 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
   if (match) {
     return (
       <main className="flex-1 flex items-center justify-center px-6 py-10">
+        <LiveRegion message={announcement} />
         <MatchScreen
           match={match}
           visited={visited}
@@ -302,6 +321,7 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
     return (
       <main className="relative flex-1 flex flex-col items-center justify-center px-6 py-10">
         {showBanner && <DisconnectBanner reconnecting={status === "connecting"} />}
+        <LiveRegion message={announcement} />
         <Toasts toasts={toasts} />
         <FloatingReactions reactions={reactions} />
         {deck && deck.length > 0 ? (
@@ -348,6 +368,7 @@ function LobbyRoom({ code, displayName }: { code: string; displayName: string })
   return (
     <main className="flex-1 flex flex-col items-center px-6 pb-16 w-full max-w-md mx-auto">
       {showBanner && <DisconnectBanner reconnecting={status === "connecting"} />}
+      <LiveRegion message={announcement} />
       <Toasts toasts={toasts} />
       <div className="w-full text-center mt-4">
         <p className="text-sm text-muted">Share this code. Or the link. Whatever is less effort.</p>
