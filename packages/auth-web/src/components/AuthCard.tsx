@@ -110,7 +110,7 @@ export function AuthCard({
       <BrandPanel showApps={showApps} />
 
       <section className="flex flex-col justify-center px-5 py-12 sm:px-10">
-        <div className="mx-auto w-full max-w-sm">
+        <div className="animate-enter mx-auto w-full max-w-sm">
           <div className="mb-8 md:hidden">
             <Wordmark />
           </div>
