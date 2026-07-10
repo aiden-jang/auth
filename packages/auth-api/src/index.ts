@@ -10,7 +10,7 @@ import { createDb } from './db/client.js';
 import { users } from './db/schema.js';
 import { hashPassword, verifyPassword } from './auth/password.js';
 import { createSession, revokeAllSessions, revokeSession, validateSession } from './auth/session.js';
-import { clearSessionCookie, getCookie, SESSION_COOKIE, setSessionCookie } from './auth/cookie.js';
+import { clearSessionCookie, getCookie, isSecureRequest, SESSION_COOKIE, setSessionCookie } from './auth/cookie.js';
 import { googleAuthUrl, googleCallbackUrl, exchangeGoogleCode, upsertGoogleUser, safeAppRedirect } from './auth/google.js';
 import { consumeToken, issueToken } from './auth/verification.js';
 import { sendEmail } from './email.js';
@@ -168,7 +168,7 @@ app.get('/auth/google', (c) => {
   // Short-lived CSRF nonce + return target; SameSite=Lax so it survives the top-level redirect back.
   setCookie(c, GOOGLE_STATE_COOKIE, JSON.stringify({ s: state, r: c.req.query('return_to') ?? '' }), {
     httpOnly: true,
-    secure: new URL(c.req.url).protocol === 'https:',
+    secure: isSecureRequest(c),
     sameSite: 'Lax',
     path: '/auth/google',
     maxAge: 600,

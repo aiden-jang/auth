@@ -6,15 +6,20 @@ export const SESSION_COOKIE = 'platform_session';
 
 type Ctx = Context<{ Bindings: Env }>;
 
-// Secure only over https, so the cookie still flows in local `wrangler dev` (http).
-function isSecure(c: Ctx): boolean {
-  return new URL(c.req.url).protocol === 'https:';
+// Whether to set the `Secure` cookie flag. Behind Cloudflare the Worker often sees the request as
+// `http` even though the public URL is `https`, so keying off the scheme alone would drop `Secure`
+// in prod. Instead treat every real host as secure and only fall back to the scheme for localhost,
+// so cookies still flow in local `wrangler dev` (http).
+export function isSecureRequest(c: Ctx): boolean {
+  const { hostname, protocol } = new URL(c.req.url);
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return protocol === 'https:';
+  return true;
 }
 
 export function setSessionCookie(c: Ctx, token: string, expiresAt: Date): void {
   setCookie(c, SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: isSecure(c),
+    secure: isSecureRequest(c),
     sameSite: 'Lax',
     path: '/',
     expires: expiresAt,
