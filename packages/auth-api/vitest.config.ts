@@ -17,9 +17,13 @@ export default defineWorkersConfig(async () => {
             bindings: {
               // Handed to the setup file via env; not a real app binding.
               TEST_MIGRATIONS: migrations,
-              // Force the no-op email path so tests never make real Resend
-              // calls, even if a local .dev.vars has a live key.
+              // Neutralize secrets miniflare would otherwise pull from a local .dev.vars, so tests
+              // are hermetic regardless of the dev machine: no real Resend calls, Turnstile treated
+              // as unconfigured (challenge skipped), and Google OAuth disabled.
               RESEND_API_KEY: '',
+              TURNSTILE_SECRET: '',
+              GOOGLE_CLIENT_ID: '',
+              GOOGLE_CLIENT_SECRET: '',
             },
           },
         },
