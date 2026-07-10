@@ -3,6 +3,7 @@ import { authApi, googleConnectUrl, googleEnabled, type AuthUser, type SessionIn
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
+import { Skeleton } from '../components/Skeleton';
 import { APPS, appHref } from '../lib/apps';
 
 function timeAgo(iso: string): string {
@@ -206,8 +207,14 @@ export function AccountPage(): ReactNode {
 
   if (loading) {
     return (
-      <AuthCard title="Your account">
-        <p className="text-sm text-muted">Loading...</p>
+      <AuthCard title="Your account" subtitle="One login for all of aidenjang's apps.">
+        <div className="space-y-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="mt-6 h-4 w-24" />
+          <Skeleton className="h-4 w-40" />
+        </div>
       </AuthCard>
     );
   }
@@ -501,7 +508,14 @@ export function AccountPage(): ReactNode {
             </div>
             <ul className="mt-3 space-y-2">
               {sessions === null ? (
-                <li className="text-sm text-muted">Loading...</li>
+                <>
+                  <li>
+                    <Skeleton className="h-14 w-full" />
+                  </li>
+                  <li>
+                    <Skeleton className="h-14 w-full" />
+                  </li>
+                </>
               ) : sessions.length === 0 ? (
                 <li className="text-sm text-muted">No active sessions.</li>
               ) : (
