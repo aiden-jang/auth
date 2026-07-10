@@ -16,15 +16,32 @@ export interface SessionUser {
   hasGoogle: boolean;
 }
 
+export interface SessionMeta {
+  device?: string | null;
+  location?: string | null;
+}
+
+/** How often validateSession refreshes last_seen_at, so it isn't a DB write on every request. */
+const LAST_SEEN_THROTTLE_MS = 5 * 60 * 1000;
+
 /** Create a session, return the raw token (store the hash) and its expiry. */
 export async function createSession(
   db: DB,
   userId: string,
+  meta: SessionMeta = {},
 ): Promise<{ token: string; expiresAt: Date }> {
   const token = generateToken();
   const id = await hashToken(token);
-  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
-  await db.insert(sessions).values({ id, userId, expiresAt });
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + SESSION_TTL_MS);
+  await db.insert(sessions).values({
+    id,
+    userId,
+    expiresAt,
+    device: meta.device ?? null,
+    location: meta.location ?? null,
+    lastSeenAt: now,
+  });
   return { token, expiresAt };
 }
 
@@ -40,6 +57,7 @@ export async function validateSession(db: DB, token: string): Promise<SessionUse
       passwordHash: users.passwordHash,
       googleId: users.googleId,
       expiresAt: sessions.expiresAt,
+      lastSeenAt: sessions.lastSeenAt,
     })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
@@ -49,6 +67,11 @@ export async function validateSession(db: DB, token: string): Promise<SessionUse
   if (row.expiresAt.getTime() < Date.now()) {
     await db.delete(sessions).where(eq(sessions.id, id));
     return null;
+  }
+  // Keep last_seen_at fresh for the active-sessions list, but throttled so it isn't a write per
+  // request (validateSession runs on every app's auth check).
+  if (!row.lastSeenAt || Date.now() - row.lastSeenAt.getTime() > LAST_SEEN_THROTTLE_MS) {
+    await db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, id));
   }
   return {
     id: row.userId,

@@ -46,4 +46,9 @@ export const sessions = sqliteTable('sessions', {
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
     .default(sql`(unixepoch())`),
+  // Session metadata for the "active devices" list. Parsed device label (not the raw UA) and a
+  // coarse city/country from Cloudflare's edge (not the raw IP); nullable for pre-existing rows.
+  device: text('device'),
+  location: text('location'),
+  lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }),
 });

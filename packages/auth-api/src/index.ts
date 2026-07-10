@@ -2,14 +2,22 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { setCookie, deleteCookie } from 'hono/cookie';
 import { DEFAULT_CSP, harden } from './harden.js';
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Context } from 'hono';
 import type { Env } from './env.js';
 import { createDb } from './db/client.js';
-import { users } from './db/schema.js';
+import { sessions, users } from './db/schema.js';
 import { hashPassword, verifyPassword } from './auth/password.js';
-import { createSession, revokeAllSessions, revokeSession, validateSession } from './auth/session.js';
+import {
+  createSession,
+  revokeAllSessions,
+  revokeSession,
+  validateSession,
+  type SessionMeta,
+} from './auth/session.js';
+import { hashToken } from './auth/token.js';
+import { deviceLabel } from './device.js';
 import { clearSessionCookie, getCookie, isSecureRequest, SESSION_COOKIE, setSessionCookie } from './auth/cookie.js';
 import { googleAuthUrl, googleCallbackUrl, exchangeGoogleCode, upsertGoogleUser, safeAppRedirect } from './auth/google.js';
 import { consumeToken, issueToken } from './auth/verification.js';
@@ -69,6 +77,14 @@ const MIN = 60_000;
 const link = (env: Env, path: string, token: string): string =>
   `${env.APP_URL ?? ''}${path}?token=${token}`;
 
+// Capture who/where a session was created from, for the active-sessions list. Device is a parsed
+// label (not the raw UA); location is a coarse city/country from Cloudflare's edge (not the raw IP).
+const sessionMeta = (c: Context<{ Bindings: Env }>): SessionMeta => {
+  const cf = c.req.raw.cf as { city?: string; country?: string } | undefined;
+  const location = [cf?.city, cf?.country].filter(Boolean).join(', ') || null;
+  return { device: deviceLabel(c.req.header('user-agent')), location };
+};
+
 const publicUser = (u: {
   id: string;
   email: string;
@@ -114,7 +130,7 @@ app.post('/auth/register', async (c) => {
 
   const id = crypto.randomUUID();
   await db.insert(users).values({ id, email, passwordHash: await hashPassword(parsed.data.password), displayName });
-  const { token, expiresAt } = await createSession(db, id);
+  const { token, expiresAt } = await createSession(db, id, sessionMeta(c));
   setSessionCookie(c, token, expiresAt);
 
   const verifyToken = await issueToken(db, id, 'verify');
@@ -161,7 +177,7 @@ app.post('/auth/login', async (c) => {
   if (!(await verifyPassword(user.passwordHash, parsed.data.password))) {
     return c.json({ error: 'INVALID_CREDENTIALS', message: 'Wrong email or password.' }, 401);
   }
-  const { token, expiresAt } = await createSession(db, user.id);
+  const { token, expiresAt } = await createSession(db, user.id, sessionMeta(c));
   setSessionCookie(c, token, expiresAt);
   return c.json({
     user: publicUser({ ...user, hasPassword: user.passwordHash != null, hasGoogle: user.googleId != null }),
@@ -267,7 +283,7 @@ app.get('/auth/google/callback', async (c) => {
     }
 
     const user = await upsertGoogleUser(db, identity);
-    const { token, expiresAt } = await createSession(db, user.id);
+    const { token, expiresAt } = await createSession(db, user.id, sessionMeta(c));
     setSessionCookie(c, token, expiresAt);
     return c.redirect(safeAppRedirect(saved.r ?? '', uiBase));
   } catch (err) {
@@ -316,6 +332,51 @@ app.post('/auth/forgot-password', async (c) => {
     });
   }
   return c.json({ ok: true });
+});
+
+const magicBody = z.object({
+  email: z.string().email(),
+  returnTo: z.string().optional(),
+  turnstileToken: z.string().optional(),
+});
+
+// Email a one-time sign-in link. Always 200 (no account enumeration); a link is sent only if the
+// email has an account.
+app.post('/auth/magic-link', async (c) => {
+  if (await overLimit(c, 'magic', 5, 60 * MIN))
+    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  const parsed = magicBody.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError' }, 400);
+  if (!(await turnstileOk(c, parsed.data.turnstileToken)))
+    return c.json({ error: 'TURNSTILE_FAILED', message: 'Please complete the challenge.' }, 400);
+
+  const db = createDb(c.env);
+  const email = parsed.data.email.trim().toLowerCase();
+  const user = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).get();
+  if (user) {
+    const token = await issueToken(db, user.id, 'magic');
+    const rt = parsed.data.returnTo ? `&return_to=${encodeURIComponent(parsed.data.returnTo)}` : '';
+    const href = `${link(c.env, '/auth/magic/callback', token)}${rt}`;
+    await sendEmail(c.env, {
+      to: email,
+      subject: 'Your aidenjang sign-in link',
+      html: `<p>Sign in to aidenjang: <a href="${href}">click here to sign in</a>. This link expires in 15 minutes and works once.</p>`,
+    });
+  }
+  return c.json({ ok: true });
+});
+
+// Consume a magic link: sign the user in and bounce to the app. GET so it works straight from email.
+app.get('/auth/magic/callback', async (c) => {
+  const uiBase = c.env.APP_URL ?? new URL(c.req.url).origin;
+  const token = c.req.query('token');
+  if (!token) return c.redirect(new URL('/login?error=magic_failed', uiBase).toString());
+  const db = createDb(c.env);
+  const userId = await consumeToken(db, token, 'magic');
+  if (!userId) return c.redirect(new URL('/login?error=magic_failed', uiBase).toString());
+  const { token: sessionToken, expiresAt } = await createSession(db, userId, sessionMeta(c));
+  setSessionCookie(c, sessionToken, expiresAt);
+  return c.redirect(safeAppRedirect(c.req.query('return_to') ?? '', uiBase));
 });
 
 app.post('/auth/reset-password', async (c) => {
@@ -410,7 +471,7 @@ app.post('/auth/change-password', async (c) => {
     .set({ passwordHash: await hashPassword(parsed.data.newPassword), updatedAt: new Date() })
     .where(eq(users.id, row.id));
   await revokeAllSessions(db, row.id); // sign out everywhere...
-  const { token, expiresAt } = await createSession(db, row.id); // ...then keep this device
+  const { token, expiresAt } = await createSession(db, row.id, sessionMeta(c)); // ...then keep this device
   setSessionCookie(c, token, expiresAt);
   return c.json({ ok: true });
 });
@@ -464,6 +525,97 @@ app.post('/auth/disconnect-google', async (c) => {
     );
 
   await db.update(users).set({ googleId: null, updatedAt: new Date() }).where(eq(users.id, row.id));
+  return c.json({ ok: true });
+});
+
+// The signed-in user's active sessions ("signed in on these devices"), newest activity first.
+app.get('/auth/sessions', async (c) => {
+  const cookie = getCookie(c, SESSION_COOKIE);
+  const db = createDb(c.env);
+  const me = cookie ? await validateSession(db, cookie) : null;
+  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const currentId = cookie ? await hashToken(cookie) : '';
+
+  const now = Date.now();
+  const rows = await db
+    .select({
+      id: sessions.id,
+      device: sessions.device,
+      location: sessions.location,
+      lastSeenAt: sessions.lastSeenAt,
+      createdAt: sessions.createdAt,
+      expiresAt: sessions.expiresAt,
+    })
+    .from(sessions)
+    .where(eq(sessions.userId, me.id))
+    .all();
+
+  const list = rows
+    .filter((r) => r.expiresAt.getTime() > now)
+    .map((r) => ({
+      id: r.id,
+      current: r.id === currentId,
+      device: r.device,
+      location: r.location,
+      lastSeenAt: (r.lastSeenAt ?? r.createdAt).toISOString(),
+      createdAt: r.createdAt.toISOString(),
+    }))
+    .sort((a, b) => {
+      if (a.current !== b.current) return a.current ? -1 : 1; // this device first
+      return b.lastSeenAt.localeCompare(a.lastSeenAt); // then most-recently-active
+    });
+  return c.json({ sessions: list });
+});
+
+// Revoke one session (scoped to the caller's own sessions) — signs that device out.
+app.post('/auth/sessions/revoke', async (c) => {
+  const cookie = getCookie(c, SESSION_COOKIE);
+  const db = createDb(c.env);
+  const me = cookie ? await validateSession(db, cookie) : null;
+  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const parsed = z.object({ id: z.string().min(1) }).safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  await db.delete(sessions).where(and(eq(sessions.id, parsed.data.id), eq(sessions.userId, me.id)));
+  return c.json({ ok: true });
+});
+
+// Revoke every session except the current one ("sign out everywhere else").
+app.post('/auth/sessions/revoke-others', async (c) => {
+  const cookie = getCookie(c, SESSION_COOKIE);
+  const db = createDb(c.env);
+  const me = cookie ? await validateSession(db, cookie) : null;
+  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const currentId = cookie ? await hashToken(cookie) : '';
+  await db.delete(sessions).where(and(eq(sessions.userId, me.id), ne(sessions.id, currentId)));
+  return c.json({ ok: true });
+});
+
+// Permanently delete the account and everything attached (sessions + tokens cascade). Re-auth
+// required: the password if the account has one, else typing the exact email (Google-only).
+app.post('/auth/delete-account', async (c) => {
+  if (await overLimit(c, 'delete-account', 5, 10 * MIN))
+    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  const cookie = getCookie(c, SESSION_COOKIE);
+  const db = createDb(c.env);
+  const me = cookie ? await validateSession(db, cookie) : null;
+  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+
+  const parsed = z
+    .object({ password: z.string().optional(), confirm: z.string().optional() })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+
+  const row = await db.select().from(users).where(eq(users.id, me.id)).get();
+  if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (row.passwordHash) {
+    if (!parsed.data.password || !(await verifyPassword(row.passwordHash, parsed.data.password)))
+      return c.json({ error: 'INVALID_CREDENTIALS', message: 'Wrong password.' }, 400);
+  } else if ((parsed.data.confirm ?? '').trim().toLowerCase() !== row.email.toLowerCase()) {
+    return c.json({ error: 'CONFIRM_MISMATCH', message: 'Type your email address to confirm.' }, 400);
+  }
+
+  await db.delete(users).where(eq(users.id, row.id)); // sessions + tokens cascade
+  clearSessionCookie(c);
   return c.json({ ok: true });
 });
 
