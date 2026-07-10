@@ -21,4 +21,7 @@ export interface Env {
   EMAIL_FROM?: string;
   // Turnstile (CAPTCHA) secret. Unset = verification skipped (dev / not-yet-set).
   TURNSTILE_SECRET?: string;
+  // Google OAuth. Both unset = "Continue with Google" is disabled (the route errors out).
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
 }

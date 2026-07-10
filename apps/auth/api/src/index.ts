@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { setCookie, deleteCookie } from 'hono/cookie';
 import { DEFAULT_CSP, harden } from './harden.js';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -10,6 +11,7 @@ import { users } from './db/schema.js';
 import { hashPassword, verifyPassword } from './auth/password.js';
 import { createSession, revokeAllSessions, revokeSession, validateSession } from './auth/session.js';
 import { clearSessionCookie, getCookie, SESSION_COOKIE, setSessionCookie } from './auth/cookie.js';
+import { googleAuthUrl, exchangeGoogleCode, upsertGoogleUser, safeAppRedirect } from './auth/google.js';
 import { consumeToken, issueToken } from './auth/verification.js';
 import { sendEmail } from './email.js';
 import { verifyTurnstile } from './turnstile.js';
@@ -137,12 +139,77 @@ app.post('/auth/login', async (c) => {
     await verifyPassword(await getDummyHash(), parsed.data.password);
     return c.json({ error: 'INVALID_CREDENTIALS', message: 'Wrong email or password.' }, 401);
   }
+  if (!user.passwordHash) {
+    // Passwordless (Google) account: no password to check.
+    return c.json(
+      { error: 'USE_GOOGLE', message: 'This account uses Google sign-in. Use "Continue with Google".' },
+      400,
+    );
+  }
   if (!(await verifyPassword(user.passwordHash, parsed.data.password))) {
     return c.json({ error: 'INVALID_CREDENTIALS', message: 'Wrong email or password.' }, 401);
   }
   const { token, expiresAt } = await createSession(db, user.id);
   setSessionCookie(c, token, expiresAt);
   return c.json({ user: publicUser(user) });
+});
+
+// --- Google OAuth (authorization-code flow) ---
+
+const GOOGLE_STATE_COOKIE = 'g_oauth';
+
+app.get('/auth/google', (c) => {
+  const clientId = c.env.GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    return c.json({ error: 'GOOGLE_DISABLED', message: 'Google sign-in is not configured.' }, 404);
+  }
+  const state = crypto.randomUUID();
+  const redirectUri = new URL('/auth/google/callback', c.req.url).toString();
+  // Short-lived CSRF nonce + return target; SameSite=Lax so it survives the top-level redirect back.
+  setCookie(c, GOOGLE_STATE_COOKIE, JSON.stringify({ s: state, r: c.req.query('return_to') ?? '' }), {
+    httpOnly: true,
+    secure: new URL(c.req.url).protocol === 'https:',
+    sameSite: 'Lax',
+    path: '/auth/google',
+    maxAge: 600,
+    ...(c.env.COOKIE_DOMAIN ? { domain: c.env.COOKIE_DOMAIN } : {}),
+  });
+  return c.redirect(googleAuthUrl(clientId, redirectUri, state));
+});
+
+app.get('/auth/google/callback', async (c) => {
+  const raw = getCookie(c, GOOGLE_STATE_COOKIE);
+  deleteCookie(c, GOOGLE_STATE_COOKIE, {
+    path: '/auth/google',
+    ...(c.env.COOKIE_DOMAIN ? { domain: c.env.COOKIE_DOMAIN } : {}),
+  });
+  const fail = (): Response => c.redirect(new URL('/login?error=google_failed', c.req.url).toString());
+
+  const clientId = c.env.GOOGLE_CLIENT_ID;
+  const clientSecret = c.env.GOOGLE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return fail();
+
+  const code = c.req.query('code');
+  const state = c.req.query('state');
+  if (c.req.query('error') || !code || !state) return fail();
+
+  let saved: { s?: string; r?: string } | null = null;
+  try {
+    saved = raw ? (JSON.parse(raw) as { s?: string; r?: string }) : null;
+  } catch {
+    saved = null;
+  }
+  if (!saved || saved.s !== state) return fail();
+
+  const redirectUri = new URL('/auth/google/callback', c.req.url).toString();
+  const identity = await exchangeGoogleCode(clientId, clientSecret, code, redirectUri);
+  if (!identity) return fail();
+
+  const db = createDb(c.env);
+  const user = await upsertGoogleUser(db, identity);
+  const { token, expiresAt } = await createSession(db, user.id);
+  setSessionCookie(c, token, expiresAt);
+  return c.redirect(safeAppRedirect(saved.r ?? '', c.req.url));
 });
 
 app.post('/auth/logout', async (c) => {
@@ -264,6 +331,11 @@ app.post('/auth/change-password', async (c) => {
 
   const row = await db.select().from(users).where(eq(users.id, sessionUser.id)).get();
   if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!row.passwordHash)
+    return c.json(
+      { error: 'NO_PASSWORD', message: 'This account signs in with Google; there is no password to change.' },
+      400,
+    );
   if (!(await verifyPassword(row.passwordHash, parsed.data.currentPassword)))
     return c.json({ error: 'INVALID_CREDENTIALS', message: 'Your current password is wrong.' }, 400);
 

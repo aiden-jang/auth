@@ -7,7 +7,10 @@ export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
   // Stored already lowercased + trimmed by the app layer.
   email: text('email').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
+  // Null for accounts created via an OAuth provider (Google), which have no password.
+  passwordHash: text('password_hash'),
+  // Google account id (the OIDC `sub`), when the user linked/created via Google.
+  googleId: text('google_id').unique(),
   displayName: text('display_name').notNull(),
   emailVerified: integer('email_verified', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp' })
