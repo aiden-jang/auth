@@ -14,11 +14,10 @@ no cold-start penalty.
 
 | App | What it is | Live | Stack highlights |
 | --- | --- | --- | --- |
-| **[owewell](apps/owewell)** | Split bills, settle up, keep friends | [owewell.aidenjang.com](https://owewell.aidenjang.com) | Hono · D1 + Drizzle · Durable Object realtime · receipt OCR |
 | **[bloomnote](apps/bloomnote)** | Write a note, an LLM grows someone a garden | [bloomnote.aidenjang.com](https://bloomnote.aidenjang.com) | Hono · KV short-links · Gemini via function-calling · SSE |
-| **[auth](apps/auth)** | Shared identity for all of the above | [accounts.aidenjang.com](https://accounts.aidenjang.com) | Hono · D1 · sessions · Turnstile · per-IP rate limiting |
+| **[auth](apps/auth)** | Shared identity for all of the apps | [accounts.aidenjang.com](https://accounts.aidenjang.com) | Hono · D1 · sessions · Turnstile · per-IP rate limiting |
 
-> [wherever](https://wherever.aidenjang.com) (group restaurant swiping) and [is-it-a-dog](https://is-it-a-dog.aidenjang.com) (draw-and-guess vs an AI) each live in their own repo now.
+> Each in its own repo now: [owewell](https://owewell.aidenjang.com) (bill splitting), [wherever](https://wherever.aidenjang.com) (restaurant swiping), [is-it-a-dog](https://is-it-a-dog.aidenjang.com) (draw-and-guess vs an AI). They consume the published `@aidenjang/auth-client`.
 
 Each app's README covers what it is, the decisions behind it (including *why this and not something
 simpler*), and how it would scale.
@@ -35,9 +34,10 @@ simpler*), and how it would scale.
 - **Shared identity, validated server-side.** The auth service sets a `platform_session` cookie on
   `.aidenjang.com`. Apps never read it in the browser — they forward it to `/auth/me` from their
   own Worker (`@aidenjang/auth-client`), so the session secret never touches app JavaScript.
-- **Source-first internal packages.** Shared code (`@aidenjang/*`, `@owewell/core`) is imported as
-  TypeScript source through pnpm workspaces — no build step between packages, one strict tsconfig,
-  refactors cross package boundaries in one commit.
+- **Source-first internal packages.** Shared code (`@aidenjang/*`) is imported as TypeScript source
+  through pnpm workspaces — no build step between packages, one strict tsconfig, refactors cross
+  package boundaries in one commit. `@aidenjang/auth-client` additionally builds to `dist` and
+  publishes to npm for the apps that now live in their own repos.
 
 ```
                           accounts.aidenjang.com  ── auth Worker (D1 sessions, Turnstile)
@@ -56,21 +56,20 @@ simpler*), and how it would scale.
 - **`@aidenjang/config`** — the strict tsconfig base (`noUncheckedIndexedAccess`,
   `exactOptionalPropertyTypes`, `verbatimModuleSyntax`) + the flat ESLint config every package
   extends.
-- **`@aidenjang/auth-client`** — `getSessionUser(request, AUTH_URL)` plus `loginUrl`/`logoutUrl`
-  builders. The one place the session contract lives.
-- **`@aidenjang/http`** — security headers (CSP, HSTS, …) + a same-origin CSRF guard, wrapped in a
-  Hono `harden()` middleware. See [docs/SECURITY.md](docs/SECURITY.md).
-- **`@owewell/core`** — owewell's pure money/split math, unit-tested in isolation from any I/O.
+- **`@aidenjang/auth-client`** — `loginUrl`/`logoutUrl` builders + the session `AuthUser` shape.
+  The one place the session contract lives; published to npm for the standalone app repos.
+
+Security hardening (CSP/HSTS headers + a same-origin CSRF `harden()` middleware) is inlined per
+app rather than shared, since each app tunes its own CSP.
 
 ## Repo layout
 
 ```
 apps/
   auth/        { api (Worker), web (React) }          shared identity service
-  owewell/     { api (Worker), web (React) }          + @owewell/core
   bloomnote/   { api (Worker), web (React) }
 packages/
-  config/  auth-client/  http/  shared/  owewell-core/
+  config/  auth-client/
 docs/
   API.md  SECURITY.md  OBSERVABILITY.md
 ```

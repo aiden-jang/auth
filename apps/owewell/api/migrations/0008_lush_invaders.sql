@@ -1,1 +1,0 @@
-ALTER TABLE `groups` DROP COLUMN `archived_at`;

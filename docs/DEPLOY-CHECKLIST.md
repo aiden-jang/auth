@@ -34,21 +34,6 @@ Verify: `curl -sI https://accounts.aidenjang.com/health` shows the security head
 `X-Content-Type-Options`); `/privacy` and `/terms` render; sign in, then **sign out** actually
 clears the session (the bug this fixes); `/login` still works.
 
-## 2. owewell — REDEPLOY + apply migrations
-
-Changed: feature suite (edit/archive/undo/methods/manual+partial/backdate), **security headers +
-CSRF guard**, **PWA** (manifest/SW/icons), footer + legal links, **Workers Logs**. Two D1
-migrations are **not yet applied to prod**.
-
-```bash
-pnpm --filter @owewell/api exec wrangler d1 migrations apply owewell --remote   # 0001 archived_at, 0002 date
-pnpm --filter @owewell/api run deploy
-```
-
-Verify: `curl -sI https://owewell.aidenjang.com/health` shows security headers; a cross-origin
-`POST` is rejected 403 (CSRF); create/edit an expense, record + undo a payment, archive a group,
-backdate an expense; `manifest.webmanifest` loads and the app is installable; realtime still
-updates a second tab.
 
 ## 3. bloomnote — FIRST deploy (3.7)
 

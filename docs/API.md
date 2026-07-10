@@ -4,8 +4,9 @@ The platform is a set of independent Cloudflare Workers, not one backend. Two ex
 
 - **Auth service** — one shared Worker (`apps/auth`) that owns identity for the whole
   platform: the `/auth/*` API plus the login/account UI. Every app trusts it.
-- **owewell** — the app Worker (`apps/owewell/api`) that serves owewell's SPA and its
-  business API under the `/owewell/*` prefix, on owewell's own origin.
+- **App Workers** — each app (in this repo, `apps/bloomnote`; others like owewell, wherever, and
+  is-it-a-dog now live in their own repos) serves its SPA + API on its own origin under an
+  app-specific prefix and trusts the auth service for identity.
 
 Each app is its own Worker on its own origin (frontend + that app's API share the origin, so
 the browser stays same-origin and no CORS is needed). Adding an app adds a Worker; it does not
@@ -16,7 +17,7 @@ touch the others. Auth is the one shared service so there is a single identity a
 | Service | Production | Local |
 | --- | --- | --- |
 | Auth (`/auth/*`, `/health`, login UI) | `https://accounts.aidenjang.com` | `http://localhost:34100` |
-| owewell (SPA + `/owewell/*`) | `https://owewell.aidenjang.com` | web `http://localhost:30001` (proxies `/owewell` → API `:34200`) |
+| bloomnote (SPA + `/api/*`) | `https://bloomnote.aidenjang.com` | see `apps/bloomnote/DEPLOY.md` |
 
 ## Auth model
 
@@ -27,8 +28,8 @@ touch the others. Auth is the one shared service so there is a single identity a
   - Sign-in / sign-out are **full-page redirects** to the auth origin (`/login`, `/logout`
     with a `return_to`), so the cookie is set by a top-level navigation.
   - An app validates a request **server-side** by forwarding the incoming cookie to the auth
-    service's `GET /auth/me` (see `@aidenjang/auth-client`). owewell surfaces the result at its
-    own same-origin `GET /owewell/me`.
+    service's `GET /auth/me` (see `@aidenjang/auth-client`). Each app surfaces the result at its
+    own same-origin `/me` endpoint.
 - Protected endpoints return `401` without a valid session. "Auth" column below: **public** =
   no session needed, **session** = requires the cookie.
 
@@ -49,70 +50,6 @@ touch the others. Auth is the one shared service so there is a single identity a
 | POST | `/auth/resend-verification` | session | Re-sends the verification email |
 
 Register and login are rate-limited per IP (a `RateLimiter` Durable Object).
-
----
-
-## owewell — `apps/owewell/api` (`/owewell/*`)
-
-Full URL = owewell origin + path (e.g. `https://owewell.aidenjang.com/owewell/groups`).
-
-| Method | Path | Auth | Purpose |
-| --- | --- | --- | --- |
-| GET | `/health` | public | Liveness: `{ status, service }` |
-| GET | `/owewell/me` | public | `{ user, personId }` for the caller, or `{ user: null }` when signed out |
-
-### Groups
-
-| Method | Path | Auth | Purpose |
-| --- | --- | --- | --- |
-| GET | `/owewell/groups` | session | Your groups; each includes `memberCount` and `netCents` (your net in that group) |
-| POST | `/owewell/groups` | session | `{ name }` → `{ group }` |
-| GET | `/owewell/groups/:id` | session | Group detail + members |
-| PATCH | `/owewell/groups/:id` | session (owner) | `{ name }` → rename |
-| DELETE | `/owewell/groups/:id` | session (owner) | Delete group and its ledger |
-| GET | `/owewell/groups/:id/balances` | session | Net balance per member |
-| POST | `/owewell/groups/:id/members` | session | `{ name }` adds a name-only placeholder. `{ email }` returns `501` — real accounts join via an invite link. |
-| DELETE | `/owewell/groups/:id/members/:personId` | session | Remove a member / leave |
-
-### Expenses
-
-| Method | Path | Auth | Purpose |
-| --- | --- | --- | --- |
-| GET | `/owewell/groups/:id/expenses` | session | List expenses |
-| POST | `/owewell/groups/:id/expenses` | session | `{ description, amountCents, payerId, splitMethod, participants }`; `splitMethod` ∈ `EQUAL \| EXACT \| PERCENT \| SHARES` (PERCENT values are basis points, 10000 = 100%) |
-| POST | `/owewell/groups/:id/expenses/itemized` | session | `{ description, payerId, taxCents, tipCents, items[] }` (line items with `participantIds`) |
-| DELETE | `/owewell/groups/:id/expenses/:expenseId` | session | Soft-delete; balances recalculate |
-| POST | `/owewell/groups/:id/ocr` | session | `multipart/form-data` receipt image → extracted `{ items, taxCents, tipCents }` |
-
-### Settlements
-
-| Method | Path | Auth | Purpose |
-| --- | --- | --- | --- |
-| GET | `/owewell/groups/:id/settlements` | session | Settlement history (powers the activity feed) |
-| GET | `/owewell/groups/:id/settlements/suggested` | session | Minimal who-pays-whom to clear balances |
-| POST | `/owewell/groups/:id/settlements` | session | `{ fromUserId, toUserId, amountCents, method? }` → record a payment (`method` ∈ `venmo \| paypal \| zelle \| cash \| other`) |
-| DELETE | `/owewell/groups/:id/settlements/:settlementId` | session | Undo a recorded payment |
-
-### Invites
-
-| Method | Path | Auth | Purpose |
-| --- | --- | --- | --- |
-| POST | `/owewell/groups/:id/invites` | session | Create a shareable invite link → `{ invite: { token } }` |
-| GET | `/owewell/invites/:token` | public | Preview an invite (group name, status) before joining |
-| POST | `/owewell/invites/:token/accept` | session | Join the group via the link |
-
-### Quick split
-
-| Method | Path | Auth | Purpose |
-| --- | --- | --- | --- |
-| POST | `/owewell/quick-splits` | session | Save a signed-out quick split into a real group → `{ groupId }` |
-
-### Realtime
-
-- WebSocket at **`/owewell/groups/:id/ws`**, authenticated by the `platform_session` cookie
-  and gated on group membership before the upgrade is routed.
-- Each group is a `GroupRoom` Durable Object (hibernatable, so idle rooms cost nothing). It
-  pushes `group:changed` on any mutation; the client re-fetches the ledger on receipt.
 
 ## Adding another app
 

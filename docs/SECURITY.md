@@ -32,9 +32,9 @@ override rather than loosening the shared default.
 
 - **Primary defense:** `SameSite=Lax` stops the browser from attaching the session cookie to
   cross-site state-changing requests, so a forged POST from another origin is unauthenticated.
-- **Defense-in-depth:** `enforceSameOrigin()` rejects any state-changing request whose `Origin`
-  header is present and points at a different host (owewell, bloomnote). Auth leaves this to
-  SameSite + Turnstile + its CORS allowlist because it is intentionally callable cross-origin.
+- **Defense-in-depth:** each app's inlined `enforceSameOrigin()` rejects any state-changing request
+  whose `Origin` header is present and points at a different host. Auth leaves this to SameSite +
+  Turnstile + its CORS allowlist because it is intentionally callable cross-origin.
 
 ## Dependencies
 
@@ -44,6 +44,6 @@ override rather than loosening the shared default.
 
 ## Known gaps / follow-ups
 
-- Security headers are wired into the three session/data Workers (auth, owewell, bloomnote).
+- Security headers are wired into each app's Worker via the inlined `harden()` middleware.
 - No secret scanning beyond git hygiene; secrets live only in `wrangler secret` / `.dev.vars`
   (gitignored), never committed.

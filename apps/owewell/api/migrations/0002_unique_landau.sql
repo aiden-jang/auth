@@ -1,1 +1,0 @@
-ALTER TABLE `expenses` ADD `date` integer;
