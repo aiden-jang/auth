@@ -5,6 +5,7 @@ import { safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
+import { GoogleSignIn } from '../components/GoogleSignIn';
 
 export function LoginPage(): ReactNode {
   const [params] = useSearchParams();
@@ -12,7 +13,9 @@ export function LoginPage(): ReactNode {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    params.get('error') === 'google_failed' ? 'Google sign-in failed. Please try again.' : null,
+  );
   const [loading, setLoading] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
 
@@ -36,6 +39,7 @@ export function LoginPage(): ReactNode {
 
   return (
     <AuthCard title="Welcome back" subtitle="One login for all of aidenjang's apps.">
+      <GoogleSignIn returnTo={returnTo} />
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
         <div>
           <label htmlFor="email" className={labelClass}>

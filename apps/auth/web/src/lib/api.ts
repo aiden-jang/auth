@@ -1,6 +1,16 @@
 // Same-origin with the auth Worker in prod (accounts.aidenjang.com); dev proxies /auth.
 const BASE = import.meta.env.VITE_AUTH_URL ?? '';
 
+// "Continue with Google" is shown only when the build opts in (server must also have the OAuth
+// client configured). Mirrors the Turnstile gating pattern.
+export const googleEnabled = (import.meta.env.VITE_GOOGLE_ENABLED as string | undefined) === 'true';
+
+/** Full-page link that kicks off the Google OAuth redirect flow, preserving return_to. */
+export function googleLoginUrl(returnTo?: string | null): string {
+  const q = returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : '';
+  return `${BASE}/auth/google${q}`;
+}
+
 export interface AuthUser {
   id: string;
   email: string;

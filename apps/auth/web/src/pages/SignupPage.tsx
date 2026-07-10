@@ -5,6 +5,7 @@ import { safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
+import { GoogleSignIn } from '../components/GoogleSignIn';
 
 export function SignupPage(): ReactNode {
   const [params] = useSearchParams();
@@ -51,6 +52,7 @@ export function SignupPage(): ReactNode {
 
   return (
     <AuthCard title="Create your account" subtitle="One account for all of aidenjang's apps.">
+      <GoogleSignIn returnTo={returnTo} />
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
         <div>
           <label htmlFor="name" className={labelClass}>
