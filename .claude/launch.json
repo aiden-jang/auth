@@ -6,18 +6,6 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@aidenjang/auth-web", "dev"],
       "port": 34110
-    },
-    {
-      "name": "owewell-web",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@owewell/web", "dev"],
-      "port": 30001
-    },
-    {
-      "name": "bloomnote-web",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@bloomnote/web", "dev"],
-      "port": 32100
     }
   ]
 }
