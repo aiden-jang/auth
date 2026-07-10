@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { getSessionUser } from '@aidenjang/auth-client';
-import { harden } from '@aidenjang/http';
+import { harden } from './harden.js';
 import type { Env } from './env.js';
 import { createDb } from './db/client.js';
 import { getOrCreatePerson, type Person } from './people.js';

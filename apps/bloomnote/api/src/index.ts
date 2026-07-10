@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { getSessionUser } from '@aidenjang/auth-client';
-import { harden } from '@aidenjang/http';
+import { harden } from './harden.js';
 import type { Env } from './env.js';
 import {
   claimGardens,
