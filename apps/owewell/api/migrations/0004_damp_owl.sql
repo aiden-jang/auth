@@ -1,1 +1,0 @@
-ALTER TABLE `expense_items` ADD `payer_id` text REFERENCES people(id);

@@ -26,8 +26,8 @@ head_sampling_rate = 1
 Cloudflare **Web Analytics** is cookieless (hashes IP+UA at the edge) and free — so **no cookie
 banner** is required (disclosed in the privacy policy, step 5.5).
 
-Setup: dashboard → Web Analytics → add each site (`accounts` / `owewell` / `bloomnote` /
-`is-it-a-dog` `.aidenjang.com`). For CF-proxied hostnames it auto-injects the beacon; if a
+Setup: dashboard → Web Analytics → add each site (`accounts` / `bloomnote` `.aidenjang.com`; the
+apps in their own repos are set up there). For CF-proxied hostnames it auto-injects the beacon; if a
 Worker-served response isn't auto-instrumented, paste the site's beacon into that app's
 `index.html`:
 
@@ -47,7 +47,6 @@ are a paid add-on, so point a **free external monitor** (e.g. UptimeRobot, 5-min
 | App | Health URL |
 | --- | --- |
 | auth | `https://accounts.aidenjang.com/health` |
-| owewell | `https://owewell.aidenjang.com/health` |
 | bloomnote | `https://bloomnote.aidenjang.com/health` |
 
 A green `/health` proves the worker is reachable and its runtime is up; it does not exercise D1/KV

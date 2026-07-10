@@ -1,1 +1,0 @@
-ALTER TABLE `group_members` ADD `archived_at` integer;

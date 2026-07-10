@@ -2,6 +2,5 @@
 # as parked source and are added here when their port phase restructures them.
 packages:
   - 'apps/auth/*'
-  - 'apps/owewell/*'
   - 'apps/bloomnote/*'
   - 'packages/*'

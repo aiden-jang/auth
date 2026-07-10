@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Monorepo for aidenjang's apps (auth, owewell, bloomnote) and shared packages, on Cloudflare.",
+  "description": "Monorepo for aidenjang's apps (auth, bloomnote) and shared packages, on Cloudflare.",
   "engines": {
     "node": ">=22"
   },
