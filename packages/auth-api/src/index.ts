@@ -30,6 +30,14 @@ type Ctx = Context<{ Bindings: Env }>;
 
 const app = new Hono<{ Bindings: Env }>();
 
+// Safety net: any error a route does not handle itself is logged server-side (Workers Logs /
+// `wrangler tail`) and returned as a generic 500. On the identity service especially, an internal
+// failure must never leak a stack trace or implementation detail to the client.
+app.onError((err, c) => {
+  console.error('Unhandled error:', err);
+  return c.json({ error: 'InternalError' }, 500);
+});
+
 // Security response headers on every route. CSRF is left to the session cookie's SameSite=Lax
 // attribute, Turnstile, and the CORS allowlist below, since auth is intentionally callable
 // cross-origin by the app frontends.
