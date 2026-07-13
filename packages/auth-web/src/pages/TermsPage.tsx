@@ -5,7 +5,7 @@ export function TermsPage(): ReactNode {
   return (
     <LegalLayout title="Terms of Service" updated="July 6, 2026">
       <p>
-        By using aidenjang&rsquo;s apps (owewell, bloomnote, wherever, and is-it-a-dog), you agree to
+        By using aidenjang&rsquo;s apps (owewell, bloomnote, wherever, and iguess), you agree to
         these terms. They are short on purpose.
       </p>
 
@@ -16,7 +16,7 @@ export function TermsPage(): ReactNode {
       </Section>
 
       <Section heading="Your account">
-        owewell and bloomnote use one shared login; wherever and is-it-a-dog need no account at all.
+        owewell and bloomnote use one shared login; wherever and iguess need no account at all.
         Where you do have a login, you are responsible for what happens under it, so keep your password
         to yourself. You need to be at least 13. One human, one account, no impersonating anyone else.
       </Section>
@@ -30,7 +30,7 @@ export function TermsPage(): ReactNode {
       <Section heading="Play nice">
         Do not use the apps to break the law, harass people, upload other people&rsquo;s private
         information without permission, or attack the service. The multiplayer apps (wherever and
-        is-it-a-dog) put your drawings, guesses, and votes in front of everyone in the room, so keep it
+        iguess) put your drawings, guesses, and votes in front of everyone in the room, so keep it
         to something you would happily show a stranger. Misbehaving is a quick way to lose access.
       </Section>
 

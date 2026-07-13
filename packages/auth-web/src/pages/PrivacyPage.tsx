@@ -13,7 +13,7 @@ export function PrivacyPage(): ReactNode {
       <Section heading="Do you need an account">
         No. Every app works without one. Signing in is optional and just saves your stuff across
         your devices: your groups and expenses in owewell, the gardens you make in bloomnote.
-        wherever and is-it-a-dog run on throwaway room codes that clear when everyone leaves, so
+        wherever and iguess run on throwaway room codes that clear when everyone leaves, so
         there is nothing to save and nothing to sign in for. The account details below apply only
         when you choose to sign in.
       </Section>
@@ -41,7 +41,7 @@ export function PrivacyPage(): ReactNode {
             votes. Tied to a throwaway room, not to you, and gone when the room ends.
           </li>
           <li>
-            <strong>is-it-a-dog:</strong> the room code, the drawings, and the guesses, but only
+            <strong>iguess:</strong> the room code, the drawings, and the guesses, but only
             while the game is running. Nothing survives the room.
           </li>
           <li>
@@ -85,7 +85,7 @@ export function PrivacyPage(): ReactNode {
 
       <Section heading="Keeping and deleting your data">
         Account data stays until you remove it or ask us to. You can delete groups, expenses, and
-        gardens inside the apps. wherever and is-it-a-dog rooms are temporary and clear themselves, so
+        gardens inside the apps. wherever and iguess rooms are temporary and clear themselves, so
         there is nothing to delete. To wipe your entire account and everything attached to it, email{' '}
         <a className="text-accent hover:underline" href="mailto:privacy@aidenjang.com">
           privacy@aidenjang.com

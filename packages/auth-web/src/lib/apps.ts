@@ -41,9 +41,9 @@ export const APPS: AppLink[] = [
     accent: '#fbbf24',
   },
   {
-    name: 'is-it-a-dog',
+    name: 'iguess',
     tagline: 'draw it, an AI guesses',
-    url: 'https://is-it-a-dog.aidenjang.com',
+    url: 'https://iguess.aidenjang.com',
     devUrl: 'http://localhost:33100',
     accent: '#38bdf8',
   },
