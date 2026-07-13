@@ -94,6 +94,9 @@ the test Worker (so Turnstile is treated as unconfigured and no real email is se
 
 ## The apps that use it
 
+For the zoomed-out view of how these fit together (the SSO trust flow, the shared Cloudflare
+conventions, and how it scales), see [PLATFORM.md](PLATFORM.md).
+
 Each is its own repo and consumes `@aidenjang/auth-client`:
 
 - [owewell](https://owewell.aidenjang.com): split bills, settle up
