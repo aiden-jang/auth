@@ -3,7 +3,7 @@
 The auth service (`packages/auth-api`) is one shared Cloudflare Worker that owns identity for all of my
 apps: the `/auth/*` API plus the login/account UI. Every app trusts it.
 
-Each app is its own Worker on its own origin in its own repo (owewell, wherever, is-it-a-dog,
+Each app is its own Worker on its own origin in its own repo (owewell, wherever, iguess,
 bloomnote). An app validates a request by forwarding the session cookie to this service and
 consuming `@aidenjang/auth-client`; the apps never talk to each other. See "Adding another app"
 below for the integration pattern.

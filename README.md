@@ -98,7 +98,7 @@ Each is its own repo and consumes `@aidenjang/auth-client`:
 
 - [owewell](https://owewell.aidenjang.com): split bills, settle up
 - [wherever](https://wherever.aidenjang.com): group restaurant swiping
-- [is-it-a-dog](https://is-it-a-dog.aidenjang.com): multiplayer draw-and-guess versus an AI
+- [iguess](https://iguess.aidenjang.com): multiplayer draw-and-guess versus an AI
 - [bloomnote](https://bloomnote.aidenjang.com): write a note, an LLM grows someone a garden
 
 Signing in is optional in all of them. It saves and syncs your data; nothing gates on an account.
