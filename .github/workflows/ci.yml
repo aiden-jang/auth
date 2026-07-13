@@ -22,3 +22,29 @@ jobs:
       # Every suite (including owewell's) runs in-process: shared logic under Node, the API
       # against a real in-memory D1 via the Workers pool. No external database needed.
       - run: pnpm -r test
+
+  # Auto-deploy to Cloudflare on merge to main, only after the checks above pass.
+  # Requires a CLOUDFLARE_API_TOKEN repo secret (Workers-scoped). Wrangler infers the
+  # account from the token, so no account_id is needed here.
+  deploy:
+    needs: check
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-auth
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Code deploy only. D1 schema changes are applied deliberately by hand, from
+      # packages/auth-api: wrangler d1 migrations apply aidenjang-identity --remote
+      - name: Deploy to Cloudflare
+        run: pnpm run deploy
+        working-directory: packages/auth-api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
