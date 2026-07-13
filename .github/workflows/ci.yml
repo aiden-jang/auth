@@ -49,6 +49,6 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           # Bake the "Continue with Google" button into the prod web build. Locally this comes from
-          # auth-web/.env.local (gitignored), which CI doesn't have. The button still needs the
-          # server OAuth secrets (GOOGLE_CLIENT_ID/SECRET) set on the Worker to actually work.
+          # auth-web/.env.local (gitignored), which CI doesn't have. The server OAuth secrets
+          # (GOOGLE_CLIENT_ID/SECRET) are set once on the Worker via `wrangler secret put`.
           VITE_GOOGLE_ENABLED: "true"
