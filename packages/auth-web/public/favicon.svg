@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- The aidenjang mark: the AuthCard document glyph on the purple→cyan
-       gradient. Font-free shapes so it stays crisp at every favicon size. -->
+  <!-- The aidenjang accounts mark: a key on the purple→cyan gradient. Deliberately NOT the
+       receipt/document glyph the product apps use (owewell) so the sign-in service reads as its
+       own thing. Font-free shapes so it stays crisp at every favicon size. -->
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#a78bfa" />
@@ -8,14 +9,13 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="120" fill="url(#g)" />
-  <path
-    d="M132 74 h248 v364 l-46 -30 -43 30 -43 -30 -43 30 -43 -30 -46 30 z"
-    fill="#09090f"
-    fill-opacity="0.92"
-  />
-  <g stroke="#a78bfa" stroke-width="30" stroke-linecap="round">
-    <line x1="192" y1="182" x2="320" y2="182" />
-    <line x1="192" y1="256" x2="320" y2="256" />
-    <line x1="192" y1="330" x2="266" y2="330" />
+  <g transform="rotate(45 256 256)">
+    <g fill="#09090f" fill-opacity="0.92">
+      <circle cx="256" cy="152" r="80" />
+      <rect x="240" y="210" width="32" height="200" rx="8" />
+      <rect x="272" y="322" width="48" height="28" rx="6" />
+      <rect x="272" y="368" width="34" height="26" rx="6" />
+    </g>
+    <circle cx="256" cy="152" r="34" fill="url(#g)" />
   </g>
 </svg>
