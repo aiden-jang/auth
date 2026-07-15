@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Auth service (accounts.aidenjang.com) + the published @aidenjang/auth-client SDK and shared config, on Cloudflare.",
+  "license": "MIT",
   "engines": {
     "node": ">=22"
   },
