@@ -169,13 +169,27 @@ export function AccountPage(): ReactNode {
   }
 
   useEffect(() => {
-    authApi
-      .me()
-      .then((r) => setUser(r.user))
-      .catch(() => {
-        window.location.href = '/login';
-      })
-      .finally(() => setLoading(false));
+    const checkAuth = (): void => {
+      authApi
+        .me()
+        .then((r) => setUser(r.user))
+        .catch(() => {
+          window.location.href = '/login';
+        })
+        .finally(() => setLoading(false));
+    };
+    checkAuth();
+    // The back/forward cache can restore this page with its old (logged-in) React
+    // state after a sign-out — so hitting "back" post-logout looks still-logged-in.
+    // A bfcache restore fires pageshow with persisted=true and does NOT remount, so
+    // re-validate the session there and bounce a signed-out user to /login.
+    const onPageShow = (e: PageTransitionEvent): void => {
+      if (!e.persisted) return;
+      setLoading(true); // show the skeleton, not the stale account, while we re-check
+      checkAuth();
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 
   useEffect(() => {
