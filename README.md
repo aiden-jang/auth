@@ -83,10 +83,10 @@ the test Worker (so Turnstile is treated as unconfigured and no real email is se
 
 ## Repo layout
 
-- **`packages/auth-api`** and **`packages/auth-web`**: the service. `auth-api` is a Hono Worker (D1
+- **`packages/api`** and **`packages/web`**: the service. `api` is a Hono Worker (D1
   sessions, Turnstile, per-IP rate limiting via a Durable Object) that also serves the built
-  `auth-web` SPA from one origin.
-- **`packages/auth-client`**: `@aidenjang/auth-client`, **published to npm**. `loginUrl` / `logoutUrl`
+  `web` SPA from one origin.
+- **`packages/client`**: `@aidenjang/auth-client`, **published to npm**. `loginUrl` / `logoutUrl`
   builders plus the `AuthUser` session shape. Apps depend on this as a versioned package, so the
   session contract has exactly one source of truth.
 - **`packages/config`**: the strict shared tsconfig base (`noUncheckedIndexedAccess`,

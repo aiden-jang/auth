@@ -42,13 +42,18 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # Code deploy only. D1 schema changes are applied deliberately by hand, from
-      # packages/auth-api: wrangler d1 migrations apply aidenjang-identity --remote
+      # packages/api: wrangler d1 migrations apply aidenjang-identity --remote
       - name: Deploy to Cloudflare
         run: pnpm run deploy
-        working-directory: packages/auth-api
+        working-directory: packages/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           # Bake the "Continue with Google" button into the prod web build. Locally this comes from
-          # auth-web/.env.local (gitignored), which CI doesn't have. The server OAuth secrets
+          # web/.env.local (gitignored), which CI doesn't have. The server OAuth secrets
           # (GOOGLE_CLIENT_ID/SECRET) are set once on the Worker via `wrangler secret put`.
           VITE_GOOGLE_ENABLED: "true"
+          # Turnstile SITE key — PUBLIC (it ships in the client bundle). Must be baked into the prod
+          # build or the widget never renders and, because the Worker has TURNSTILE_SECRET set, every
+          # auth call 400s with TURNSTILE_FAILED (blocking login/signup/password-reset — and their
+          # emails). The paired secret stays a `wrangler secret` on the Worker.
+          VITE_TURNSTILE_SITE_KEY: "0x4AAAAAADxBNTw4CP1ZhzK1"
