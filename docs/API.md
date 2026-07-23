@@ -1,6 +1,6 @@
 # auth API
 
-The auth service (`packages/auth-api`) is one shared Cloudflare Worker that owns identity for all of my
+The auth service (`packages/api`) is one shared Cloudflare Worker that owns identity for all of my
 apps: the `/auth/*` API plus the login/account UI. Every app trusts it.
 
 Each app is its own Worker on its own origin in its own repo (owewell, wherever, iguess,
@@ -30,7 +30,7 @@ below for the integration pattern.
 
 ---
 
-## Auth service — `packages/auth-api`
+## Auth service — `packages/api`
 
 | Method | Path | Auth | Body / notes |
 | --- | --- | --- | --- |

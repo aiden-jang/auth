@@ -7,7 +7,7 @@ apps trust, so owewell, bloomnote, and friends don't each reinvent accounts.
 
 `TypeScript` · `Hono` · `Cloudflare Workers` · `D1 + Drizzle` · `Durable Objects` · `Turnstile` · `React` · `Vite`
 
-> This repo is the auth service plus the published [`@aidenjang/auth-client`](../../packages/auth-client)
+> This repo is the auth service plus the published [`@aidenjang/auth-client`](../../packages/client)
 > SDK, where the shared session contract lives (see the [repo README](../../README.md)).
 
 ---

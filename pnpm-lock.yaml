@@ -24,7 +24,7 @@ importers:
         specifier: ^5.6.2
         version: 5.9.3
 
-  packages/auth-api:
+  packages/api:
     dependencies:
       drizzle-orm:
         specifier: ^0.38.3
@@ -58,7 +58,7 @@ importers:
         specifier: ^3.99.0
         version: 3.114.17(@cloudflare/workers-types@4.20260702.1)
 
-  packages/auth-client:
+  packages/client:
     devDependencies:
       '@aidenjang/config':
         specifier: workspace:*
@@ -70,7 +70,16 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.0)(lightningcss@1.32.0)
 
-  packages/auth-web:
+  packages/config:
+    dependencies:
+      '@eslint/js':
+        specifier: ^9.12.0
+        version: 9.39.4
+      typescript-eslint:
+        specifier: ^8.8.0
+        version: 8.62.0(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
+
+  packages/web:
     dependencies:
       react:
         specifier: ^18.3.1
@@ -106,15 +115,6 @@ importers:
       vite:
         specifier: ^5.4.8
         version: 5.4.21(@types/node@22.20.0)(lightningcss@1.32.0)
-
-  packages/config:
-    dependencies:
-      '@eslint/js':
-        specifier: ^9.12.0
-        version: 9.39.4
-      typescript-eslint:
-        specifier: ^8.8.0
-        version: 8.62.0(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
 
 packages:
 
@@ -309,11 +309,11 @@ packages:
 
   '@esbuild-kit/core-utils@3.3.2':
     resolution: {integrity: sha512-sPRAnw9CdSsRmEtnsl2WXWdyquogVpB3yZ3dgwJfe8zrOzTsV7cJvmwrKVa+0ma5BoiGJ+BoqkMvawbayKUsqQ==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild-kit/esm-loader@2.6.5':
     resolution: {integrity: sha512-FxEMIkJKnodyA1OaCUoEvbYRkoZlLZ4d/eXFu9Fh8CbBBgP5EmZxrfTRyN0qpXZ4vOvqnE5YdRdcrmUUXuU+dA==}
-    deprecated: 'Merged into tsx: https://tsx.is'
+    deprecated: 'Merged into tsx: https://tsx.hirok.io'
 
   '@esbuild-plugins/node-globals-polyfill@0.2.3':
     resolution: {integrity: sha512-r3MIryXDeXDOZh7ih1l/yE9ZLORCd5e8vWg02azWRGj5SPTuoh69A2AIyn0Z31V/kHBfZ4HgWJ+OK3GTTwLmnw==}

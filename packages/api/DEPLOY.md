@@ -4,14 +4,14 @@
 `/health`) and the login/account UI (static assets) on one origin, `accounts.aidenjang.com`.
 Identity D1: `aidenjang-identity` (its `database_id` is already in `wrangler.toml`). Free tier.
 
-All commands run from `packages/auth-api`.
+All commands run from `packages/api`.
 
 ## Routine redeploy (the usual case)
 
 ```bash
 pnpm exec wrangler deploy   # ship an API/config change (uses the last-built UI assets)
-# or, if the UI (packages/auth-web) changed:
-pnpm run deploy             # builds auth-web, then wrangler deploy
+# or, if the UI (packages/web) changed:
+pnpm run deploy             # builds web, then wrangler deploy
 ```
 
 - No re-login needed: `wrangler login` stores credentials (`~/Library/Preferences/.wrangler/`)
@@ -90,5 +90,5 @@ Then open `https://accounts.aidenjang.com/login`, sign up, confirm the `platform
 
 ## Local dev (no Cloudflare needed)
 
-`pnpm exec wrangler dev` (API on :34100, local D1) + the auth-web Vite dev server (:34110). No
+`pnpm exec wrangler dev` (API on :34100, local D1) + the web Vite dev server (:34110). No
 secrets; cookie is host-only.
