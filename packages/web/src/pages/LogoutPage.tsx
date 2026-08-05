@@ -15,7 +15,9 @@ export function LogoutPage(): ReactNode {
       .logout()
       .catch(() => undefined)
       .finally(() => {
-        window.location.href = safeReturnTo(returnTo) ?? '/login';
+        // replace, not href: this page must not stay in history. With a pushed entry, pressing back
+        // lands on /logout again, which re-runs the effect and shows "Signing out..." on the way past.
+        window.location.replace(safeReturnTo(returnTo) ?? '/login');
       });
   }, []);
 

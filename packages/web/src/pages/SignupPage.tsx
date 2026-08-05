@@ -41,7 +41,8 @@ export function SignupPage(): ReactNode {
     setLoading(true);
     try {
       await authApi.register(email, password, displayName, turnstileToken);
-      window.location.href = safeReturnTo(returnTo) ?? '/account';
+      // replace: back should not return to a signup form for an account that now exists.
+      window.location.replace(safeReturnTo(returnTo) ?? '/account');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create your account.');
       setLoading(false);

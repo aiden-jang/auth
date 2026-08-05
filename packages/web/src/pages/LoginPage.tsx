@@ -39,7 +39,8 @@ export function LoginPage(): ReactNode {
         setLoading(false);
       } else {
         await authApi.login(email, password, turnstileToken);
-        window.location.href = safeReturnTo(returnTo) ?? '/account';
+        // replace: once signed in, back should not return to the login form.
+        window.location.replace(safeReturnTo(returnTo) ?? '/account');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
