@@ -74,7 +74,7 @@ export function AccountPage(): ReactNode {
     setDeleteError(null);
     try {
       await authApi.deleteAccount(user.hasPassword ? { password: deletePw } : { confirm: deleteConfirm });
-      window.location.href = '/login';
+      window.location.replace('/login');
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Could not delete your account.');
       setDeleting(false);
@@ -174,7 +174,7 @@ export function AccountPage(): ReactNode {
         .me()
         .then((r) => setUser(r.user))
         .catch(() => {
-          window.location.href = '/login';
+          window.location.replace('/login');
         })
         .finally(() => setLoading(false));
     };
@@ -216,7 +216,7 @@ export function AccountPage(): ReactNode {
 
   async function logout(): Promise<void> {
     await authApi.logout().catch(() => undefined);
-    window.location.href = '/login';
+    window.location.replace('/login');
   }
 
   if (loading) {
