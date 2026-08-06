@@ -63,6 +63,25 @@ app.use('/auth/*', (c, next) =>
   })(c, next),
 );
 
+/**
+ * Nothing under /auth is cacheable, and /auth/me least of all.
+ *
+ * It had no Cache-Control at all. A GET with no cache directives is *heuristically* cacheable, so
+ * browsers were free to keep the signed-in `200 {user}` and hand it back later. The visible bug: sign
+ * out, press back, the page re-checks the session, the browser answers from its own cache, and you are
+ * apparently signed in again until a refresh bypasses it.
+ *
+ * The reason this is worse than a display glitch: these responses are per-session and the only Vary
+ * here is Origin, not Cookie, so any shared cache between the browser and the Worker could in principle
+ * serve one person's account to somebody else. `no-store` is the only correct answer for a response that
+ * depends on who is asking.
+ */
+app.use('/auth/*', async (c, next) => {
+  await next();
+  c.header('Cache-Control', 'no-store, max-age=0');
+  c.header('Pragma', 'no-cache');
+});
+
 app.get('/health', (c) => c.json({ status: 'ok', service: 'auth' }));
 
 const clientIp = (c: Ctx): string => c.req.header('cf-connecting-ip') ?? 'local';
