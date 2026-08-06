@@ -115,6 +115,34 @@ describe('login and session', () => {
   });
 });
 
+describe('caching', () => {
+  /*
+   * A shipped bug: /auth/me had no Cache-Control, and a GET with no directives is heuristically
+   * cacheable. Sign out, press back, the page re-checks the session, the browser answers from its own
+   * cache, and you look signed in until you refresh. A missing header is invisible in every other kind
+   * of test, so it needs its own.
+   */
+  it('never lets a session response be cached, signed in or out', async () => {
+    const { cookie } = await register();
+
+    for (const [label, res] of [
+      ['signed in', await get('/auth/me', cookie!)],
+      ['signed out', await get('/auth/me')],
+    ] as const) {
+      const cc = res.headers.get('cache-control') ?? '';
+      expect(cc, `${label}: ${cc || '(no header)'}`).toContain('no-store');
+    }
+  });
+
+  it('applies it to every auth route, not just the one that broke', async () => {
+    // Anything under /auth depends on who is asking, so none of it is cacheable.
+    for (const path of ['/auth/me', '/auth/sessions']) {
+      const cc = (await get(path)).headers.get('cache-control') ?? '';
+      expect(cc, `${path}: ${cc || '(no header)'}`).toContain('no-store');
+    }
+  });
+});
+
 describe('profile', () => {
   it('updates the display name when authenticated, rejects when not', async () => {
     const { cookie } = await register();
