@@ -41,6 +41,17 @@ export const APPS: AppLink[] = [
     accent: '#fbbf24',
   },
   {
+    // The odd one out: mrrp has no accounts at all, so signing in changes nothing about it. It is
+    // listed anyway because the launcher answers "what lives here", not "what reads your session".
+    // A hub that silently omits an app is more confusing than one that includes an app which
+    // happens not to need you signed in.
+    name: 'mrrp',
+    tagline: 'a cat for exactly two people',
+    url: 'https://mrrp.aidenjang.com',
+    devUrl: 'http://localhost:30005',
+    accent: '#e0a03f',
+  },
+  {
     name: 'iguess',
     tagline: 'draw it, an AI guesses',
     url: 'https://iguess.aidenjang.com',
