@@ -79,7 +79,7 @@ isolated in-memory D1 with the app's migrations applied per file, plus the live 
 Object. Coverage includes registration, login and sessions, verification and reset tokens, password
 change, Google-only accounts, magic links, session listing and revocation, and account deletion. The
 suite is kept **hermetic** by neutralizing any secrets a local `.dev.vars` would otherwise leak into
-the test Worker (so Turnstile is treated as unconfigured and no real email is sent). 43 tests.
+the test Worker (so Turnstile is treated as unconfigured and no real email is sent). 48 tests: 45 in the API, 3 in the client.
 
 ## Repo layout
 
