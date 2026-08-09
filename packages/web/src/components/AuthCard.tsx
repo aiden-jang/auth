@@ -56,7 +56,7 @@ function MadeBy({ className }: { className?: string }): ReactNode {
 // Branded panel shown on the left half at md+. Aurora background, a tagline,
 // and a showcase of the apps this login unlocks. Hidden on small screens,
 // where a compact wordmark sits above the form instead.
-function BrandPanel({ showApps }: { showApps: boolean }): ReactNode {
+function BrandPanel(): ReactNode {
   return (
     <aside className="relative hidden overflow-hidden border-r border-line bg-canvas p-10 md:flex md:flex-col md:justify-between">
       <div className="aurora" aria-hidden />
@@ -68,8 +68,7 @@ function BrandPanel({ showApps }: { showApps: boolean }): ReactNode {
         <h2 className="max-w-sm text-3xl font-medium leading-tight tracking-tight">
           one login for everything I build.
         </h2>
-        {showApps && (
-          <ul className="mt-8 space-y-3.5">
+        <ul className="mt-8 space-y-3.5">
             {APPS.map((app) => (
               <li key={app.name}>
                 {/* Opens in a new tab so exploring an app never abandons a sign-in in progress
@@ -94,8 +93,7 @@ function BrandPanel({ showApps }: { showApps: boolean }): ReactNode {
                 </a>
               </li>
             ))}
-          </ul>
-        )}
+        </ul>
       </div>
 
       <MadeBy className="relative z-10 text-xs text-muted" />
@@ -103,22 +101,49 @@ function BrandPanel({ showApps }: { showApps: boolean }): ReactNode {
   );
 }
 
-export function AuthCard({
+/**
+ * Single column, for the signed-in hub.
+ *
+ * The split shell exists to sell the platform while you sign in: brand on the left, task on the
+ * right. Once you are signed in there is nothing left to sell, so the account page was spending
+ * half a screen on an aurora panel holding a wordmark and a headline that repeated the subtitle
+ * sitting a few inches to its right. Worse, that panel is `hidden md:flex`, so it was never a
+ * candidate for the app launcher either — anything moved into it vanishes on a phone.
+ */
+export function AccountShell({
   title,
   subtitle,
   children,
-  showApps = true,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
-  /** Whether the branded panel lists the apps. Off for the account hub,
-   *  which shows its own interactive launcher. */
-  showApps?: boolean;
+}): ReactNode {
+  return (
+    <main className="min-h-screen px-5 py-12 sm:px-10">
+      <div className="animate-enter mx-auto w-full max-w-xl">
+        <Wordmark />
+        <h1 className="mt-8 text-2xl font-semibold tracking-tight">{title}</h1>
+        {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+        <div className="mt-6">{children}</div>
+        <MadeBy className="mt-10 text-center text-xs text-muted" />
+      </div>
+    </main>
+  );
+}
+
+export function AuthCard({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: ReactNode;
 }): ReactNode {
   return (
     <main className="grid min-h-screen md:grid-cols-2">
-      <BrandPanel showApps={showApps} />
+      <BrandPanel />
 
       <section className="flex flex-col justify-center px-5 py-12 sm:px-10">
         <div className="animate-enter mx-auto w-full max-w-sm">
