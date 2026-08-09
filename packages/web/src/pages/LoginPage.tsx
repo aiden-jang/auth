@@ -51,8 +51,11 @@ export function LoginPage(): ReactNode {
     }
   }
 
+  // No subtitle: the brand panel two inches to the left already says "one login for everything I
+  // build", and on desktop both are on screen at once. "Welcome back" is complete on its own — the
+  // returning user is the one person who does not need the pitch.
   return (
-    <AuthCard title="Welcome back" subtitle="One login for all of aidenjang's apps.">
+    <AuthCard title="Welcome back">
       {magicSent ? (
         <div className="space-y-4">
           <div
