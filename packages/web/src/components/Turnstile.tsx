@@ -100,5 +100,9 @@ export function Turnstile({
   }, [resetSignal]);
 
   if (!SITE_KEY) return null;
-  return <div ref={ref} className="mt-1" />;
+  // Centred, because turnstile.render() injects a fixed-width widget (300px) into whatever element
+  // it is handed. This div is the full form width, so the widget sat hard against the left edge with
+  // a ragged gap to the right of it — the only control on the sign-in page not lining up with the
+  // rest. Centring is version-proof: it stays right whatever width Cloudflare renders at.
+  return <div ref={ref} className="mt-1 flex justify-center" />;
 }
