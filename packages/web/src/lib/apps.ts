@@ -46,7 +46,7 @@ export const APPS: AppLink[] = [
     // A hub that silently omits an app is more confusing than one that includes an app which
     // happens not to need you signed in.
     name: 'mrrp',
-    tagline: 'a cat for exactly two people',
+    tagline: 'one of you is the cat',
     url: 'https://mrrp.aidenjang.com',
     devUrl: 'http://localhost:30005',
     accent: '#e0a03f',

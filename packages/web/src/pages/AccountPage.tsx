@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { authApi, googleConnectUrl, googleEnabled, type AuthUser, type SessionInfo } from '../lib/api';
-import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
+import { AccountShell, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
 import { Skeleton } from '../components/Skeleton';
@@ -221,7 +221,7 @@ export function AccountPage(): ReactNode {
 
   if (loading) {
     return (
-      <AuthCard title="Your account" subtitle="One login for all of aidenjang's apps.">
+      <AccountShell title="Your account" subtitle="One login for all of aidenjang's apps.">
         <div className="space-y-3">
           <Skeleton className="h-16 w-full" />
           <Skeleton className="h-16 w-full" />
@@ -229,13 +229,13 @@ export function AccountPage(): ReactNode {
           <Skeleton className="mt-6 h-4 w-24" />
           <Skeleton className="h-4 w-40" />
         </div>
-      </AuthCard>
+      </AccountShell>
     );
   }
   if (!user) return null;
 
   return (
-    <AuthCard title="Your account" subtitle="One login for all of aidenjang's apps." showApps={false}>
+    <AccountShell title="Your account" subtitle="One login for all of aidenjang's apps.">
       {/* App launcher — this is the landing when a visitor signs in at
           aidenjang.com without being sent back to a specific app, so lead
           with somewhere to go. Hidden while changing password so that flow
@@ -243,7 +243,7 @@ export function AccountPage(): ReactNode {
       {!changingPw && (
       <section aria-label="Apps">
         <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Jump into an app</h2>
-        <ul className="mt-3 space-y-2">
+        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {APPS.map((app) => (
             <li key={app.name}>
               <a
@@ -658,6 +658,6 @@ export function AccountPage(): ReactNode {
           Terms
         </a>
       </nav>
-    </AuthCard>
+    </AccountShell>
   );
 }
