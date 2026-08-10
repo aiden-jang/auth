@@ -195,7 +195,7 @@ export function SignupPage(): ReactNode {
       </form>
 
       <p className="mt-5 text-center text-sm text-muted">
-        Already have one?{' '}
+        Already have an account?{' '}
         <Link to={withReturn('/login')} className="font-medium text-accent hover:underline">
           Log in
         </Link>
