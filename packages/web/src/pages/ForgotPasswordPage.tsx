@@ -35,6 +35,7 @@ export function ForgotPasswordPage(): ReactNode {
           <label htmlFor="reset-email" className="sr-only">Email</label>
           <input
             id="reset-email"
+            name="email"
             className={inputClass}
             type="email"
             placeholder="Email"
