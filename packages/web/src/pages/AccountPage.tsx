@@ -21,7 +21,8 @@ function timeAgo(iso: string): string {
 export function AccountPage(): ReactNode {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [resent, setResent] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<'sending' | 'sent' | null>(null);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [savingName, setSavingName] = useState(false);
@@ -41,6 +42,7 @@ export function AccountPage(): ReactNode {
   const [sessions, setSessions] = useState<SessionInfo[] | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [revokingOthers, setRevokingOthers] = useState(false);
+  const [sessionError, setSessionError] = useState<string | null>(null);
   const [showDelete, setShowDelete] = useState(false);
   const [deletePw, setDeletePw] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState('');
@@ -49,9 +51,12 @@ export function AccountPage(): ReactNode {
 
   async function revoke(id: string): Promise<void> {
     setRevokingId(id);
+    setSessionError(null);
     try {
       await authApi.revokeSession(id);
       setSessions((s) => s?.filter((x) => x.id !== id) ?? null);
+    } catch {
+      setSessionError('Couldn’t sign that device out. Try again.');
     } finally {
       setRevokingId(null);
     }
@@ -59,11 +64,28 @@ export function AccountPage(): ReactNode {
 
   async function revokeOthers(): Promise<void> {
     setRevokingOthers(true);
+    setSessionError(null);
     try {
       await authApi.revokeOtherSessions();
       setSessions((s) => s?.filter((x) => x.current) ?? null);
+    } catch {
+      setSessionError('Couldn’t sign the other devices out. Try again.');
     } finally {
       setRevokingOthers(false);
+    }
+  }
+
+  async function resendVerification(): Promise<void> {
+    if (verificationStatus === 'sending') return;
+    setVerificationStatus('sending');
+    setVerificationError(null);
+    try {
+      await authApi.resendVerification();
+      setVerificationStatus('sent');
+      window.setTimeout(() => setVerificationStatus(null), 3000);
+    } catch (err) {
+      setVerificationStatus(null);
+      setVerificationError(err instanceof Error ? err.message : 'Couldn’t send the verification email.');
     }
   }
 
@@ -341,13 +363,21 @@ export function AccountPage(): ReactNode {
       </dl>
 
       {!user.emailVerified && (
-        <button
-          type="button"
-          onClick={() => void authApi.resendVerification().then(() => setResent(true))}
-          className="mt-4 text-sm font-medium text-accent hover:underline"
-        >
-          {resent ? 'Verification email sent' : 'Resend verification email'}
-        </button>
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => void resendVerification()}
+            disabled={verificationStatus !== null}
+            className="text-sm font-medium text-accent hover:underline disabled:cursor-default disabled:opacity-60"
+          >
+            {verificationStatus === 'sending'
+              ? 'Sending verification email…'
+              : verificationStatus === 'sent'
+                ? 'Verification email sent'
+                : 'Resend verification email'}
+          </button>
+          {verificationError && <p role="alert" className="mt-1.5 text-xs font-medium text-neg">{verificationError}</p>}
+        </div>
       )}
 
       <hr className="my-6 border-line" />
@@ -567,6 +597,7 @@ export function AccountPage(): ReactNode {
                 ))
               )}
             </ul>
+            {sessionError && <p role="alert" className="mt-3 text-sm font-medium text-neg">{sessionError}</p>}
           </section>
         </>
       )}
