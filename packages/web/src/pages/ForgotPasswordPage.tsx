@@ -32,7 +32,19 @@ export function ForgotPasswordPage(): ReactNode {
         </div>
       ) : (
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-3.5">
-          <input className={inputClass} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+          <input
+            className={inputClass}
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            required
+            autoFocus
+          />
           <Turnstile onToken={setTurnstileToken} />
           <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>{loading ? 'Sending...' : 'Send reset link'}</button>
           <p className="text-sm text-muted">
