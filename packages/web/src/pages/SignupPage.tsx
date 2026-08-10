@@ -73,7 +73,10 @@ export function SignupPage(): ReactNode {
             autoCapitalize="words"
             placeholder="Your name"
             value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            onChange={(e) => {
+              setDisplayName(e.target.value);
+              setError(null);
+            }}
             required
             autoFocus
             maxLength={80}
@@ -95,7 +98,10 @@ export function SignupPage(): ReactNode {
             autoCorrect="off"
             placeholder="you@example.com"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError(null);
+            }}
             required
           />
         </div>
@@ -115,7 +121,10 @@ export function SignupPage(): ReactNode {
             autoCorrect="off"
             placeholder="you@example.com"
             value={confirmEmail}
-            onChange={(e) => setConfirmEmail(e.target.value)}
+            onChange={(e) => {
+              setConfirmEmail(e.target.value);
+              setError(null);
+            }}
             required
           />
           {confirmEmail && email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase() && (
@@ -133,7 +142,10 @@ export function SignupPage(): ReactNode {
             autoComplete="new-password"
             placeholder="8+ characters"
             value={password}
-            onChange={setPassword}
+            onChange={(value) => {
+              setPassword(value);
+              setError(null);
+            }}
             required
             minLength={8}
           />
@@ -150,7 +162,10 @@ export function SignupPage(): ReactNode {
             autoComplete="new-password"
             placeholder="Re-enter password"
             value={confirmPassword}
-            onChange={setConfirmPassword}
+            onChange={(value) => {
+              setConfirmPassword(value);
+              setError(null);
+            }}
             required
             minLength={8}
           />

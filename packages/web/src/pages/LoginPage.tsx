@@ -96,7 +96,10 @@ export function LoginPage(): ReactNode {
                 autoCorrect="off"
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError(null);
+                }}
                 required
                 autoFocus
               />
@@ -120,7 +123,10 @@ export function LoginPage(): ReactNode {
                   name="password"
                   autoComplete="current-password"
                   value={password}
-                  onChange={setPassword}
+                  onChange={(value) => {
+                    setPassword(value);
+                    setError(null);
+                  }}
                   required
                 />
               </div>
