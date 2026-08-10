@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
-import { returnAppName, safeReturnTo } from '../lib/returnTo';
+import { returnAppFor, safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
@@ -11,6 +11,7 @@ import { GoogleSignIn } from '../components/GoogleSignIn';
 export function SignupPage(): ReactNode {
   const [params] = useSearchParams();
   const returnTo = params.get('return_to');
+  const returnApp = returnAppFor(returnTo);
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
@@ -56,7 +57,7 @@ export function SignupPage(): ReactNode {
     <AuthCard
       title="Create your account"
       subtitle="One account for all of aidenjang's apps."
-      returnApp={returnAppName(returnTo)}
+      returnApp={returnApp}
     >
       <GoogleSignIn returnTo={returnTo} />
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
