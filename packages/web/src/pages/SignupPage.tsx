@@ -70,6 +70,7 @@ export function SignupPage(): ReactNode {
             name="name"
             className={inputClass}
             autoComplete="name"
+            autoCapitalize="words"
             placeholder="Your name"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
@@ -89,6 +90,9 @@ export function SignupPage(): ReactNode {
             className={inputClass}
             type="email"
             autoComplete="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -106,6 +110,9 @@ export function SignupPage(): ReactNode {
             className={inputClass}
             type="email"
             autoComplete="off"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
             placeholder="you@example.com"
             value={confirmEmail}
             onChange={(e) => setConfirmEmail(e.target.value)}
