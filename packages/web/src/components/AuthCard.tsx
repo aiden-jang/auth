@@ -135,10 +135,13 @@ export function AccountShell({
 export function AuthCard({
   title,
   subtitle,
+  returnApp,
   children,
 }: {
   title: string;
   subtitle?: string;
+  /** The verified app a sign-in will return to, when there is one. */
+  returnApp?: string | null;
   children: ReactNode;
 }): ReactNode {
   return (
@@ -152,6 +155,11 @@ export function AuthCard({
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
           {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+          {returnApp && (
+            <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent">
+              <span aria-hidden>↗</span> You&apos;ll go back to {returnApp} after this.
+            </p>
+          )}
           <div className="mt-6">{children}</div>
 
           {/* The brand panel (which carries the credit) is hidden below md,
