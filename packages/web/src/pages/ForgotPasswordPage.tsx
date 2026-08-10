@@ -32,7 +32,9 @@ export function ForgotPasswordPage(): ReactNode {
         </div>
       ) : (
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-3.5">
+          <label htmlFor="reset-email" className="sr-only">Email</label>
           <input
+            id="reset-email"
             className={inputClass}
             type="email"
             placeholder="Email"
