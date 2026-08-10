@@ -91,6 +91,9 @@ export function LoginPage(): ReactNode {
                 className={inputClass}
                 type="email"
                 autoComplete="email"
+                inputMode="email"
+                autoCapitalize="none"
+                autoCorrect="off"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
