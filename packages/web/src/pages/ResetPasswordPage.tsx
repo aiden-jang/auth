@@ -68,7 +68,10 @@ export function ResetPasswordPage(): ReactNode {
               autoComplete="new-password"
               placeholder="8+ characters"
               value={password}
-              onChange={setPassword}
+              onChange={(value) => {
+                setPassword(value);
+                setError(null);
+              }}
               required
               minLength={8}
               autoFocus
@@ -86,7 +89,10 @@ export function ResetPasswordPage(): ReactNode {
               autoComplete="new-password"
               placeholder="Re-enter password"
               value={confirmPassword}
-              onChange={setConfirmPassword}
+              onChange={(value) => {
+                setConfirmPassword(value);
+                setError(null);
+              }}
               required
               minLength={8}
             />
