@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
-import { safeReturnTo } from '../lib/returnTo';
+import { returnAppName, safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
@@ -55,7 +55,7 @@ export function LoginPage(): ReactNode {
   // build", and on desktop both are on screen at once. "Welcome back" is complete on its own — the
   // returning user is the one person who does not need the pitch.
   return (
-    <AuthCard title="Welcome back">
+    <AuthCard title="Welcome back" returnApp={returnAppName(returnTo)}>
       {magicSent ? (
         <div className="space-y-4">
           <div
