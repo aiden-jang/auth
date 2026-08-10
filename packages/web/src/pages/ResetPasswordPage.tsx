@@ -49,7 +49,7 @@ export function ResetPasswordPage(): ReactNode {
     <AuthCard title="Choose a new password">
       {done ? (
         <div className="space-y-4">
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted" role="status">
             Password updated. You've been signed out everywhere for safety.
           </p>
           <Link to="/login" className="font-medium text-accent hover:underline">

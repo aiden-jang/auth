@@ -89,7 +89,7 @@ export function PasswordInput({
       </button>
       </div>
       {capsOn && focused && (
-        <p className="mt-1.5 text-xs font-medium text-accent">Caps Lock is on</p>
+        <p className="mt-1.5 text-xs font-medium text-accent" role="status">Caps Lock is on</p>
       )}
     </>
   );
