@@ -166,7 +166,7 @@ export function LoginPage(): ReactNode {
           </button>
 
           <p className="mt-5 text-center text-sm text-muted">
-            New here?{' '}
+              First time here?{' '}
             <Link to={withReturn('/signup')} className="font-medium text-accent hover:underline">
               Create an account
             </Link>
