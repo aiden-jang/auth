@@ -10,6 +10,7 @@ import { GoogleSignIn } from '../components/GoogleSignIn';
 export function LoginPage(): ReactNode {
   const [params] = useSearchParams();
   const returnTo = params.get('return_to');
+  const returnApp = returnAppName(returnTo);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
@@ -55,7 +56,7 @@ export function LoginPage(): ReactNode {
   // build", and on desktop both are on screen at once. "Welcome back" is complete on its own — the
   // returning user is the one person who does not need the pitch.
   return (
-    <AuthCard title="Welcome back" returnApp={returnAppName(returnTo)}>
+    <AuthCard title="Welcome back" returnApp={returnApp}>
       {magicSent ? (
         <div className="space-y-4">
           <div
@@ -63,7 +64,7 @@ export function LoginPage(): ReactNode {
             className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-sm text-pos"
           >
             Check your inbox. If <strong>{email}</strong> has an account, a sign-in link is on its
-            way. It expires in 15 minutes.
+            way. It expires in 15 minutes.{returnApp ? ` Then we’ll bring you back to ${returnApp}.` : ''}
           </div>
           <button
             type="button"
