@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { APPS, appHref } from '../lib/apps';
+import type { ReturnApp } from '../lib/returnTo';
 
 export const inputClass =
   'w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20';
@@ -141,7 +142,7 @@ export function AuthCard({
   title: string;
   subtitle?: string;
   /** The verified app a sign-in will return to, when there is one. */
-  returnApp?: string | null;
+  returnApp?: ReturnApp | null;
   children: ReactNode;
 }): ReactNode {
   return (
@@ -157,7 +158,8 @@ export function AuthCard({
           {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
           {returnApp && (
             <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent">
-              <span aria-hidden>↗</span> You&apos;ll go back to {returnApp} after this.
+              <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: returnApp.accent }} />
+              You&apos;ll go back to {returnApp.name} after this.
             </p>
           )}
           <div className="mt-6">{children}</div>

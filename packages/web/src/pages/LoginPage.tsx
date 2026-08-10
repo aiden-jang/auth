@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
-import { returnAppName, safeReturnTo } from '../lib/returnTo';
+import { returnAppFor, safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
@@ -10,7 +10,7 @@ import { GoogleSignIn } from '../components/GoogleSignIn';
 export function LoginPage(): ReactNode {
   const [params] = useSearchParams();
   const returnTo = params.get('return_to');
-  const returnApp = returnAppName(returnTo);
+  const returnApp = returnAppFor(returnTo);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
@@ -64,7 +64,7 @@ export function LoginPage(): ReactNode {
             className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-sm text-pos"
           >
             Check your inbox. If <strong>{email}</strong> has an account, a sign-in link is on its
-            way. It expires in 15 minutes.{returnApp ? ` Then we’ll bring you back to ${returnApp}.` : ''}
+            way. It expires in 15 minutes.{returnApp ? ` Then we’ll bring you back to ${returnApp.name}.` : ''}
           </div>
           <button
             type="button"

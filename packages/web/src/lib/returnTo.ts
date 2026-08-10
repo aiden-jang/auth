@@ -1,5 +1,10 @@
 import { APPS } from './apps';
 
+export interface ReturnApp {
+  name: string;
+  accent: string;
+}
+
 // Only allow redirects back to our own apps, so ?return_to can't be an open redirect.
 export function safeReturnTo(raw: string | null): string | null {
   if (!raw) return null;
@@ -15,8 +20,8 @@ export function safeReturnTo(raw: string | null): string | null {
   return null;
 }
 
-/** A human label for a verified return destination, for the login handoff. */
-export function returnAppName(raw: string | null): string | null {
+/** The verified app a sign-in will return to, including its visual accent for the handoff cue. */
+export function returnAppFor(raw: string | null): ReturnApp | null {
   const target = safeReturnTo(raw);
   if (!target) return null;
   try {
@@ -26,8 +31,13 @@ export function returnAppName(raw: string | null): string | null {
       const local = new URL(candidate.devUrl);
       return url.hostname === production.hostname || url.origin === local.origin;
     });
-    return app?.name ?? null;
+    return app ? { name: app.name, accent: app.accent } : null;
   } catch {
     return null;
   }
+}
+
+/** A human label for places that only need the name. */
+export function returnAppName(raw: string | null): string | null {
+  return returnAppFor(raw)?.name ?? null;
 }
