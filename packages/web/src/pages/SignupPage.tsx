@@ -56,7 +56,7 @@ export function SignupPage(): ReactNode {
   return (
     <AuthCard
       title="Create your account"
-      subtitle="One account for all of aidenjang's apps."
+      subtitle={returnApp ? 'Create your account, then head straight back.' : "One account for all of aidenjang's apps."}
       returnApp={returnApp}
     >
       <GoogleSignIn returnTo={returnTo} />
