@@ -25,7 +25,7 @@ export function ForgotPasswordPage(): ReactNode {
     <AuthCard title="Reset your password" subtitle="We'll email you a link to choose a new one.">
       {sent ? (
         <div className="space-y-4">
-          <p className="text-sm text-muted">
+          <p className="text-sm text-muted" role="status">
             If an account exists for <span className="text-ink">{email}</span>, a reset link is on its way. The link expires in an hour.
           </p>
           <Link to="/login" className="font-medium text-accent hover:underline">Back to login</Link>
