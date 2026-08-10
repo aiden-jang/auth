@@ -56,7 +56,11 @@ export function LoginPage(): ReactNode {
   // build", and on desktop both are on screen at once. "Welcome back" is complete on its own — the
   // returning user is the one person who does not need the pitch.
   return (
-    <AuthCard title="Welcome back" returnApp={returnApp}>
+    <AuthCard
+      title="Welcome back"
+      {...(!returnApp ? { subtitle: 'Sign in to pick up where you left off.' } : {})}
+      returnApp={returnApp}
+    >
       {magicSent ? (
         <div className="space-y-4">
           <div
