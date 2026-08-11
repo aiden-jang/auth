@@ -7,6 +7,7 @@ import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { GoogleSignIn } from '../components/GoogleSignIn';
+import { EmailSuggestion } from '../components/EmailSuggestion';
 
 export function SignupPage(): ReactNode {
   const [params] = useSearchParams();
@@ -103,6 +104,18 @@ export function SignupPage(): ReactNode {
               setError(null);
             }}
             required
+          />
+          <EmailSuggestion
+            value={email}
+            onAccept={(value) => {
+              // If the confirmation already mirrored the typo, correct both fields together so a
+              // helpful fix does not immediately turn into a confusing mismatch warning.
+              setConfirmEmail((current) =>
+                current.trim().toLowerCase() === email.trim().toLowerCase() ? value : current,
+              );
+              setEmail(value);
+              setError(null);
+            }}
           />
         </div>
 

@@ -6,6 +6,7 @@ import { AuthCard, buttonClass, inputClass, labelClass } from '../components/Aut
 import { PasswordInput } from '../components/PasswordInput';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { GoogleSignIn } from '../components/GoogleSignIn';
+import { EmailSuggestion } from '../components/EmailSuggestion';
 
 const LOGIN_METHOD_KEY = 'aidenjang:login-method';
 
@@ -176,6 +177,13 @@ export function LoginPage(): ReactNode {
                 }}
                 required
                 autoFocus
+              />
+              <EmailSuggestion
+                value={email}
+                onAccept={(value) => {
+                  setEmail(value);
+                  setError(null);
+                }}
               />
             </div>
 
