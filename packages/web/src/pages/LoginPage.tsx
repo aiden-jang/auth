@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { returnAppFor, safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
@@ -45,9 +45,11 @@ function inboxFor(email: string): { label: string; href: string } | null {
 
 export function LoginPage(): ReactNode {
   const [params] = useSearchParams();
+  const location = useLocation();
   const returnTo = params.get('return_to');
   const returnApp = returnAppFor(returnTo);
-  const [email, setEmail] = useState('');
+  const carriedEmail = (location.state as { email?: unknown } | null)?.email;
+  const [email, setEmail] = useState(typeof carriedEmail === 'string' ? carriedEmail : '');
   const [password, setPassword] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
   const [error, setError] = useState<string | null>(
@@ -230,6 +232,7 @@ export function LoginPage(): ReactNode {
                   </label>
                   <Link
                     to={withReturn('/forgot-password')}
+                    state={{ email }}
                     className="text-xs text-muted hover:text-ink"
                   >
                     Forgot?
@@ -279,7 +282,11 @@ export function LoginPage(): ReactNode {
 
           <p className="mt-5 text-center text-sm text-muted">
               First time here?{' '}
-            <Link to={withReturn('/signup')} className="font-medium text-accent hover:underline">
+            <Link
+              to={withReturn('/signup')}
+              state={{ email }}
+              className="font-medium text-accent hover:underline"
+            >
               Create an account
             </Link>
           </p>

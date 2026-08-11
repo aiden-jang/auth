@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { returnAppFor, safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
@@ -11,10 +11,12 @@ import { EmailSuggestion } from '../components/EmailSuggestion';
 
 export function SignupPage(): ReactNode {
   const [params] = useSearchParams();
+  const location = useLocation();
   const returnTo = params.get('return_to');
   const returnApp = returnAppFor(returnTo);
+  const carriedEmail = (location.state as { email?: unknown } | null)?.email;
   const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(typeof carriedEmail === 'string' ? carriedEmail : '');
   const [confirmEmail, setConfirmEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -209,7 +211,11 @@ export function SignupPage(): ReactNode {
 
       <p className="mt-5 text-center text-sm text-muted">
         Already have an account?{' '}
-        <Link to={withReturn('/login')} className="font-medium text-accent hover:underline">
+        <Link
+          to={withReturn('/login')}
+          state={{ email }}
+          className="font-medium text-accent hover:underline"
+        >
           Log in
         </Link>
       </p>
