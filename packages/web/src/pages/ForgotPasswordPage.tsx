@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { AuthCard, buttonClass, inputClass } from '../components/AuthCard';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
+import { EmailSuggestion } from '../components/EmailSuggestion';
 
 export function ForgotPasswordPage(): ReactNode {
   const [email, setEmail] = useState('');
@@ -48,6 +49,7 @@ export function ForgotPasswordPage(): ReactNode {
             required
             autoFocus
           />
+          <EmailSuggestion value={email} onAccept={setEmail} />
           <Turnstile onToken={setTurnstileToken} />
           <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>{loading ? 'Sending...' : 'Send reset link'}</button>
           <p className="text-sm text-muted">
