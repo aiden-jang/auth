@@ -1,12 +1,18 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { AuthCard, buttonClass, inputClass } from '../components/AuthCard';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { EmailSuggestion } from '../components/EmailSuggestion';
+import { returnAppFor } from '../lib/returnTo';
 
 export function ForgotPasswordPage(): ReactNode {
-  const [email, setEmail] = useState('');
+  const [params] = useSearchParams();
+  const location = useLocation();
+  const returnTo = params.get('return_to');
+  const returnApp = returnAppFor(returnTo);
+  const carriedEmail = (location.state as { email?: unknown } | null)?.email;
+  const [email, setEmail] = useState(typeof carriedEmail === 'string' ? carriedEmail : '');
   const [turnstileToken, setTurnstileToken] = useState('');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -23,13 +29,23 @@ export function ForgotPasswordPage(): ReactNode {
   }
 
   return (
-    <AuthCard title="Reset your password" subtitle="We'll email you a link to choose a new one.">
+    <AuthCard
+      title="Reset your password"
+      subtitle="We'll email you a link to choose a new one."
+      returnApp={returnApp}
+    >
       {sent ? (
         <div className="space-y-4">
           <p className="text-sm text-muted" role="status">
             If an account exists for <span className="text-ink">{email}</span>, a reset link is on its way. The link expires in an hour.
           </p>
-          <Link to="/login" className="font-medium text-accent hover:underline">Back to login</Link>
+          <Link
+            to={returnTo ? `/login?return_to=${encodeURIComponent(returnTo)}` : '/login'}
+            state={{ email }}
+            className="font-medium text-accent hover:underline"
+          >
+            Back to login
+          </Link>
         </div>
       ) : (
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-3.5">
@@ -53,7 +69,13 @@ export function ForgotPasswordPage(): ReactNode {
           <Turnstile onToken={setTurnstileToken} />
           <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>{loading ? 'Sending...' : 'Send reset link'}</button>
           <p className="text-sm text-muted">
-            <Link to="/login" className="text-accent hover:underline">Back to login</Link>
+            <Link
+              to={returnTo ? `/login?return_to=${encodeURIComponent(returnTo)}` : '/login'}
+              state={{ email }}
+              className="text-accent hover:underline"
+            >
+              Back to login
+            </Link>
           </p>
         </form>
       )}

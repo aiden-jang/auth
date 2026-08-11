@@ -18,6 +18,16 @@ function timeAgo(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+function exactTime(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export function AccountPage(): ReactNode {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +56,7 @@ export function AccountPage(): ReactNode {
   const [refreshingSessions, setRefreshingSessions] = useState(false);
   const [sessionsRefreshed, setSessionsRefreshed] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [showDelete, setShowDelete] = useState(false);
   const [deletePw, setDeletePw] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState('');
@@ -58,6 +69,7 @@ export function AccountPage(): ReactNode {
     try {
       await authApi.revokeSession(id);
       setSessions((s) => s?.filter((x) => x.id !== id) ?? null);
+      setExpandedSessionId((current) => current === id ? null : current);
     } catch {
       setSessionError('Couldn’t sign that device out. Try again.');
     } finally {
@@ -663,38 +675,70 @@ export function AccountPage(): ReactNode {
               ) : sessions.length === 0 ? (
                 <li className="text-sm text-muted">No active sessions.</li>
               ) : (
-                sessions.map((s) => (
+                sessions.map((s) => {
+                  const expanded = expandedSessionId === s.id;
+                  const recentlyAdded = !s.current && Date.now() - new Date(s.createdAt).getTime() < 24 * 60 * 60 * 1000;
+                  return (
                   <li
                     key={s.id}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-line bg-field px-4 py-3"
+                    className="rounded-xl border border-line bg-field px-4 py-3"
                   >
-                    <span className="min-w-0">
-                      <span className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium text-ink">
-                          {s.device ?? 'Unknown device'}
-                        </span>
-                        {s.current && (
-                          <span className="shrink-0 rounded-full border border-pos/30 bg-pos/10 px-2 py-0.5 text-xs font-medium text-pos">
-                            this device
-                          </span>
-                        )}
-                      </span>
-                      <span className="block text-xs text-muted">
-                        {[s.location, timeAgo(s.lastSeenAt)].filter(Boolean).join(' · ')}
-                      </span>
-                    </span>
-                    {!s.current && (
+                    <div className="flex items-center justify-between gap-4">
                       <button
                         type="button"
-                        onClick={() => void revoke(s.id)}
-                        disabled={revokingId === s.id}
-                        className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2 text-sm text-muted transition hover:text-ink disabled:opacity-60"
+                        onClick={() => setExpandedSessionId(expanded ? null : s.id)}
+                        aria-expanded={expanded}
+                        className="min-w-0 flex-1 cursor-pointer text-left"
                       >
-                        {revokingId === s.id ? '...' : 'Sign out'}
+                        <span className="flex items-center gap-2">
+                          <span className="truncate text-sm font-medium text-ink">
+                            {s.device ?? 'Unknown device'}
+                          </span>
+                          {s.current && (
+                            <span className="shrink-0 rounded-full border border-pos/30 bg-pos/10 px-2 py-0.5 text-xs font-medium text-pos">
+                              this device
+                            </span>
+                          )}
+                          {recentlyAdded && (
+                            <span className="shrink-0 rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                              new
+                            </span>
+                          )}
+                        </span>
+                        <span className="block text-xs text-muted">
+                          {[s.location, timeAgo(s.lastSeenAt)].filter(Boolean).join(' · ')} · {expanded ? 'hide details' : 'details'}
+                        </span>
                       </button>
+                      {!s.current && (
+                        <button
+                          type="button"
+                          onClick={() => void revoke(s.id)}
+                          disabled={revokingId === s.id}
+                          className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2 text-sm text-muted transition hover:text-ink disabled:opacity-60"
+                        >
+                          {revokingId === s.id ? '...' : 'Sign out'}
+                        </button>
+                      )}
+                    </div>
+                    {expanded && (
+                      <dl className="mt-3 grid gap-2 border-t border-line pt-3 text-xs sm:grid-cols-3">
+                        <div>
+                          <dt className="text-muted">First signed in</dt>
+                          <dd className="mt-0.5 font-medium text-ink">{exactTime(s.createdAt)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted">Last active</dt>
+                          <dd className="mt-0.5 font-medium text-ink">{exactTime(s.lastSeenAt)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-muted">Approximate location</dt>
+                          <dd className="mt-0.5 font-medium text-ink">{s.location ?? 'Not available'}</dd>
+                        </div>
+                      </dl>
                     )}
                   </li>
-                ))
+                  );
+                })
               )}
             </ul>
             {sessionError && <p role="alert" className="mt-3 text-sm font-medium text-neg">{sessionError}</p>}
