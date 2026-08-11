@@ -78,6 +78,38 @@ export interface AccountExport {
   securityActivity: Array<Omit<SecurityEvent, 'id'>>;
 }
 
+/**
+ * A failed request, with the server's error code kept.
+ *
+ * The old helper threw a bare Error carrying only `message`, which is fine for showing a sentence
+ * and useless for reacting to one. Recovering from REAUTH_REQUIRED needs the code and the
+ * `canUsePassword` hint alongside it, and string-matching the prose would break the first time
+ * anyone rewords a message. Still an Error subclass, so every existing `err.message` path is intact.
+ */
+export class ApiError extends Error {
+  readonly code: string;
+  readonly status: number;
+  readonly details: Record<string, unknown>;
+
+  constructor(message: string, code: string, status: number, details: Record<string, unknown> = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.status = status;
+    this.details = details;
+  }
+}
+
+/** The server refused because this session has not proved itself recently enough. */
+export function isReauthRequired(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.code === 'REAUTH_REQUIRED';
+}
+
+/** Whether the account has a password to confirm with. False means send them to Google or email. */
+export function reauthCanUsePassword(err: unknown): boolean {
+  return err instanceof ApiError && err.details.canUsePassword === true;
+}
+
 async function req<T>(path: string, method: string, body?: unknown): Promise<T> {
   const init: RequestInit = { method, credentials: 'include' };
   if (body !== undefined) {
@@ -88,17 +120,19 @@ async function req<T>(path: string, method: string, body?: unknown): Promise<T> 
   const isJson = res.headers.get('content-type')?.includes('application/json') ?? false;
   const data: unknown = isJson ? await res.json() : undefined;
   if (!res.ok) {
-    const message =
-      data && typeof data === 'object' && 'message' in data && typeof data.message === 'string'
-        ? data.message
-        : `Request failed (${res.status})`;
-    throw new Error(message);
+    const obj = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+    const message = typeof obj.message === 'string' ? obj.message : `Request failed (${res.status})`;
+    const code = typeof obj.error === 'string' ? obj.error : `HTTP_${res.status}`;
+    throw new ApiError(message, code, res.status, obj);
   }
   return data as T;
 }
 
 export const authApi = {
-  me: () => req<{ user: AuthUser }>('/auth/me', 'GET'),
+  me: () => req<{ user: AuthUser; sudoUntil: string | null }>('/auth/me', 'GET'),
+  /** Re-confirm the current session with a password, re-opening the step-up window. */
+  reauth: (password: string) =>
+    req<{ ok: boolean; sudoUntil: string | null }>('/auth/reauth', 'POST', { password }),
   login: (email: string, password: string, turnstileToken?: string) =>
     req<{ user: AuthUser }>('/auth/login', 'POST', { email, password, turnstileToken }),
   register: (email: string, password: string, displayName: string, turnstileToken?: string) =>

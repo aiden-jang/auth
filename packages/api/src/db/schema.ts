@@ -51,6 +51,12 @@ export const sessions = sqliteTable('sessions', {
   device: text('device'),
   location: text('location'),
   lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }),
+  // When this session last proved who it belongs to, which is not the same as when it was created:
+  // signing in stamps it, and so does re-entering a password to confirm a sensitive action. Actions
+  // that could lock the owner out of their own account require it to be recent. Nullable because
+  // sessions predating this column exist; those fall back to `createdAt`, which is the honest
+  // answer for them (creating a session did involve authenticating).
+  reauthAt: integer('reauth_at', { mode: 'timestamp' }),
 });
 
 // A short, human-readable audit trail for the account page. It deliberately stores only a parsed
