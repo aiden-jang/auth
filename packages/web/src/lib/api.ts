@@ -45,6 +45,7 @@ export type SecurityEventType =
   | 'password_reset'
   | 'google_connected'
   | 'google_disconnected'
+  | 'device_renamed'
   | 'device_signed_out'
   | 'other_devices_signed_out';
 
@@ -101,6 +102,8 @@ export const authApi = {
   disconnectGoogle: () => req<{ ok: boolean }>('/auth/disconnect-google', 'POST'),
   listSessions: () => req<{ sessions: SessionInfo[] }>('/auth/sessions', 'GET'),
   listSecurityEvents: () => req<{ events: SecurityEvent[] }>('/auth/security-events', 'GET'),
+  renameSession: (id: string, label: string) =>
+    req<{ session: Pick<SessionInfo, 'id' | 'device'> }>('/auth/sessions/rename', 'POST', { id, label }),
   revokeSession: (id: string) => req<{ ok: boolean }>('/auth/sessions/revoke', 'POST', { id }),
   revokeOtherSessions: () => req<{ ok: boolean }>('/auth/sessions/revoke-others', 'POST'),
   deleteAccount: (body: { password?: string; confirm?: string }) =>

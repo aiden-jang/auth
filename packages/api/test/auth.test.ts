@@ -349,6 +349,37 @@ describe('active sessions', () => {
     expect((await get('/auth/me', b.cookie)).status).toBe(200);
   });
 
+  it('renames only a caller-owned session and records the activity', async () => {
+    const a = await register();
+    const b = await register();
+    const aList = (await (await get('/auth/sessions', a.cookie)).json()) as { sessions: { id: string }[] };
+    const bList = (await (await get('/auth/sessions', b.cookie)).json()) as { sessions: { id: string; device: string | null }[] };
+    const aId = aList.sessions[0]!.id;
+    const bId = bList.sessions[0]!.id;
+
+    const renamed = await post('/auth/sessions/rename', { id: aId, label: '  Personal MacBook  ' }, a.cookie);
+    expect(renamed.status).toBe(200);
+    expect(((await renamed.json()) as { session: { device: string } }).session.device).toBe('Personal MacBook');
+
+    const refreshed = (await (await get('/auth/sessions', a.cookie)).json()) as { sessions: { id: string; device: string | null }[] };
+    expect(refreshed.sessions.find((session) => session.id === aId)?.device).toBe('Personal MacBook');
+    const activity = (await (await get('/auth/security-events', a.cookie)).json()) as { events: { type: string }[] };
+    expect(activity.events.some((event) => event.type === 'device_renamed')).toBe(true);
+
+    expect((await post('/auth/sessions/rename', { id: bId, label: 'Not mine' }, a.cookie)).status).toBe(404);
+    const bRefreshed = (await (await get('/auth/sessions', b.cookie)).json()) as { sessions: { id: string; device: string | null }[] };
+    expect(bRefreshed.sessions.find((session) => session.id === bId)?.device).toBe(bList.sessions[0]!.device);
+  });
+
+  it('validates session names and requires authentication', async () => {
+    const a = await register();
+    const list = (await (await get('/auth/sessions', a.cookie)).json()) as { sessions: { id: string }[] };
+    const id = list.sessions[0]!.id;
+    expect((await post('/auth/sessions/rename', { id, label: '   ' }, a.cookie)).status).toBe(400);
+    expect((await post('/auth/sessions/rename', { id, label: 'x'.repeat(41) }, a.cookie)).status).toBe(400);
+    expect((await post('/auth/sessions/rename', { id, label: 'My device' })).status).toBe(401);
+  });
+
   it('requires authentication', async () => {
     expect((await get('/auth/sessions')).status).toBe(401);
   });

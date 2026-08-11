@@ -58,6 +58,9 @@ export function AccountPage(): ReactNode {
   const [sessionsRefreshed, setSessionsRefreshed] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
+  const [sessionNameDraft, setSessionNameDraft] = useState('');
+  const [savingSessionName, setSavingSessionName] = useState(false);
   const [securityRevision, setSecurityRevision] = useState(0);
   const [showDelete, setShowDelete] = useState(false);
   const [deletePw, setDeletePw] = useState('');
@@ -77,6 +80,33 @@ export function AccountPage(): ReactNode {
       setSessionError('Couldn’t sign that device out. Try again.');
     } finally {
       setRevokingId(null);
+    }
+  }
+
+  function beginSessionRename(session: SessionInfo): void {
+    setRenamingSessionId(session.id);
+    setSessionNameDraft(session.device ?? '');
+    setSessionError(null);
+  }
+
+  async function renameSession(event: FormEvent, id: string): Promise<void> {
+    event.preventDefault();
+    const label = sessionNameDraft.trim();
+    if (!label) return;
+    setSavingSessionName(true);
+    setSessionError(null);
+    try {
+      const { session } = await authApi.renameSession(id, label);
+      setSessions((current) =>
+        current?.map((item) => item.id === id ? { ...item, device: session.device } : item) ?? null,
+      );
+      setRenamingSessionId(null);
+      setSessionNameDraft('');
+      setSecurityRevision((value) => value + 1);
+    } catch {
+      setSessionError('Couldn’t rename that device. Try again.');
+    } finally {
+      setSavingSessionName(false);
     }
   }
 
@@ -727,20 +757,67 @@ export function AccountPage(): ReactNode {
                       )}
                     </div>
                     {expanded && (
-                      <dl className="mt-3 grid gap-2 border-t border-line pt-3 text-xs sm:grid-cols-3">
-                        <div>
-                          <dt className="text-muted">First signed in</dt>
-                          <dd className="mt-0.5 font-medium text-ink">{exactTime(s.createdAt)}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-muted">Last active</dt>
-                          <dd className="mt-0.5 font-medium text-ink">{exactTime(s.lastSeenAt)}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-muted">Approximate location</dt>
-                          <dd className="mt-0.5 font-medium text-ink">{s.location ?? 'Not available'}</dd>
-                        </div>
-                      </dl>
+                      <div className="mt-3 border-t border-line pt-3">
+                        <dl className="grid gap-2 text-xs sm:grid-cols-3">
+                          <div>
+                            <dt className="text-muted">First signed in</dt>
+                            <dd className="mt-0.5 font-medium text-ink">{exactTime(s.createdAt)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-muted">Last active</dt>
+                            <dd className="mt-0.5 font-medium text-ink">{exactTime(s.lastSeenAt)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-muted">Approximate location</dt>
+                            <dd className="mt-0.5 font-medium text-ink">{s.location ?? 'Not available'}</dd>
+                          </div>
+                        </dl>
+                        {renamingSessionId === s.id ? (
+                          <form
+                            onSubmit={(event) => void renameSession(event, s.id)}
+                            className="mt-3 flex flex-col gap-2 rounded-lg border border-line bg-canvas/50 p-3 sm:flex-row sm:items-end"
+                          >
+                            <label className="min-w-0 flex-1 text-xs font-medium text-muted">
+                              Device name
+                              <input
+                                autoFocus
+                                maxLength={40}
+                                value={sessionNameDraft}
+                                onChange={(event) => setSessionNameDraft(event.target.value)}
+                                placeholder="Personal MacBook"
+                                className={`${inputClass} mt-1 py-2`}
+                              />
+                            </label>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setRenamingSessionId(null);
+                                  setSessionNameDraft('');
+                                }}
+                                className="rounded-lg border border-line px-3 py-2 text-xs font-medium text-muted hover:text-ink"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={savingSessionName || !sessionNameDraft.trim()}
+                                className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                              >
+                                {savingSessionName ? 'Saving…' : 'Save name'}
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => beginSessionRename(s)}
+                            className="mt-3 text-xs font-medium text-accent hover:underline"
+                          >
+                            Rename device
+                          </button>
+                        )}
+                      </div>
                     )}
                   </li>
                   );

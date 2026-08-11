@@ -11,6 +11,7 @@ const eventCopy: Record<SecurityEventType, { icon: string; title: string }> = {
   password_reset: { icon: '↻', title: 'Password reset' },
   google_connected: { icon: '+', title: 'Google connected' },
   google_disconnected: { icon: '−', title: 'Google disconnected' },
+  device_renamed: { icon: '✎', title: 'Device renamed' },
   device_signed_out: { icon: '×', title: 'A device was signed out' },
   other_devices_signed_out: { icon: '×', title: 'Other devices signed out' },
 };

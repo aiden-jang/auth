@@ -638,6 +638,30 @@ app.get('/auth/sessions', async (c) => {
   return c.json({ sessions: list });
 });
 
+// Give a session a memorable, user-controlled label without exposing or changing its token.
+app.post('/auth/sessions/rename', async (c) => {
+  const cookie = getCookie(c, SESSION_COOKIE);
+  const db = createDb(c.env);
+  const me = cookie ? await validateSession(db, cookie) : null;
+  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const parsed = z
+    .object({ id: z.string().min(1), label: z.string().trim().min(1).max(40) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+
+  const renamed = await db
+    .update(sessions)
+    .set({ device: parsed.data.label })
+    .where(and(eq(sessions.id, parsed.data.id), eq(sessions.userId, me.id)))
+    .returning({ id: sessions.id, device: sessions.device });
+  if (renamed.length === 0) {
+    return c.json({ error: 'NOT_FOUND', message: 'That session no longer exists.' }, 404);
+  }
+
+  await recordSecurityEvent(db, me.id, 'device_renamed', sessionMeta(c));
+  return c.json({ session: renamed[0] });
+});
+
 // Revoke one session (scoped to the caller's own sessions) — signs that device out.
 app.post('/auth/sessions/revoke', async (c) => {
   const cookie = getCookie(c, SESSION_COOKIE);
