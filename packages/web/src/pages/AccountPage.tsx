@@ -13,6 +13,7 @@ import { Skeleton } from '../components/Skeleton';
 import { APPS, appHref } from '../lib/apps';
 import { SecurityActivity } from '../components/SecurityActivity';
 import { securityCheckup, type SecurityAction } from '../lib/securityCheckup';
+import { sessionHorizon } from '../lib/sessionHorizon';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -840,6 +841,7 @@ export function AccountPage(): ReactNode {
               ) : (
                 sessions.map((s) => {
                   const expanded = expandedSessionId === s.id;
+                  const horizon = sessionHorizon(s.createdAt, s.expiresAt);
                   const recentlyAdded =
                     !s.current &&
                     Date.now() - new Date(s.createdAt).getTime() < 24 * 60 * 60 * 1000;
@@ -866,6 +868,11 @@ export function AccountPage(): ReactNode {
                                 new
                               </span>
                             )}
+                            {horizon.tone === 'soon' && (
+                              <span className="shrink-0 rounded-full border border-neg/25 bg-neg/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neg">
+                                expires soon
+                              </span>
+                            )}
                           </span>
                           <span className="block text-xs text-muted">
                             {[s.location, timeAgo(s.lastSeenAt)].filter(Boolean).join(' · ')} ·{' '}
@@ -885,7 +892,7 @@ export function AccountPage(): ReactNode {
                       </div>
                       {expanded && (
                         <div className="mt-3 border-t border-line pt-3">
-                          <dl className="grid gap-2 text-xs sm:grid-cols-3">
+                          <dl className="grid gap-2 text-xs sm:grid-cols-4">
                             <div>
                               <dt className="text-muted">First signed in</dt>
                               <dd className="mt-0.5 font-medium text-ink">
@@ -904,7 +911,38 @@ export function AccountPage(): ReactNode {
                                 {s.location ?? 'Not available'}
                               </dd>
                             </div>
+                            <div>
+                              <dt className="text-muted">Session lifetime</dt>
+                              <dd
+                                className={`mt-0.5 font-medium ${
+                                  horizon.tone === 'soon' ? 'text-neg' : 'text-ink'
+                                }`}
+                              >
+                                {horizon.label}
+                              </dd>
+                            </div>
                           </dl>
+                          <div className="mt-3">
+                            <div className="mb-1 flex items-center justify-between gap-3 text-[10px] text-muted">
+                              <span>session time remaining</span>
+                              <span className="tnum">{horizon.percentRemaining}%</span>
+                            </div>
+                            <div
+                              className="h-1.5 overflow-hidden rounded-full bg-line"
+                              role="progressbar"
+                              aria-label={`${s.device ?? 'This session'} lifetime remaining`}
+                              aria-valuemin={0}
+                              aria-valuemax={100}
+                              aria-valuenow={horizon.percentRemaining}
+                            >
+                              <div
+                                className={`h-full rounded-full transition-[width] ${
+                                  horizon.tone === 'soon' ? 'bg-neg' : 'bg-accent'
+                                }`}
+                                style={{ width: `${horizon.percentRemaining}%` }}
+                              />
+                            </div>
+                          </div>
                           {renamingSessionId === s.id ? (
                             <form
                               onSubmit={(event) => void renameSession(event, s.id)}

@@ -709,6 +709,7 @@ app.get('/auth/sessions', async (c) => {
       location: r.location,
       lastSeenAt: (r.lastSeenAt ?? r.createdAt).toISOString(),
       createdAt: r.createdAt.toISOString(),
+      expiresAt: r.expiresAt.toISOString(),
     }))
     .sort((a, b) => {
       if (a.current !== b.current) return a.current ? -1 : 1; // this device first

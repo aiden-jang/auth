@@ -329,10 +329,11 @@ describe('active sessions', () => {
     expect(second).toBeTruthy();
 
     const list = (await (await get('/auth/sessions', cookie)).json()) as {
-      sessions: { id: string; current: boolean }[];
+      sessions: { id: string; current: boolean; expiresAt: string }[];
     };
     expect(list.sessions.length).toBe(2);
     expect(list.sessions.filter((s) => s.current).length).toBe(1);
+    expect(list.sessions.every((session) => new Date(session.expiresAt).getTime() > Date.now())).toBe(true);
 
     expect((await post('/auth/sessions/revoke-others', {}, cookie)).status).toBe(200);
     expect((await get('/auth/me', cookie)).status).toBe(200); // current kept
