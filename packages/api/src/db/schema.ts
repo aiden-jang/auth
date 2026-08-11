@@ -52,3 +52,18 @@ export const sessions = sqliteTable('sessions', {
   location: text('location'),
   lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }),
 });
+
+// A short, human-readable audit trail for the account page. It deliberately stores only a parsed
+// device label and coarse edge location, never an IP address or full user-agent.
+export const securityEvents = sqliteTable('security_events', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(),
+  device: text('device'),
+  location: text('location'),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});

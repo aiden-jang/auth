@@ -136,7 +136,7 @@ describe('caching', () => {
 
   it('applies it to every auth route, not just the one that broke', async () => {
     // Anything under /auth depends on who is asking, so none of it is cacheable.
-    for (const path of ['/auth/me', '/auth/sessions']) {
+    for (const path of ['/auth/me', '/auth/sessions', '/auth/security-events']) {
       const cc = (await get(path)).headers.get('cache-control') ?? '';
       expect(cc, `${path}: ${cc || '(no header)'}`).toContain('no-store');
     }
@@ -351,6 +351,56 @@ describe('active sessions', () => {
 
   it('requires authentication', async () => {
     expect((await get('/auth/sessions')).status).toBe(401);
+  });
+});
+
+describe('security activity', () => {
+  it('lists only the signed-in user’s recent account events', async () => {
+    const a = await register();
+    const b = await register();
+    await post('/auth/login', { email: a.email, password: a.password });
+
+    const response = await get('/auth/security-events', a.cookie);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      events: { type: string; device: string | null; createdAt: string }[];
+    };
+    expect(body.events.map((event) => event.type)).toEqual(
+      expect.arrayContaining(['account_created', 'signed_in']),
+    );
+    expect(body.events).toHaveLength(2);
+    expect(body.events.every((event) => !Number.isNaN(Date.parse(event.createdAt)))).toBe(true);
+
+    const other = (await (await get('/auth/security-events', b.cookie)).json()) as { events: unknown[] };
+    expect(other.events).toHaveLength(1);
+  });
+
+  it('records password changes and device sign-outs but ignores cross-account revoke attempts', async () => {
+    const a = await register();
+    const b = await register();
+    const bSessions = (await (await get('/auth/sessions', b.cookie)).json()) as { sessions: { id: string }[] };
+
+    await post('/auth/sessions/revoke', { id: bSessions.sessions[0]!.id }, a.cookie);
+    const unchanged = (await (await get('/auth/security-events', a.cookie)).json()) as {
+      events: { type: string }[];
+    };
+    expect(unchanged.events.map((event) => event.type)).not.toContain('device_signed_out');
+
+    const changed = await post(
+      '/auth/change-password',
+      { currentPassword: a.password, newPassword: 'new-secure-password' },
+      a.cookie,
+    );
+    const newCookie = sessionCookie(changed);
+    expect(newCookie).toBeTruthy();
+    const activity = (await (await get('/auth/security-events', newCookie!)).json()) as {
+      events: { type: string }[];
+    };
+    expect(activity.events.map((event) => event.type)).toContain('password_changed');
+  });
+
+  it('requires authentication', async () => {
+    expect((await get('/auth/security-events')).status).toBe(401);
   });
 });
 

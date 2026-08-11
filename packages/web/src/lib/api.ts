@@ -36,6 +36,26 @@ export interface SessionInfo {
   createdAt: string;
 }
 
+export type SecurityEventType =
+  | 'account_created'
+  | 'signed_in'
+  | 'email_verified'
+  | 'password_added'
+  | 'password_changed'
+  | 'password_reset'
+  | 'google_connected'
+  | 'google_disconnected'
+  | 'device_signed_out'
+  | 'other_devices_signed_out';
+
+export interface SecurityEvent {
+  id: string;
+  type: SecurityEventType;
+  device: string | null;
+  location: string | null;
+  createdAt: string;
+}
+
 async function req<T>(path: string, method: string, body?: unknown): Promise<T> {
   const init: RequestInit = { method, credentials: 'include' };
   if (body !== undefined) {
@@ -80,6 +100,7 @@ export const authApi = {
     req<{ ok: boolean }>('/auth/set-password', 'POST', { newPassword }),
   disconnectGoogle: () => req<{ ok: boolean }>('/auth/disconnect-google', 'POST'),
   listSessions: () => req<{ sessions: SessionInfo[] }>('/auth/sessions', 'GET'),
+  listSecurityEvents: () => req<{ events: SecurityEvent[] }>('/auth/security-events', 'GET'),
   revokeSession: (id: string) => req<{ ok: boolean }>('/auth/sessions/revoke', 'POST', { id }),
   revokeOtherSessions: () => req<{ ok: boolean }>('/auth/sessions/revoke-others', 'POST'),
   deleteAccount: (body: { password?: string; confirm?: string }) =>
