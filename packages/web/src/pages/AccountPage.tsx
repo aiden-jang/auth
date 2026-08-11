@@ -256,6 +256,9 @@ export function AccountPage(): ReactNode {
   }
   if (!user) return null;
 
+  const sessionCount = sessions?.length ?? null;
+  const signInMethods = Number(user.hasPassword) + Number(user.hasGoogle);
+
   return (
     <AccountShell title="Your account" subtitle="One login for all of aidenjang's apps.">
       {/* App launcher — this is the landing when a visitor signs in at
@@ -381,6 +384,57 @@ export function AccountPage(): ReactNode {
       )}
 
       <hr className="my-6 border-line" />
+
+      {!changingPw && (
+        <section aria-label="Security check-up" className="rounded-2xl border border-line bg-field p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-ink">Security check-up</h2>
+              <p className="mt-0.5 text-xs text-muted">The small things worth keeping an eye on.</p>
+            </div>
+            {sessionCount !== null && sessionCount > 1 && (
+              <button
+                type="button"
+                onClick={() => void revokeOthers()}
+                disabled={revokingOthers}
+                className="text-xs font-semibold text-accent hover:underline disabled:cursor-default disabled:opacity-60"
+              >
+                {revokingOthers ? 'Signing out…' : 'Sign out other devices'}
+              </button>
+            )}
+          </div>
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+            <div className="rounded-xl border border-line bg-card/40 px-3 py-2.5">
+              <dt className="text-xs text-muted">Email</dt>
+              <dd className={user.emailVerified ? 'mt-1 font-medium text-pos' : 'mt-1 font-medium text-neg'}>
+                {user.emailVerified ? 'Verified' : 'Needs verification'}
+              </dd>
+            </div>
+            <div className="rounded-xl border border-line bg-card/40 px-3 py-2.5">
+              <dt className="text-xs text-muted">Sign-in options</dt>
+              <dd className="mt-1 font-medium text-ink">
+                {signInMethods === 0 ? 'Email link only' : `${signInMethods} ${signInMethods === 1 ? 'method' : 'methods'}`}
+              </dd>
+            </div>
+            <div className="rounded-xl border border-line bg-card/40 px-3 py-2.5">
+              <dt className="text-xs text-muted">Devices</dt>
+              <dd className="mt-1 font-medium text-ink">
+                {sessionCount === null ? 'Checking…' : `${sessionCount} active ${sessionCount === 1 ? 'session' : 'sessions'}`}
+              </dd>
+            </div>
+          </dl>
+          {!user.emailVerified && (
+            <button
+              type="button"
+              onClick={() => void resendVerification()}
+              disabled={verificationStatus !== null}
+              className="mt-4 text-xs font-semibold text-accent hover:underline disabled:cursor-default disabled:opacity-60"
+            >
+              {verificationStatus === 'sending' ? 'Sending verification email…' : verificationStatus === 'sent' ? 'Verification email sent' : 'Send verification email'}
+            </button>
+          )}
+        </section>
+      )}
 
       <section aria-label="Security">
         {changingPw ? (
