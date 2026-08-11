@@ -1,10 +1,11 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { AuthCard, buttonClass, inputClass } from '../components/AuthCard';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { EmailSuggestion } from '../components/EmailSuggestion';
 import { returnAppFor } from '../lib/returnTo';
+import { inboxFor } from '../lib/inbox';
 
 export function ForgotPasswordPage(): ReactNode {
   const [params] = useSearchParams();
@@ -15,17 +16,44 @@ export function ForgotPasswordPage(): ReactNode {
   const [email, setEmail] = useState(typeof carriedEmail === 'string' ? carriedEmail : '');
   const [turnstileToken, setTurnstileToken] = useState('');
   const [sent, setSent] = useState(false);
+  const [resent, setResent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+  const [resetSignal, setResetSignal] = useState(0);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = window.setInterval(() => setResendIn((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendIn > 0]);
+
+  async function requestReset(): Promise<void> {
+    try {
+      await authApi.forgot(email, turnstileToken);
+    } catch {
+      // Always show the same confirmation, so this flow never reveals whether an account exists.
+    } finally {
+      setTurnstileToken('');
+      setResetSignal((signal) => signal + 1);
+      setLoading(false);
+    }
+  }
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
     setLoading(true);
-    try {
-      await authApi.forgot(email, turnstileToken);
-    } catch {
-      /* always show the same message, no enumeration */
-    }
+    await requestReset();
     setSent(true);
+    setResent(false);
+    setResendIn(30);
+  }
+
+  async function resend(): Promise<void> {
+    if (loading || resendIn > 0 || (turnstileEnabled && !turnstileToken)) return;
+    setLoading(true);
+    await requestReset();
+    setResent(true);
+    setResendIn(30);
   }
 
   return (
@@ -36,16 +64,55 @@ export function ForgotPasswordPage(): ReactNode {
     >
       {sent ? (
         <div className="space-y-4">
-          <p className="text-sm text-muted" role="status">
-            If an account exists for <span className="text-ink">{email}</span>, a reset link is on its way. The link expires in an hour.
+          <p className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-sm text-pos" role="status">
+            {resent ? 'A fresh reset link is on its way. ' : ''}
+            If an account exists for <span className="font-medium">{email}</span>, check that inbox.
+            The link expires in an hour.
           </p>
-          <Link
-            to={returnTo ? `/login?return_to=${encodeURIComponent(returnTo)}` : '/login'}
-            state={{ email }}
-            className="font-medium text-accent hover:underline"
-          >
-            Back to login
-          </Link>
+          {inboxFor(email) && (
+            <a
+              href={inboxFor(email)!.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${buttonClass} flex items-center justify-center gap-2 text-center no-underline`}
+            >
+              {inboxFor(email)!.label} <span aria-hidden>↗</span>
+            </a>
+          )}
+          {resendIn === 0 && <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />}
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+            <button
+              type="button"
+              onClick={() => void resend()}
+              disabled={loading || resendIn > 0 || (turnstileEnabled && !turnstileToken)}
+              className="font-medium text-accent hover:underline disabled:cursor-default disabled:text-muted disabled:no-underline"
+            >
+              {loading
+                ? 'Sending another…'
+                : resendIn > 0
+                  ? `Send another in ${resendIn}s`
+                  : turnstileEnabled && !turnstileToken
+                    ? 'Complete the check to resend'
+                    : 'Send another link'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSent(false);
+                setResent(false);
+              }}
+              className="font-medium text-muted hover:text-ink hover:underline"
+            >
+              Change email
+            </button>
+            <Link
+              to={returnTo ? `/login?return_to=${encodeURIComponent(returnTo)}` : '/login'}
+              state={{ email }}
+              className="font-medium text-muted hover:text-ink hover:underline"
+            >
+              Back to login
+            </Link>
+          </div>
         </div>
       ) : (
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-3.5">
@@ -66,7 +133,7 @@ export function ForgotPasswordPage(): ReactNode {
             autoFocus
           />
           <EmailSuggestion value={email} onAccept={setEmail} />
-          <Turnstile onToken={setTurnstileToken} />
+          <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />
           <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>{loading ? 'Sending...' : 'Send reset link'}</button>
           <p className="text-sm text-muted">
             <Link

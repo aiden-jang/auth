@@ -7,6 +7,7 @@ import { PasswordInput } from '../components/PasswordInput';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { GoogleSignIn } from '../components/GoogleSignIn';
 import { EmailSuggestion } from '../components/EmailSuggestion';
+import { inboxFor } from '../lib/inbox';
 
 const LOGIN_METHOD_KEY = 'aidenjang:login-method';
 
@@ -25,22 +26,6 @@ function rememberLoginMethod(magic: boolean): void {
   } catch {
     // Preference is optional; authentication itself never depends on local storage.
   }
-}
-
-function inboxFor(email: string): { label: string; href: string } | null {
-  const domain = email.trim().split('@').pop()?.toLowerCase();
-  if (!domain) return null;
-  if (domain === 'gmail.com' || domain === 'googlemail.com') {
-    return { label: 'Open Gmail', href: 'https://mail.google.com/' };
-  }
-  if (['outlook.com', 'hotmail.com', 'live.com', 'msn.com'].includes(domain)) {
-    return { label: 'Open Outlook', href: 'https://outlook.live.com/mail/' };
-  }
-  if (domain === 'yahoo.com') return { label: 'Open Yahoo Mail', href: 'https://mail.yahoo.com/' };
-  if (domain === 'icloud.com' || domain === 'me.com' || domain === 'mac.com') {
-    return { label: 'Open iCloud Mail', href: 'https://www.icloud.com/mail/' };
-  }
-  return null;
 }
 
 export function LoginPage(): ReactNode {
