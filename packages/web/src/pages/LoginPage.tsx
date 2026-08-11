@@ -64,6 +64,7 @@ export function LoginPage(): ReactNode {
   // Magic-link mode: sign in via an emailed link instead of a password.
   const [magicMode, setMagicMode] = useState(preferredMagicMode);
   const [magicSent, setMagicSent] = useState(false);
+  const [magicResent, setMagicResent] = useState(false);
   const [resendIn, setResendIn] = useState(0);
 
   useEffect(() => {
@@ -82,7 +83,12 @@ export function LoginPage(): ReactNode {
       if (magicMode) {
         await authApi.magicLink(email, returnTo, turnstileToken);
         setMagicSent(true);
+        setMagicResent(false);
         setResendIn(30);
+        // Turnstile tokens are single-use. Prepare a fresh challenge now so a later resend never
+        // submits the token that sent the first message.
+        setTurnstileToken('');
+        setResetSignal((n) => n + 1);
         setLoading(false);
       } else {
         await authApi.login(email, password, turnstileToken);
@@ -95,6 +101,24 @@ export function LoginPage(): ReactNode {
       // The token was consumed server-side; drop it and re-solve so a retry uses a fresh one.
       setTurnstileToken('');
       setResetSignal((n) => n + 1);
+    }
+  }
+
+  async function resendMagicLink(): Promise<void> {
+    if (resendIn > 0 || loading || (turnstileEnabled && !turnstileToken)) return;
+    setError(null);
+    setLoading(true);
+    try {
+      await authApi.magicLink(email, returnTo, turnstileToken);
+      setMagicResent(true);
+      setResendIn(30);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send another link. Please try again.');
+    } finally {
+      // Success or failure consumes the challenge server-side, so every retry starts cleanly.
+      setTurnstileToken('');
+      setResetSignal((n) => n + 1);
+      setLoading(false);
     }
   }
 
@@ -113,8 +137,12 @@ export function LoginPage(): ReactNode {
             role="status"
             className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-sm text-pos"
           >
-            Check your inbox. If <strong>{email}</strong> has an account, a sign-in link is on its
-            way. It expires in 15 minutes.{returnApp ? ` Then we’ll bring you back to ${returnApp.name}.` : ''}
+            {magicResent ? (
+              <>A fresh sign-in link is on its way to <strong>{email}</strong>.</>
+            ) : (
+              <>Check your inbox. If <strong>{email}</strong> has an account, a sign-in link is on its way.</>
+            )}{' '}
+            It expires in 15 minutes.{returnApp ? ` Then we’ll bring you back to ${returnApp.name}.` : ''}
           </div>
           {inboxFor(email) && (
             <a
@@ -126,25 +154,45 @@ export function LoginPage(): ReactNode {
               {inboxFor(email)!.label} <span aria-hidden>↗</span>
             </a>
           )}
+          {resendIn === 0 && <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />}
+          {error && (
+            <p role="alert" className="rounded-lg border border-neg/30 bg-neg/10 px-3 py-2 text-sm font-medium text-neg">
+              {error}
+            </p>
+          )}
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
             <button
               type="button"
-              disabled={resendIn > 0}
-              onClick={() => {
-                setMagicSent(false);
-                setMagicMode(true);
-                setTurnstileToken('');
-                setResetSignal((n) => n + 1);
-              }}
+              disabled={resendIn > 0 || loading || (turnstileEnabled && !turnstileToken)}
+              onClick={() => void resendMagicLink()}
               className="font-medium text-accent hover:underline disabled:cursor-default disabled:text-muted disabled:no-underline"
             >
-              {resendIn > 0 ? `Send another in ${resendIn}s` : 'Send another link'}
+              {loading
+                ? 'Sending another…'
+                : resendIn > 0
+                  ? `Send another in ${resendIn}s`
+                  : turnstileEnabled && !turnstileToken
+                    ? 'Complete the check to resend'
+                    : 'Send another link'}
             </button>
             <button
               type="button"
               onClick={() => {
                 setMagicSent(false);
+                setMagicResent(false);
+                setError(null);
+              }}
+              className="font-medium text-muted hover:text-ink hover:underline"
+            >
+              Change email
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMagicSent(false);
+                setMagicResent(false);
                 setMagicMode(false);
+                setError(null);
                 rememberLoginMethod(false);
               }}
               className="font-medium text-muted hover:text-ink hover:underline"
