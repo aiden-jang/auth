@@ -5,6 +5,7 @@ import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
 import { Skeleton } from '../components/Skeleton';
 import { APPS, appHref } from '../lib/apps';
+import { SecurityActivity } from '../components/SecurityActivity';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -57,6 +58,7 @@ export function AccountPage(): ReactNode {
   const [sessionsRefreshed, setSessionsRefreshed] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+  const [securityRevision, setSecurityRevision] = useState(0);
   const [showDelete, setShowDelete] = useState(false);
   const [deletePw, setDeletePw] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState('');
@@ -70,6 +72,7 @@ export function AccountPage(): ReactNode {
       await authApi.revokeSession(id);
       setSessions((s) => s?.filter((x) => x.id !== id) ?? null);
       setExpandedSessionId((current) => current === id ? null : current);
+      setSecurityRevision((value) => value + 1);
     } catch {
       setSessionError('Couldn’t sign that device out. Try again.');
     } finally {
@@ -83,6 +86,7 @@ export function AccountPage(): ReactNode {
     try {
       await authApi.revokeOtherSessions();
       setSessions((s) => s?.filter((x) => x.current) ?? null);
+      setSecurityRevision((value) => value + 1);
     } catch {
       setSessionError('Couldn’t sign the other devices out. Try again.');
     } finally {
@@ -156,6 +160,7 @@ export function AccountPage(): ReactNode {
     try {
       await authApi.disconnectGoogle();
       setUser({ ...user, hasGoogle: false });
+      setSecurityRevision((value) => value + 1);
     } catch (err) {
       setGoogleMsg(err instanceof Error ? err.message : 'Could not disconnect Google.');
     } finally {
@@ -191,6 +196,7 @@ export function AccountPage(): ReactNode {
       setChangingPw(false);
       resetPwForm();
       setPwDone(true);
+      setSecurityRevision((value) => value + 1);
     } catch (err) {
       setPwError(
         err instanceof Error
@@ -743,6 +749,8 @@ export function AccountPage(): ReactNode {
             </ul>
             {sessionError && <p role="alert" className="mt-3 text-sm font-medium text-neg">{sessionError}</p>}
           </section>
+          <hr className="my-6 border-line" />
+          <SecurityActivity refreshKey={securityRevision} />
         </>
       )}
 

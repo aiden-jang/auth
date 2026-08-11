@@ -2,12 +2,12 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { setCookie, deleteCookie } from 'hono/cookie';
 import { DEFAULT_CSP, harden } from './harden.js';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, desc, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Context } from 'hono';
 import type { Env } from './env.js';
 import { createDb } from './db/client.js';
-import { sessions, users } from './db/schema.js';
+import { securityEvents, sessions, users } from './db/schema.js';
 import { hashPassword, verifyPassword } from './auth/password.js';
 import {
   createSession,
@@ -23,6 +23,7 @@ import { googleAuthUrl, googleCallbackUrl, exchangeGoogleCode, upsertGoogleUser,
 import { consumeToken, issueToken } from './auth/verification.js';
 import { sendEmail } from './email.js';
 import { verifyTurnstile } from './turnstile.js';
+import { recordSecurityEvent } from './securityEvents.js';
 
 export { RateLimiter } from './rateLimiter.js';
 
@@ -157,7 +158,9 @@ app.post('/auth/register', async (c) => {
 
   const id = crypto.randomUUID();
   await db.insert(users).values({ id, email, passwordHash: await hashPassword(parsed.data.password), displayName });
-  const { token, expiresAt } = await createSession(db, id, sessionMeta(c));
+  const meta = sessionMeta(c);
+  const { token, expiresAt } = await createSession(db, id, meta);
+  await recordSecurityEvent(db, id, 'account_created', meta);
   setSessionCookie(c, token, expiresAt);
 
   const verifyToken = await issueToken(db, id, 'verify');
@@ -204,7 +207,9 @@ app.post('/auth/login', async (c) => {
   if (!(await verifyPassword(user.passwordHash, parsed.data.password))) {
     return c.json({ error: 'INVALID_CREDENTIALS', message: 'Wrong email or password.' }, 401);
   }
-  const { token, expiresAt } = await createSession(db, user.id, sessionMeta(c));
+  const meta = sessionMeta(c);
+  const { token, expiresAt } = await createSession(db, user.id, meta);
+  await recordSecurityEvent(db, user.id, 'signed_in', meta);
   setSessionCookie(c, token, expiresAt);
   return c.json({
     user: publicUser({ ...user, hasPassword: user.passwordHash != null, hasGoogle: user.googleId != null }),
@@ -306,11 +311,14 @@ app.get('/auth/google/callback', async (c) => {
           updatedAt: new Date(),
         })
         .where(eq(users.id, current.id));
+      await recordSecurityEvent(db, current.id, 'google_connected', sessionMeta(c));
       return c.redirect(safeAppRedirect(saved.r ?? '/account', uiBase));
     }
 
     const user = await upsertGoogleUser(db, identity);
-    const { token, expiresAt } = await createSession(db, user.id, sessionMeta(c));
+    const meta = sessionMeta(c);
+    const { token, expiresAt } = await createSession(db, user.id, meta);
+    await recordSecurityEvent(db, user.id, 'signed_in', meta);
     setSessionCookie(c, token, expiresAt);
     return c.redirect(safeAppRedirect(saved.r ?? '', uiBase));
   } catch (err) {
@@ -401,7 +409,9 @@ app.get('/auth/magic/callback', async (c) => {
   const db = createDb(c.env);
   const userId = await consumeToken(db, token, 'magic');
   if (!userId) return c.redirect(new URL('/login?error=magic_failed', uiBase).toString());
-  const { token: sessionToken, expiresAt } = await createSession(db, userId, sessionMeta(c));
+  const meta = sessionMeta(c);
+  const { token: sessionToken, expiresAt } = await createSession(db, userId, meta);
+  await recordSecurityEvent(db, userId, 'signed_in', meta);
   setSessionCookie(c, sessionToken, expiresAt);
   return c.redirect(safeAppRedirect(c.req.query('return_to') ?? '', uiBase));
 });
@@ -421,6 +431,7 @@ app.post('/auth/reset-password', async (c) => {
     .set({ passwordHash: await hashPassword(parsed.data.newPassword), updatedAt: new Date() })
     .where(eq(users.id, userId));
   await revokeAllSessions(db, userId); // force re-login everywhere after a reset
+  await recordSecurityEvent(db, userId, 'password_reset', sessionMeta(c));
   return c.json({ ok: true });
 });
 
@@ -431,6 +442,7 @@ app.post('/auth/verify-email', async (c) => {
   const userId = await consumeToken(db, parsed.data.token, 'verify');
   if (!userId) return c.json({ error: 'INVALID_TOKEN', message: 'That verification link is invalid or expired.' }, 400);
   await db.update(users).set({ emailVerified: true, updatedAt: new Date() }).where(eq(users.id, userId));
+  await recordSecurityEvent(db, userId, 'email_verified', sessionMeta(c));
   return c.json({ ok: true });
 });
 
@@ -498,7 +510,9 @@ app.post('/auth/change-password', async (c) => {
     .set({ passwordHash: await hashPassword(parsed.data.newPassword), updatedAt: new Date() })
     .where(eq(users.id, row.id));
   await revokeAllSessions(db, row.id); // sign out everywhere...
-  const { token, expiresAt } = await createSession(db, row.id, sessionMeta(c)); // ...then keep this device
+  const meta = sessionMeta(c);
+  const { token, expiresAt } = await createSession(db, row.id, meta); // ...then keep this device
+  await recordSecurityEvent(db, row.id, 'password_changed', meta);
   setSessionCookie(c, token, expiresAt);
   return c.json({ ok: true });
 });
@@ -531,6 +545,7 @@ app.post('/auth/set-password', async (c) => {
     .update(users)
     .set({ passwordHash: await hashPassword(parsed.data.newPassword), updatedAt: new Date() })
     .where(eq(users.id, row.id));
+  await recordSecurityEvent(db, row.id, 'password_added', sessionMeta(c));
   return c.json({ ok: true });
 });
 
@@ -554,7 +569,34 @@ app.post('/auth/disconnect-google', async (c) => {
     );
 
   await db.update(users).set({ googleId: null, updatedAt: new Date() }).where(eq(users.id, row.id));
+  await recordSecurityEvent(db, row.id, 'google_disconnected', sessionMeta(c));
   return c.json({ ok: true });
+});
+
+// The signed-in user's recent security activity. The allowlisted event type is recorded by this
+// service, while device and location remain intentionally coarse.
+app.get('/auth/security-events', async (c) => {
+  const cookie = getCookie(c, SESSION_COOKIE);
+  const db = createDb(c.env);
+  const me = cookie ? await validateSession(db, cookie) : null;
+  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+
+  const events = await db
+    .select({
+      id: securityEvents.id,
+      type: securityEvents.type,
+      device: securityEvents.device,
+      location: securityEvents.location,
+      createdAt: securityEvents.createdAt,
+    })
+    .from(securityEvents)
+    .where(eq(securityEvents.userId, me.id))
+    .orderBy(desc(securityEvents.createdAt))
+    .limit(12);
+
+  return c.json({
+    events: events.map((event) => ({ ...event, createdAt: event.createdAt.toISOString() })),
+  });
 });
 
 // The signed-in user's active sessions ("signed in on these devices"), newest activity first.
@@ -604,7 +646,11 @@ app.post('/auth/sessions/revoke', async (c) => {
   if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
   const parsed = z.object({ id: z.string().min(1) }).safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
-  await db.delete(sessions).where(and(eq(sessions.id, parsed.data.id), eq(sessions.userId, me.id)));
+  const revoked = await db
+    .delete(sessions)
+    .where(and(eq(sessions.id, parsed.data.id), eq(sessions.userId, me.id)))
+    .returning({ id: sessions.id });
+  if (revoked.length > 0) await recordSecurityEvent(db, me.id, 'device_signed_out', sessionMeta(c));
   return c.json({ ok: true });
 });
 
@@ -615,7 +661,11 @@ app.post('/auth/sessions/revoke-others', async (c) => {
   const me = cookie ? await validateSession(db, cookie) : null;
   if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
   const currentId = cookie ? await hashToken(cookie) : '';
-  await db.delete(sessions).where(and(eq(sessions.userId, me.id), ne(sessions.id, currentId)));
+  const revoked = await db
+    .delete(sessions)
+    .where(and(eq(sessions.userId, me.id), ne(sessions.id, currentId)))
+    .returning({ id: sessions.id });
+  if (revoked.length > 0) await recordSecurityEvent(db, me.id, 'other_devices_signed_out', sessionMeta(c));
   return c.json({ ok: true });
 });
 
