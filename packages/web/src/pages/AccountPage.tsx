@@ -62,6 +62,10 @@ export function AccountPage(): ReactNode {
   const [sessions, setSessions] = useState<SessionInfo[] | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [revokingOthers, setRevokingOthers] = useState(false);
+  const [securityReview, setSecurityReview] = useState(
+    () => new URLSearchParams(window.location.search).get('security') === 'review',
+  );
+  const [securityReviewStatus, setSecurityReviewStatus] = useState<'securing' | 'secured' | null>(null);
   const [refreshingSessions, setRefreshingSessions] = useState(false);
   const [sessionsRefreshed, setSessionsRefreshed] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
@@ -122,17 +126,41 @@ export function AccountPage(): ReactNode {
     }
   }
 
-  async function revokeOthers(): Promise<void> {
+  async function revokeOthers(): Promise<boolean> {
     setRevokingOthers(true);
     setSessionError(null);
     try {
       await authApi.revokeOtherSessions();
       setSessions((s) => s?.filter((x) => x.current) ?? null);
       setSecurityRevision((value) => value + 1);
+      return true;
     } catch {
       setSessionError('Couldn’t sign the other devices out. Try again.');
+      return false;
     } finally {
       setRevokingOthers(false);
+    }
+  }
+
+  function dismissSecurityReview(): void {
+    setSecurityReview(false);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('security');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+
+  async function secureAccount(): Promise<void> {
+    if (!user || securityReviewStatus === 'securing') return;
+    setSecurityReviewStatus('securing');
+    const secured = await revokeOthers();
+    if (!secured) {
+      setSecurityReviewStatus(null);
+      return;
+    }
+    setSecurityReviewStatus('secured');
+    if (user.hasPassword) {
+      setPwDone(false);
+      setChangingPw(true);
     }
   }
 
@@ -268,6 +296,7 @@ export function AccountPage(): ReactNode {
       setChangingPw(false);
       resetPwForm();
       setPwDone(true);
+      if (securityReviewStatus === 'secured') dismissSecurityReview();
       setSecurityRevision((value) => value + 1);
     } catch (err) {
       setPwError(
@@ -396,6 +425,57 @@ export function AccountPage(): ReactNode {
 
   return (
     <AccountShell title="Your account" subtitle="One login for all of aidenjang's apps.">
+      {securityReview && (
+        <section
+          aria-labelledby="sign-in-review-heading"
+          className="rounded-2xl border border-accent/30 bg-accent/10 p-4"
+        >
+          {securityReviewStatus === 'secured' ? (
+            <div className="flex items-start gap-3">
+              <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-pos/15 font-bold text-pos">✓</span>
+              <div className="min-w-0 flex-1">
+                <h2 id="sign-in-review-heading" className="text-sm font-semibold text-ink">Other devices are signed out</h2>
+                <p className="mt-1 text-xs leading-relaxed text-muted">
+                  {user.hasPassword
+                    ? 'Finish by changing your password below. This device will stay signed in.'
+                    : 'This device stayed signed in. Your Google account remains your sign-in method.'}
+                </p>
+                {!user.hasPassword && (
+                  <button type="button" onClick={dismissSecurityReview} className="mt-2 text-xs font-semibold text-accent hover:underline">
+                    Done
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">New sign-in review</p>
+              <h2 id="sign-in-review-heading" className="mt-1 text-base font-semibold text-ink">Was that sign-in you?</h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                If the device or location in the email looked wrong, lock every other session out now.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void secureAccount()}
+                  disabled={securityReviewStatus === 'securing'}
+                  className="btn-gradient rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
+                >
+                  {securityReviewStatus === 'securing' ? 'Securing account…' : 'No — secure my account'}
+                </button>
+                <button
+                  type="button"
+                  onClick={dismissSecurityReview}
+                  className="rounded-full border border-line px-4 py-2 text-sm font-medium text-muted transition hover:text-ink"
+                >
+                  Yes, it was me
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
       {/* App launcher — this is the landing when a visitor signs in at
           aidenjang.com without being sent back to a specific app, so lead
           with somewhere to go. Hidden while changing password so that flow

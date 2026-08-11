@@ -241,7 +241,7 @@ app.post('/auth/login', async (c) => {
     db,
     user.id,
     meta,
-    new URL('/account#active-sessions', c.env.APP_URL ?? new URL(c.req.url).origin).toString(),
+    new URL('/account?security=review#active-sessions', c.env.APP_URL ?? new URL(c.req.url).origin).toString(),
   );
   const { token, expiresAt } = await createSession(db, user.id, meta);
   await recordSecurityEvent(db, user.id, 'signed_in', meta);
@@ -357,7 +357,7 @@ app.get('/auth/google/callback', async (c) => {
       db,
       user.id,
       meta,
-      new URL('/account#active-sessions', uiBase).toString(),
+      new URL('/account?security=review#active-sessions', uiBase).toString(),
     );
     const { token, expiresAt } = await createSession(db, user.id, meta);
     await recordSecurityEvent(db, user.id, 'signed_in', meta);
@@ -459,7 +459,7 @@ app.get('/auth/magic/callback', async (c) => {
     db,
     userId,
     meta,
-    new URL('/account#active-sessions', uiBase).toString(),
+    new URL('/account?security=review#active-sessions', uiBase).toString(),
   );
   const { token: sessionToken, expiresAt } = await createSession(db, userId, meta);
   await recordSecurityEvent(db, userId, 'signed_in', meta);
