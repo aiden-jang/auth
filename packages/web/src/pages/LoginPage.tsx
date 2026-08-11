@@ -7,6 +7,25 @@ import { PasswordInput } from '../components/PasswordInput';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { GoogleSignIn } from '../components/GoogleSignIn';
 
+const LOGIN_METHOD_KEY = 'aidenjang:login-method';
+
+function preferredMagicMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(LOGIN_METHOD_KEY) === 'email-link';
+  } catch {
+    return false;
+  }
+}
+
+function rememberLoginMethod(magic: boolean): void {
+  try {
+    window.localStorage.setItem(LOGIN_METHOD_KEY, magic ? 'email-link' : 'password');
+  } catch {
+    // Preference is optional; authentication itself never depends on local storage.
+  }
+}
+
 export function LoginPage(): ReactNode {
   const [params] = useSearchParams();
   const returnTo = params.get('return_to');
@@ -24,7 +43,7 @@ export function LoginPage(): ReactNode {
   const [loading, setLoading] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
   // Magic-link mode: sign in via an emailed link instead of a password.
-  const [magicMode, setMagicMode] = useState(false);
+  const [magicMode, setMagicMode] = useState(preferredMagicMode);
   const [magicSent, setMagicSent] = useState(false);
 
   const withReturn = (p: string) => (returnTo ? `${p}?return_to=${encodeURIComponent(returnTo)}` : p);
@@ -70,16 +89,31 @@ export function LoginPage(): ReactNode {
             Check your inbox. If <strong>{email}</strong> has an account, a sign-in link is on its
             way. It expires in 15 minutes.{returnApp ? ` Then we’ll bring you back to ${returnApp.name}.` : ''}
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setMagicSent(false);
-              setMagicMode(false);
-            }}
-            className="text-sm font-medium text-accent hover:underline"
-          >
-            Back to sign in
-          </button>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setMagicSent(false);
+                setMagicMode(true);
+                setTurnstileToken('');
+                setResetSignal((n) => n + 1);
+              }}
+              className="font-medium text-accent hover:underline"
+            >
+              Send another link
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMagicSent(false);
+                setMagicMode(false);
+                rememberLoginMethod(false);
+              }}
+              className="font-medium text-muted hover:text-ink hover:underline"
+            >
+              Use password instead
+            </button>
+          </div>
         </div>
       ) : (
         <>
@@ -95,6 +129,7 @@ export function LoginPage(): ReactNode {
               aria-selected={!magicMode}
               onClick={() => {
                 setMagicMode(false);
+                rememberLoginMethod(false);
                 setError(null);
               }}
               className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
@@ -109,6 +144,7 @@ export function LoginPage(): ReactNode {
               aria-selected={magicMode}
               onClick={() => {
                 setMagicMode(true);
+                rememberLoginMethod(true);
                 setError(null);
               }}
               className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
