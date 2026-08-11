@@ -11,6 +11,7 @@ export type SecurityEventType =
   | 'password_reset'
   | 'google_connected'
   | 'google_disconnected'
+  | 'device_renamed'
   | 'device_signed_out'
   | 'other_devices_signed_out';
 
