@@ -599,6 +599,85 @@ app.get('/auth/security-events', async (c) => {
   });
 });
 
+// A portable copy of the account data this identity service keeps. Credentials, provider ids,
+// session hashes, raw user agents and IP addresses are deliberately absent from both the query and
+// the response shape, so an export is useful without becoming a bag of reusable secrets.
+app.get('/auth/export', async (c) => {
+  const cookie = getCookie(c, SESSION_COOKIE);
+  const db = createDb(c.env);
+  const me = cookie ? await validateSession(db, cookie) : null;
+  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+
+  const account = await db
+    .select({
+      email: users.email,
+      displayName: users.displayName,
+      emailVerified: users.emailVerified,
+      passwordHash: users.passwordHash,
+      googleId: users.googleId,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+    })
+    .from(users)
+    .where(eq(users.id, me.id))
+    .get();
+  if (!account) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+
+  const [sessionRows, eventRows] = await Promise.all([
+    db
+      .select({
+        device: sessions.device,
+        location: sessions.location,
+        createdAt: sessions.createdAt,
+        lastSeenAt: sessions.lastSeenAt,
+        expiresAt: sessions.expiresAt,
+      })
+      .from(sessions)
+      .where(eq(sessions.userId, me.id))
+      .all(),
+    db
+      .select({
+        type: securityEvents.type,
+        device: securityEvents.device,
+        location: securityEvents.location,
+        createdAt: securityEvents.createdAt,
+      })
+      .from(securityEvents)
+      .where(eq(securityEvents.userId, me.id))
+      .orderBy(desc(securityEvents.createdAt))
+      .limit(500),
+  ]);
+  const now = Date.now();
+
+  return c.json({
+    exportedAt: new Date().toISOString(),
+    account: {
+      email: account.email,
+      displayName: account.displayName,
+      emailVerified: account.emailVerified,
+      signInMethods: [account.passwordHash ? 'password' : null, account.googleId ? 'google' : null]
+        .filter((method): method is 'password' | 'google' => method !== null),
+      createdAt: account.createdAt.toISOString(),
+      updatedAt: account.updatedAt.toISOString(),
+    },
+    activeSessions: sessionRows
+      .filter((session) => session.expiresAt.getTime() > now)
+      .map((session) => ({
+        device: session.device,
+        location: session.location,
+        createdAt: session.createdAt.toISOString(),
+        lastSeenAt: (session.lastSeenAt ?? session.createdAt).toISOString(),
+        expiresAt: session.expiresAt.toISOString(),
+      })),
+    securityActivity: eventRows.map((event) => ({
+      type: event.type,
+      device: event.device,
+      location: event.location,
+      createdAt: event.createdAt.toISOString(),
+    })),
+  });
+});
+
 // The signed-in user's active sessions ("signed in on these devices"), newest activity first.
 app.get('/auth/sessions', async (c) => {
   const cookie = getCookie(c, SESSION_COOKIE);

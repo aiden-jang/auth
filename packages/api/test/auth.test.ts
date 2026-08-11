@@ -435,6 +435,35 @@ describe('security activity', () => {
   });
 });
 
+describe('account data export', () => {
+  it('exports only the signed-in account without credentials or session identifiers', async () => {
+    const a = await register();
+    const b = await register();
+    await post('/auth/login', { email: a.email, password: a.password });
+
+    const response = await get('/auth/export', a.cookie);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      account: { email: string; signInMethods: string[] };
+      activeSessions: Array<Record<string, unknown>>;
+      securityActivity: Array<{ type: string }>;
+    };
+    expect(body.account.email).toBe(a.email);
+    expect(body.account.email).not.toBe(b.email);
+    expect(body.account.signInMethods).toContain('password');
+    expect(body.activeSessions.length).toBeGreaterThan(0);
+    expect(body.activeSessions.every((session) => !('id' in session))).toBe(true);
+    expect(body.securityActivity.some((event) => event.type === 'account_created')).toBe(true);
+    const raw = JSON.stringify(body);
+    expect(raw).not.toContain('passwordHash');
+    expect(raw).not.toContain('googleId');
+  });
+
+  it('requires authentication', async () => {
+    expect((await get('/auth/export')).status).toBe(401);
+  });
+});
+
 describe('disconnect Google', () => {
   it('refuses to unlink when it would leave no way to sign in', async () => {
     const g = await registerGoogle();
