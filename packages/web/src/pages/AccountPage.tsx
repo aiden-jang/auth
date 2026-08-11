@@ -15,6 +15,7 @@ import { SecurityActivity } from '../components/SecurityActivity';
 import { RecoveryRehearsal } from '../components/RecoveryRehearsal';
 import { securityCheckup, type SecurityAction } from '../lib/securityCheckup';
 import { sessionHorizon } from '../lib/sessionHorizon';
+import { useStepUp } from '../components/StepUpPrompt';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -39,6 +40,8 @@ function exactTime(iso: string): string {
 }
 
 export function AccountPage(): ReactNode {
+  // Intercepts a REAUTH_REQUIRED refusal from the server and re-runs the action once confirmed.
+  const stepUp = useStepUp();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [verificationStatus, setVerificationStatus] = useState<'sending' | 'sent' | null>(null);
@@ -259,9 +262,11 @@ export function AccountPage(): ReactNode {
     setDisconnecting(true);
     setGoogleMsg(null);
     try {
-      await authApi.disconnectGoogle();
-      setUser({ ...user, hasGoogle: false });
-      setSecurityRevision((value) => value + 1);
+      await stepUp.guard('unlink Google', async () => {
+        await authApi.disconnectGoogle();
+        setUser({ ...user, hasGoogle: false });
+        setSecurityRevision((value) => value + 1);
+      });
     } catch (err) {
       setGoogleMsg(err instanceof Error ? err.message : 'Could not disconnect Google.');
     } finally {
@@ -287,12 +292,15 @@ export function AccountPage(): ReactNode {
     setPwError(null);
     try {
       if (user.hasPassword) {
+        // Changing a password already proves you know the old one, so it needs no extra step.
         await authApi.changePassword(curPw, newPw);
         setPwWasSet(false);
       } else {
-        await authApi.setPassword(newPw);
-        setUser({ ...user, hasPassword: true });
-        setPwWasSet(true);
+        await stepUp.guard('add a password', async () => {
+          await authApi.setPassword(newPw);
+          setUser({ ...user, hasPassword: true });
+          setPwWasSet(true);
+        });
       }
       setChangingPw(false);
       resetPwForm();
@@ -426,6 +434,7 @@ export function AccountPage(): ReactNode {
 
   return (
     <AccountShell title="Your account" subtitle="One login for all of aidenjang's apps.">
+      {stepUp.prompt}
       {securityReview && (
         <section
           aria-labelledby="sign-in-review-heading"

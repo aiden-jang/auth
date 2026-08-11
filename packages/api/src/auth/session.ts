@@ -41,6 +41,9 @@ export async function createSession(
     device: meta.device ?? null,
     location: meta.location ?? null,
     lastSeenAt: now,
+    // Signing in IS proving who you are, so a brand-new session starts inside the step-up window.
+    // Otherwise every fresh login would be asked for the password it just accepted.
+    reauthAt: now,
   });
   return { token, expiresAt };
 }

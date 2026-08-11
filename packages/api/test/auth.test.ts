@@ -2,7 +2,7 @@ import { SELF, env } from 'cloudflare:test';
 import { and, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { createDb } from '../src/db/client.js';
-import { authTokens, users } from '../src/db/schema.js';
+import { authTokens, sessions, users } from '../src/db/schema.js';
 import { issueToken } from '../src/auth/verification.js';
 import { hashToken } from '../src/auth/token.js';
 import { createSession } from '../src/auth/session.js';
@@ -475,8 +475,13 @@ describe('disconnect Google', () => {
 
   it('unlinks once a password exists', async () => {
     const g = await registerGoogle();
-    expect((await post('/auth/set-password', { newPassword: 'safe-enough-password' }, g.cookie)).status).toBe(200);
-    expect((await post('/auth/disconnect-google', {}, g.cookie)).status).toBe(200);
+    const added = await post('/auth/set-password', { newPassword: 'safe-enough-password' }, g.cookie);
+    expect(added.status).toBe(200);
+    // set-password signs every other session out and re-issues this one, so the original cookie is
+    // deliberately dead by now. Carry the replacement.
+    const rotated = sessionCookie(added);
+    expect(rotated).toBeTruthy();
+    expect((await post('/auth/disconnect-google', {}, rotated!)).status).toBe(200);
   });
 });
 
@@ -528,5 +533,163 @@ describe('delete account', () => {
 
   it('requires authentication', async () => {
     expect((await post('/auth/delete-account', { password: 'x' })).status).toBe(401);
+  });
+});
+
+/*
+ * Step-up re-authentication.
+ *
+ * The bug these cover is a chain, not a single call. set-password used to accept a live cookie as
+ * the whole proof of ownership (a Google-only account has no current password to ask for), and
+ * disconnect-google is allowed as soon as a password exists (so nobody is left unable to sign in).
+ * Run in order from a stolen cookie that is: give the account a password the thief knows, cut the
+ * Google link the owner uses, and the owner is locked out of their own account.
+ *
+ * Each step was defensible. So these tests assert the chain, not the steps.
+ */
+describe('step-up re-authentication', () => {
+  /** Age a session past the sudo window, the way a cookie stolen from a closed laptop would be. */
+  async function makeStale(cookie: string): Promise<void> {
+    const raw = cookie.split('=')[1]!;
+    await db()
+      .update(sessions)
+      .set({ reauthAt: new Date(Date.now() - 60 * 60 * 1000) })
+      .where(eq(sessions.id, await hashToken(raw)));
+  }
+
+  it('blocks the lockout chain at its first step when the cookie is old', async () => {
+    const g = await registerGoogle();
+    await makeStale(g.cookie);
+
+    const res = await post('/auth/set-password', { newPassword: 'attacker-chosen-pass' }, g.cookie);
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { error: string; canUsePassword: boolean };
+    expect(body.error).toBe('REAUTH_REQUIRED');
+    // Nothing to type on a passwordless account, so the UI must not offer a password prompt.
+    expect(body.canUsePassword).toBe(false);
+
+    // And the account is untouched: still no password, so Google cannot be unlinked either.
+    const unlink = await post('/auth/disconnect-google', {}, g.cookie);
+    expect(unlink.status).toBe(400);
+    expect(((await unlink.json()) as { error: string }).error).toBe('CANNOT_UNLINK');
+  });
+
+  it('blocks unlinking Google on an old session, and says a password will do', async () => {
+    const g = await registerGoogle();
+    const added = await post('/auth/set-password', { newPassword: 'a-real-password-now' }, g.cookie);
+    const rotated = sessionCookie(added)!;
+    await makeStale(rotated);
+
+    const res = await post('/auth/disconnect-google', {}, rotated);
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { error: string; canUsePassword: boolean };
+    expect(body.error).toBe('REAUTH_REQUIRED');
+    expect(body.canUsePassword).toBe(true);
+  });
+
+  it('lets a password re-open the window, and then the action goes through', async () => {
+    const g = await registerGoogle();
+    const added = await post('/auth/set-password', { newPassword: 'a-real-password-now' }, g.cookie);
+    const rotated = sessionCookie(added)!;
+    await makeStale(rotated);
+    expect((await post('/auth/disconnect-google', {}, rotated)).status).toBe(403);
+
+    const re = await post('/auth/reauth', { password: 'a-real-password-now' }, rotated);
+    expect(re.status).toBe(200);
+    expect(((await re.json()) as { sudoUntil: string | null }).sudoUntil).toBeTruthy();
+
+    expect((await post('/auth/disconnect-google', {}, rotated)).status).toBe(200);
+  });
+
+  it('does not re-open the window for a wrong password', async () => {
+    const { cookie } = await register();
+    await makeStale(cookie);
+    const res = await post('/auth/reauth', { password: 'not-the-password' }, cookie);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe('INVALID_CREDENTIALS');
+  });
+
+  it('tells a passwordless account there is nothing to confirm with', async () => {
+    const g = await registerGoogle();
+    const res = await post('/auth/reauth', { password: 'anything' }, g.cookie);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe('NO_PASSWORD');
+  });
+
+  it('treats a freshly signed-in session as already confirmed', async () => {
+    const { email, password } = await register();
+    const cookie = sessionCookie(await post('/auth/login', { email, password }))!;
+    // No reauth call: signing in was the proof, so a sensitive action works immediately.
+    const me = await get('/auth/me', cookie);
+    expect(((await me.json()) as { sudoUntil: string | null }).sudoUntil).toBeTruthy();
+  });
+
+  it('reports the window as lapsed on an old session', async () => {
+    const { cookie } = await register();
+    await makeStale(cookie);
+    const me = await get('/auth/me', cookie);
+    expect(((await me.json()) as { sudoUntil: string | null }).sudoUntil).toBeNull();
+  });
+
+  /*
+   * The two sensitive-looking routes deliberately left open, asserted so nobody "fixes" them later.
+   * Both are what a victim reaches for, and a password prompt there slows down the wrong person.
+   */
+  it('still signs other devices out on an old session, because that is self-defence', async () => {
+    const { email, password, cookie } = await register();
+    expect(sessionCookie(await post('/auth/login', { email, password }))).toBeTruthy();
+    await makeStale(cookie);
+    expect((await post('/auth/sessions/revoke-others', {}, cookie)).status).toBe(200);
+  });
+
+  it('still deletes an account on an old session, since the password is its own proof', async () => {
+    const { password, cookie } = await register();
+    await makeStale(cookie);
+    expect((await post('/auth/delete-account', { password }, cookie)).status).toBe(200);
+  });
+});
+
+describe('session hygiene on credential changes', () => {
+  it('signs other devices out when a password is added', async () => {
+    const g = await registerGoogle();
+    const other = (await createSession(db(), g.id)).token;
+    const otherCookie = `platform_session=${other}`;
+    expect((await get('/auth/me', otherCookie)).status).toBe(200);
+
+    const added = await post('/auth/set-password', { newPassword: 'a-real-password-now' }, g.cookie);
+    expect(added.status).toBe(200);
+
+    // The other device is gone, and the device that made the change is still signed in.
+    expect((await get('/auth/me', otherCookie)).status).toBe(401);
+    expect((await get('/auth/me', sessionCookie(added)!)).status).toBe(200);
+  });
+
+  it('signs other devices out when Google is unlinked', async () => {
+    const g = await registerGoogle();
+    const rotated = sessionCookie(
+      await post('/auth/set-password', { newPassword: 'a-real-password-now' }, g.cookie),
+    )!;
+    const otherCookie = `platform_session=${(await createSession(db(), g.id)).token}`;
+    expect((await get('/auth/me', otherCookie)).status).toBe(200);
+
+    const unlinked = await post('/auth/disconnect-google', {}, rotated);
+    expect(unlinked.status).toBe(200);
+    expect((await get('/auth/me', otherCookie)).status).toBe(401);
+    expect((await get('/auth/me', sessionCookie(unlinked)!)).status).toBe(200);
+  });
+
+  it('records what happened in the security activity log', async () => {
+    const g = await registerGoogle();
+    const rotated = sessionCookie(
+      await post('/auth/set-password', { newPassword: 'a-real-password-now' }, g.cookie),
+    )!;
+    // Unlinking rotates the cookie too, so read the log with the one it hands back.
+    const final = sessionCookie(await post('/auth/disconnect-google', {}, rotated))!;
+
+    const res = await get('/auth/security-events', final);
+    const { events } = (await res.json()) as { events: { type: string }[] };
+    const types = events.map((e) => e.type);
+    expect(types).toContain('password_added');
+    expect(types).toContain('google_disconnected');
   });
 });

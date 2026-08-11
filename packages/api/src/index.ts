@@ -25,6 +25,8 @@ import { sendEmail } from './email.js';
 import { verifyTurnstile } from './turnstile.js';
 import { recordSecurityEvent } from './securityEvents.js';
 import { isFamiliarSignIn, signInAlertHtml } from './signInAlert.js';
+import { credentialAlertHtml, credentialAlertSubject, type CredentialChange } from './credentialAlert.js';
+import { isFresh, stampReauth, sudoUntil, SUDO_WINDOW_MS } from './auth/stepUp.js';
 
 export { RateLimiter } from './rateLimiter.js';
 
@@ -152,6 +154,49 @@ async function newSignInAlert(
     .orderBy(desc(securityEvents.createdAt))
     .limit(20);
   return isFamiliarSignIn(recent, meta) ? null : signInAlertHtml(meta, accountUrl);
+}
+
+/*
+ * Tell the owner their sign-in method changed. Fire-and-forget on purpose: a mail outage must not
+ * block someone changing a password, least of all when they are changing it in a hurry because they
+ * think somebody else has it.
+ */
+function deliverCredentialAlert(c: Ctx, email: string, kind: CredentialChange, meta: SessionMeta): void {
+  const accountUrl = new URL('/account#security', c.env.APP_URL ?? new URL(c.req.url).origin).toString();
+  c.executionCtx.waitUntil(
+    sendEmail(c.env, {
+      to: email,
+      subject: credentialAlertSubject(kind),
+      html: credentialAlertHtml(kind, meta, accountUrl),
+    }).catch((error) => console.error('[credential alert] delivery failed:', error)),
+  );
+}
+
+/**
+ * Gate for actions that can cost somebody their account.
+ *
+ * Returns a 403 body when the session has not proved itself recently, and null when it may proceed.
+ * `canUsePassword` tells the UI which proof to ask for: an account with no password has nothing to
+ * type, so sending it to a password prompt would be a dead end.
+ */
+async function needsStepUp(
+  c: Ctx,
+  db: DB,
+  cookie: string,
+  hasPassword: boolean,
+): Promise<Response | null> {
+  if (await isFresh(db, cookie)) return null;
+  return c.json(
+    {
+      error: 'REAUTH_REQUIRED',
+      message: hasPassword
+        ? 'Confirm your password to continue.'
+        : 'Sign in with Google again, or use a password reset link from the sign-in page.',
+      canUsePassword: hasPassword,
+      windowMs: SUDO_WINDOW_MS,
+    },
+    403,
+  );
 }
 
 function deliverSignInAlert(c: Ctx, email: string, html: string | null): void {
@@ -382,9 +427,13 @@ app.post('/auth/logout', async (c) => {
 app.get('/auth/me', async (c) => {
   const token = getCookie(c, SESSION_COOKIE);
   if (!token) return c.json({ error: 'UNAUTHENTICATED' }, 401);
-  const user = await validateSession(createDb(c.env), token);
+  const db = createDb(c.env);
+  const user = await validateSession(db, token);
   if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
-  return c.json({ user: publicUser(user) });
+  // When the step-up window closes, so the account page can say "confirmed for another 8 minutes"
+  // instead of springing a password prompt on someone mid-action. Null once it has lapsed.
+  const until = await sudoUntil(db, token);
+  return c.json({ user: publicUser(user), sudoUntil: until?.toISOString() ?? null });
 });
 
 const forgotBody = z.object({ email: z.string().email(), turnstileToken: z.string().optional() });
@@ -534,6 +583,39 @@ app.post('/auth/update-profile', async (c) => {
 // (so a hijacked-but-idle session can't silently lock the owner out), then
 // rotates every session and re-establishes this device — signing the user out
 // everywhere else, same as a reset.
+/*
+ * Prove this session is still you, without signing out and back in.
+ *
+ * Rate limited harder than login: login is a guess against an unknown account, this is a guess
+ * against one the attacker already has a cookie for, so each attempt is worth more to them.
+ */
+app.post('/auth/reauth', async (c) => {
+  if (await overLimit(c, 'reauth', 5, 5 * MIN))
+    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  const cookie = getCookie(c, SESSION_COOKIE);
+  const db = createDb(c.env);
+  const me = cookie ? await validateSession(db, cookie) : null;
+  if (!me || !cookie) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+
+  const parsed = z
+    .object({ password: z.string().min(1).max(200) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+
+  const row = await db.select().from(users).where(eq(users.id, me.id)).get();
+  if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!row.passwordHash)
+    return c.json(
+      { error: 'NO_PASSWORD', message: 'This account has no password to confirm with.' },
+      400,
+    );
+  if (!(await verifyPassword(row.passwordHash, parsed.data.password)))
+    return c.json({ error: 'INVALID_CREDENTIALS', message: 'That password is not right.' }, 400);
+
+  await stampReauth(db, cookie);
+  return c.json({ ok: true, sudoUntil: (await sudoUntil(db, cookie))?.toISOString() ?? null });
+});
+
 app.post('/auth/change-password', async (c) => {
   if (await overLimit(c, 'change-password', 10, 5 * MIN))
     return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
@@ -566,12 +648,19 @@ app.post('/auth/change-password', async (c) => {
   const { token, expiresAt } = await createSession(db, row.id, meta); // ...then keep this device
   await recordSecurityEvent(db, row.id, 'password_changed', meta);
   setSessionCookie(c, token, expiresAt);
+  deliverCredentialAlert(c, row.email, 'password_changed', meta);
   return c.json({ ok: true });
 });
 
-// Add a password to a passwordless (Google-only) account, so the user can also sign in with email.
-// Unlike change-password there's no current password to verify — the live session is the proof of
-// ownership — but we hard-refuse if a password already exists so this can't bypass that check.
+/*
+ * Add a password to a passwordless (Google-only) account, so it can also sign in with email.
+ *
+ * There is no current password to verify here, which is exactly what made this the soft spot: a
+ * live cookie used to be the whole proof. Paired with disconnect-google that was a lockout chain
+ * (give the account a password the thief knows, then cut the Google link the owner uses), so this
+ * now needs a session that proved itself recently, revokes every other session, and mails the owner.
+ * See auth/stepUp.ts.
+ */
 app.post('/auth/set-password', async (c) => {
   if (await overLimit(c, 'set-password', 10, 5 * MIN))
     return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
@@ -592,12 +681,22 @@ app.post('/auth/set-password', async (c) => {
       { error: 'PASSWORD_EXISTS', message: 'This account already has a password. Use change password instead.' },
       400,
     );
+  const stale = await needsStepUp(c, db, cookie!, false);
+  if (stale) return stale;
 
   await db
     .update(users)
     .set({ passwordHash: await hashPassword(parsed.data.newPassword), updatedAt: new Date() })
     .where(eq(users.id, row.id));
-  await recordSecurityEvent(db, row.id, 'password_added', sessionMeta(c));
+  const meta = sessionMeta(c);
+  // Same hygiene as change-password: anything else holding a cookie for this account loses it, and
+  // this device is handed a new one so the person doing the change is not signed out by their own
+  // action.
+  await revokeAllSessions(db, row.id);
+  const { token, expiresAt } = await createSession(db, row.id, meta);
+  setSessionCookie(c, token, expiresAt);
+  await recordSecurityEvent(db, row.id, 'password_added', meta);
+  deliverCredentialAlert(c, row.email, 'password_added', meta);
   return c.json({ ok: true });
 });
 
@@ -619,9 +718,16 @@ app.post('/auth/disconnect-google', async (c) => {
       { error: 'CANNOT_UNLINK', message: 'Set a password first so you are not locked out.' },
       400,
     );
+  const stale = await needsStepUp(c, db, cookie!, true);
+  if (stale) return stale;
 
   await db.update(users).set({ googleId: null, updatedAt: new Date() }).where(eq(users.id, row.id));
-  await recordSecurityEvent(db, row.id, 'google_disconnected', sessionMeta(c));
+  const meta = sessionMeta(c);
+  await revokeAllSessions(db, row.id);
+  const { token, expiresAt } = await createSession(db, row.id, meta);
+  setSessionCookie(c, token, expiresAt);
+  await recordSecurityEvent(db, row.id, 'google_disconnected', meta);
+  deliverCredentialAlert(c, row.email, 'google_disconnected', meta);
   return c.json({ ok: true });
 });
 
@@ -811,6 +917,13 @@ app.post('/auth/sessions/revoke', async (c) => {
 });
 
 // Revoke every session except the current one ("sign out everywhere else").
+/*
+ * Sign out everything except this device.
+ *
+ * Deliberately NOT behind step-up. This is the button someone reaches for when they think another
+ * device is not theirs, so putting a password prompt in front of it would slow down exactly the
+ * person we want moving fast. Step-up guards changing how you sign in, not defending yourself.
+ */
 app.post('/auth/sessions/revoke-others', async (c) => {
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
@@ -827,6 +940,13 @@ app.post('/auth/sessions/revoke-others', async (c) => {
 
 // Permanently delete the account and everything attached (sessions + tokens cascade). Re-auth
 // required: the password if the account has one, else typing the exact email (Google-only).
+/*
+ * Also not behind step-up, because it already carries its own proof: a password account has to type
+ * the password, and a Google-only account has to type its own email address. Adding the freshness
+ * gate on top would make an account with no password permanently undeletable, since there would be
+ * nothing it could ever re-authenticate with. A wall you cannot climb is not security, it is a bug
+ * with a good excuse.
+ */
 app.post('/auth/delete-account', async (c) => {
   if (await overLimit(c, 'delete-account', 5, 10 * MIN))
     return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
