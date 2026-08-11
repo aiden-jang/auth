@@ -84,6 +84,40 @@ export function LoginPage(): ReactNode {
       ) : (
         <>
           <GoogleSignIn returnTo={returnTo} />
+          <div
+            role="tablist"
+            aria-label="Sign-in method"
+            className="mb-4 grid grid-cols-2 rounded-xl border border-line bg-field p-1"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={!magicMode}
+              onClick={() => {
+                setMagicMode(false);
+                setError(null);
+              }}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                !magicMode ? 'bg-card text-ink shadow-sm' : 'text-muted hover:text-ink'
+              }`}
+            >
+              Password
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={magicMode}
+              onClick={() => {
+                setMagicMode(true);
+                setError(null);
+              }}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                magicMode ? 'bg-card text-ink shadow-sm' : 'text-muted hover:text-ink'
+              }`}
+            >
+              Email link
+            </button>
+          </div>
           <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
             <div>
               <label htmlFor="email" className={labelClass}>
@@ -136,6 +170,12 @@ export function LoginPage(): ReactNode {
               </div>
             )}
 
+            {magicMode && (
+              <p className="-mt-1 text-xs leading-relaxed text-muted">
+                No password needed. We’ll send a private link that expires in 15 minutes.
+              </p>
+            )}
+
             {error && (
               <p
                 role="alert"
@@ -157,17 +197,6 @@ export function LoginPage(): ReactNode {
                   : 'Log in'}
             </button>
           </form>
-
-          <button
-            type="button"
-            onClick={() => {
-              setMagicMode((m) => !m);
-              setError(null);
-            }}
-            className="mt-4 w-full text-center text-sm text-muted transition hover:text-ink"
-          >
-            {magicMode ? 'Use a password instead' : 'Email me a sign-in link instead'}
-          </button>
 
           <p className="mt-5 text-center text-sm text-muted">
               First time here?{' '}
