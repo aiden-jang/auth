@@ -34,6 +34,7 @@ export interface SessionInfo {
   location: string | null;
   lastSeenAt: string;
   createdAt: string;
+  expiresAt: string;
 }
 
 export type SecurityEventType =
