@@ -1,11 +1,18 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { authApi, googleConnectUrl, googleEnabled, type AuthUser, type SessionInfo } from '../lib/api';
+import {
+  authApi,
+  googleConnectUrl,
+  googleEnabled,
+  type AuthUser,
+  type SessionInfo,
+} from '../lib/api';
 import { AccountShell, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
 import { Skeleton } from '../components/Skeleton';
 import { APPS, appHref } from '../lib/apps';
 import { SecurityActivity } from '../components/SecurityActivity';
+import { securityCheckup, type SecurityAction } from '../lib/securityCheckup';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -76,7 +83,7 @@ export function AccountPage(): ReactNode {
     try {
       await authApi.revokeSession(id);
       setSessions((s) => s?.filter((x) => x.id !== id) ?? null);
-      setExpandedSessionId((current) => current === id ? null : current);
+      setExpandedSessionId((current) => (current === id ? null : current));
       setSecurityRevision((value) => value + 1);
     } catch {
       setSessionError('Couldn’t sign that device out. Try again.');
@@ -99,8 +106,10 @@ export function AccountPage(): ReactNode {
     setSessionError(null);
     try {
       const { session } = await authApi.renameSession(id, label);
-      setSessions((current) =>
-        current?.map((item) => item.id === id ? { ...item, device: session.device } : item) ?? null,
+      setSessions(
+        (current) =>
+          current?.map((item) => (item.id === id ? { ...item, device: session.device } : item)) ??
+          null,
       );
       setRenamingSessionId(null);
       setSessionNameDraft('');
@@ -156,7 +165,9 @@ export function AccountPage(): ReactNode {
       window.setTimeout(() => setVerificationStatus(null), 3000);
     } catch (err) {
       setVerificationStatus(null);
-      setVerificationError(err instanceof Error ? err.message : 'Couldn’t send the verification email.');
+      setVerificationError(
+        err instanceof Error ? err.message : 'Couldn’t send the verification email.',
+      );
     }
   }
 
@@ -167,7 +178,9 @@ export function AccountPage(): ReactNode {
     try {
       const data = await authApi.exportAccount();
       const href = URL.createObjectURL(
-        new Blob([`${JSON.stringify(data, null, 2)}\n`], { type: 'application/json;charset=utf-8' }),
+        new Blob([`${JSON.stringify(data, null, 2)}\n`], {
+          type: 'application/json;charset=utf-8',
+        }),
       );
       const link = document.createElement('a');
       link.href = href;
@@ -201,7 +214,9 @@ export function AccountPage(): ReactNode {
     setDeleting(true);
     setDeleteError(null);
     try {
-      await authApi.deleteAccount(user.hasPassword ? { password: deletePw } : { confirm: deleteConfirm });
+      await authApi.deleteAccount(
+        user.hasPassword ? { password: deletePw } : { confirm: deleteConfirm },
+      );
       window.location.replace('/login');
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Could not delete your account.');
@@ -361,8 +376,22 @@ export function AccountPage(): ReactNode {
   }
   if (!user) return null;
 
-  const sessionCount = sessions?.length ?? null;
-  const signInMethods = Number(user.hasPassword) + Number(user.hasGoogle);
+  const checkup = securityCheckup(user, sessions);
+
+  function runSecurityAction(action: SecurityAction): void {
+    if (action === 'verify_email') {
+      void resendVerification();
+      return;
+    }
+    if (action === 'add_password') {
+      setPwDone(false);
+      setChangingPw(true);
+      return;
+    }
+    document
+      .getElementById('active-sessions')
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   return (
     <AccountShell title="Your account" subtitle="One login for all of aidenjang's apps.">
@@ -371,37 +400,39 @@ export function AccountPage(): ReactNode {
           with somewhere to go. Hidden while changing password so that flow
           stays focused. Sourced from lib/apps.ts. */}
       {!changingPw && (
-      <section aria-label="Apps">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Jump into an app</h2>
-        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-          {APPS.map((app) => (
-            <li key={app.name}>
-              <a
-                href={appHref(app)}
-                className="group flex items-center justify-between rounded-xl border border-line bg-field px-4 py-3 transition hover:border-accent"
-              >
-                <span className="flex items-center gap-3">
+        <section aria-label="Apps">
+          <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
+            Jump into an app
+          </h2>
+          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+            {APPS.map((app) => (
+              <li key={app.name}>
+                <a
+                  href={appHref(app)}
+                  className="group flex items-center justify-between rounded-xl border border-line bg-field px-4 py-3 transition hover:border-accent"
+                >
+                  <span className="flex items-center gap-3">
+                    <span
+                      aria-hidden
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: app.accent }}
+                    />
+                    <span>
+                      <span className="font-medium text-ink">{app.name}</span>
+                      <span className="block text-xs text-muted">{app.tagline}</span>
+                    </span>
+                  </span>
                   <span
                     aria-hidden
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ background: app.accent }}
-                  />
-                  <span>
-                    <span className="font-medium text-ink">{app.name}</span>
-                    <span className="block text-xs text-muted">{app.tagline}</span>
+                    className="text-muted transition group-hover:translate-x-0.5 group-hover:text-accent"
+                  >
+                    &rarr;
                   </span>
-                </span>
-                <span
-                  aria-hidden
-                  className="text-muted transition group-hover:translate-x-0.5 group-hover:text-accent"
-                >
-                  &rarr;
-                </span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </section>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {!changingPw && <hr className="my-6 border-line" />}
@@ -458,7 +489,11 @@ export function AccountPage(): ReactNode {
           <dt className="text-muted">Email</dt>
           <dd className="flex min-w-0 items-center gap-2 font-medium">
             <span className="truncate">{user.email}</span>
-            <button type="button" onClick={() => void copyEmail()} className="shrink-0 text-xs font-medium text-accent hover:underline">
+            <button
+              type="button"
+              onClick={() => void copyEmail()}
+              className="shrink-0 text-xs font-medium text-accent hover:underline"
+            >
               {emailCopied ? 'Copied' : 'Copy'}
             </button>
           </dd>
@@ -467,9 +502,13 @@ export function AccountPage(): ReactNode {
           <dt className="text-muted">Email status</dt>
           <dd>
             {user.emailVerified ? (
-              <span className="rounded-full border border-pos/30 bg-pos/10 px-2.5 py-0.5 text-xs font-medium text-pos">verified</span>
+              <span className="rounded-full border border-pos/30 bg-pos/10 px-2.5 py-0.5 text-xs font-medium text-pos">
+                verified
+              </span>
             ) : (
-              <span className="rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-muted">unverified</span>
+              <span className="rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-muted">
+                unverified
+              </span>
             )}
           </dd>
         </div>
@@ -489,60 +528,97 @@ export function AccountPage(): ReactNode {
                 ? 'Verification email sent'
                 : 'Resend verification email'}
           </button>
-          {verificationError && <p role="alert" className="mt-1.5 text-xs font-medium text-neg">{verificationError}</p>}
+          {verificationError && (
+            <p role="alert" className="mt-1.5 text-xs font-medium text-neg">
+              {verificationError}
+            </p>
+          )}
         </div>
       )}
 
       <hr className="my-6 border-line" />
 
       {!changingPw && (
-        <section aria-label="Security check-up" className="rounded-2xl border border-line bg-field p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-ink">Security check-up</h2>
-              <p className="mt-0.5 text-xs text-muted">The small things worth keeping an eye on.</p>
-            </div>
-            {sessionCount !== null && sessionCount > 1 && (
-              <button
-                type="button"
-                onClick={() => void revokeOthers()}
-                disabled={revokingOthers}
-                className="text-xs font-semibold text-accent hover:underline disabled:cursor-default disabled:opacity-60"
-              >
-                {revokingOthers ? 'Signing out…' : 'Sign out other devices'}
-              </button>
-            )}
-          </div>
-          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-            <div className="rounded-xl border border-line bg-card/40 px-3 py-2.5">
-              <dt className="text-xs text-muted">Email</dt>
-              <dd className={user.emailVerified ? 'mt-1 font-medium text-pos' : 'mt-1 font-medium text-neg'}>
-                {user.emailVerified ? 'Verified' : 'Needs verification'}
-              </dd>
-            </div>
-            <div className="rounded-xl border border-line bg-card/40 px-3 py-2.5">
-              <dt className="text-xs text-muted">Sign-in options</dt>
-              <dd className="mt-1 font-medium text-ink">
-                {signInMethods === 0 ? 'Email link only' : `${signInMethods} ${signInMethods === 1 ? 'method' : 'methods'}`}
-              </dd>
-            </div>
-            <div className="rounded-xl border border-line bg-card/40 px-3 py-2.5">
-              <dt className="text-xs text-muted">Devices</dt>
-              <dd className="mt-1 font-medium text-ink">
-                {sessionCount === null ? 'Checking…' : `${sessionCount} active ${sessionCount === 1 ? 'session' : 'sessions'}`}
-              </dd>
-            </div>
-          </dl>
-          {!user.emailVerified && (
-            <button
-              type="button"
-              onClick={() => void resendVerification()}
-              disabled={verificationStatus !== null}
-              className="mt-4 text-xs font-semibold text-accent hover:underline disabled:cursor-default disabled:opacity-60"
+        <section
+          aria-label="Security check-up"
+          className="rounded-2xl border border-line bg-field p-4"
+        >
+          <div className="flex items-center gap-4">
+            <div
+              className="grid h-20 w-20 shrink-0 place-items-center rounded-full p-[5px]"
+              style={{
+                background:
+                  checkup.score === null
+                    ? 'var(--color-line)'
+                    : `conic-gradient(var(--color-pos) ${checkup.score}%, var(--color-line) 0)`,
+              }}
+              role="img"
+              aria-label={
+                checkup.score === null
+                  ? 'Security check-up is loading'
+                  : `${checkup.score}% of security checks complete`
+              }
             >
-              {verificationStatus === 'sending' ? 'Sending verification email…' : verificationStatus === 'sent' ? 'Verification email sent' : 'Send verification email'}
-            </button>
-          )}
+              <span className="grid h-full w-full place-items-center rounded-full bg-field text-center">
+                <span>
+                  <strong className="block text-lg font-semibold text-ink">
+                    {checkup.score === null ? '…' : `${checkup.score}%`}
+                  </strong>
+                  <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted">
+                    {checkup.label}
+                  </span>
+                </span>
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-sm font-semibold text-ink">Security check-up</h2>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted">
+                Four checks, with no mystery points. Fixes lead straight to the right control.
+              </p>
+              {checkup.nextAction && (
+                <button
+                  type="button"
+                  onClick={() => runSecurityAction(checkup.nextAction!.action!)}
+                  disabled={
+                    checkup.nextAction.action === 'verify_email' && verificationStatus !== null
+                  }
+                  className="mt-2 text-xs font-semibold text-accent hover:underline disabled:cursor-default disabled:opacity-60"
+                >
+                  {checkup.nextAction.action === 'verify_email' && verificationStatus === 'sending'
+                    ? 'Sending verification email…'
+                    : checkup.nextAction.label}
+                  {checkup.nextAction.action !== 'verify_email' && ' →'}
+                </button>
+              )}
+            </div>
+          </div>
+          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+            {checkup.checks.map((check) => (
+              <li
+                key={check.id}
+                className="flex gap-2.5 rounded-xl border border-line bg-card/40 px-3 py-2.5"
+              >
+                <span
+                  aria-hidden
+                  className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${
+                    check.state === 'pass'
+                      ? 'bg-pos/15 text-pos'
+                      : check.state === 'action'
+                        ? 'bg-neg/15 text-neg'
+                        : 'bg-line text-muted'
+                  }`}
+                >
+                  {check.state === 'pass' ? '✓' : check.state === 'action' ? '!' : '·'}
+                </span>
+                <span className="min-w-0">
+                  <strong className="block text-xs font-semibold text-ink">{check.label}</strong>
+                  <span className="mt-0.5 block text-[11px] leading-snug text-muted">
+                    {check.detail}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
@@ -604,7 +680,10 @@ export function AccountPage(): ReactNode {
               />
             </div>
             {pwError && (
-              <p role="alert" className="rounded-lg border border-neg/30 bg-neg/10 px-3 py-2 text-sm font-medium text-neg">
+              <p
+                role="alert"
+                className="rounded-lg border border-neg/30 bg-neg/10 px-3 py-2 text-sm font-medium text-neg"
+              >
                 {pwError}
               </p>
             )}
@@ -652,18 +731,34 @@ export function AccountPage(): ReactNode {
         <>
           <hr className="my-6 border-line" />
           <section aria-label="Connected accounts">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Connected accounts</h2>
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
+              Connected accounts
+            </h2>
             <div className="mt-3 flex items-center justify-between gap-4 rounded-xl border border-line bg-field px-4 py-3">
               <span className="flex items-center gap-3">
                 <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden className="shrink-0">
-                  <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.71-1.57 2.68-3.88 2.68-6.62z" />
-                  <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.02-3.7H.96v2.34A9 9 0 0 0 9 18z" />
-                  <path fill="#FBBC05" d="M3.98 10.72a5.4 5.4 0 0 1 0-3.44V4.94H.96a9 9 0 0 0 0 8.12l3.02-2.34z" />
-                  <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.94l3.02 2.34C4.68 5.16 6.66 3.58 9 3.58z" />
+                  <path
+                    fill="#4285F4"
+                    d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.71-1.57 2.68-3.88 2.68-6.62z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.02-3.7H.96v2.34A9 9 0 0 0 9 18z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M3.98 10.72a5.4 5.4 0 0 1 0-3.44V4.94H.96a9 9 0 0 0 0 8.12l3.02-2.34z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.94l3.02 2.34C4.68 5.16 6.66 3.58 9 3.58z"
+                  />
                 </svg>
                 <span>
                   <span className="block text-sm font-medium text-ink">Google</span>
-                  <span className="block text-xs text-muted">{user.hasGoogle ? 'Connected' : 'Not connected'}</span>
+                  <span className="block text-xs text-muted">
+                    {user.hasGoogle ? 'Connected' : 'Not connected'}
+                  </span>
                 </span>
               </span>
               {user.hasGoogle ? (
@@ -700,9 +795,11 @@ export function AccountPage(): ReactNode {
       {!changingPw && (
         <>
           <hr className="my-6 border-line" />
-          <section aria-label="Active sessions">
+          <section id="active-sessions" aria-label="Active sessions" className="scroll-mt-4">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Active sessions</h2>
+              <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
+                Active sessions
+              </h2>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -710,7 +807,11 @@ export function AccountPage(): ReactNode {
                   disabled={refreshingSessions}
                   className="text-xs font-medium text-muted hover:text-accent hover:underline disabled:cursor-default disabled:opacity-60"
                 >
-                  {refreshingSessions ? 'Refreshing…' : sessionsRefreshed ? 'Up to date' : 'Refresh'}
+                  {refreshingSessions
+                    ? 'Refreshing…'
+                    : sessionsRefreshed
+                      ? 'Up to date'
+                      : 'Refresh'}
                 </button>
                 {sessions && sessions.length > 1 && (
                   <button
@@ -739,132 +840,152 @@ export function AccountPage(): ReactNode {
               ) : (
                 sessions.map((s) => {
                   const expanded = expandedSessionId === s.id;
-                  const recentlyAdded = !s.current && Date.now() - new Date(s.createdAt).getTime() < 24 * 60 * 60 * 1000;
+                  const recentlyAdded =
+                    !s.current &&
+                    Date.now() - new Date(s.createdAt).getTime() < 24 * 60 * 60 * 1000;
                   return (
-                  <li
-                    key={s.id}
-                    className="rounded-xl border border-line bg-field px-4 py-3"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSessionId(expanded ? null : s.id)}
-                        aria-expanded={expanded}
-                        className="min-w-0 flex-1 cursor-pointer text-left"
-                      >
-                        <span className="flex items-center gap-2">
-                          <span className="truncate text-sm font-medium text-ink">
-                            {s.device ?? 'Unknown device'}
-                          </span>
-                          {s.current && (
-                            <span className="shrink-0 rounded-full border border-pos/30 bg-pos/10 px-2 py-0.5 text-xs font-medium text-pos">
-                              this device
-                            </span>
-                          )}
-                          {recentlyAdded && (
-                            <span className="shrink-0 rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
-                              new
-                            </span>
-                          )}
-                        </span>
-                        <span className="block text-xs text-muted">
-                          {[s.location, timeAgo(s.lastSeenAt)].filter(Boolean).join(' · ')} · {expanded ? 'hide details' : 'details'}
-                        </span>
-                      </button>
-                      {!s.current && (
+                    <li key={s.id} className="rounded-xl border border-line bg-field px-4 py-3">
+                      <div className="flex items-center justify-between gap-4">
                         <button
                           type="button"
-                          onClick={() => void revoke(s.id)}
-                          disabled={revokingId === s.id}
-                          className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2 text-sm text-muted transition hover:text-ink disabled:opacity-60"
+                          onClick={() => setExpandedSessionId(expanded ? null : s.id)}
+                          aria-expanded={expanded}
+                          className="min-w-0 flex-1 cursor-pointer text-left"
                         >
-                          {revokingId === s.id ? '...' : 'Sign out'}
+                          <span className="flex items-center gap-2">
+                            <span className="truncate text-sm font-medium text-ink">
+                              {s.device ?? 'Unknown device'}
+                            </span>
+                            {s.current && (
+                              <span className="shrink-0 rounded-full border border-pos/30 bg-pos/10 px-2 py-0.5 text-xs font-medium text-pos">
+                                this device
+                              </span>
+                            )}
+                            {recentlyAdded && (
+                              <span className="shrink-0 rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
+                                new
+                              </span>
+                            )}
+                          </span>
+                          <span className="block text-xs text-muted">
+                            {[s.location, timeAgo(s.lastSeenAt)].filter(Boolean).join(' · ')} ·{' '}
+                            {expanded ? 'hide details' : 'details'}
+                          </span>
                         </button>
-                      )}
-                    </div>
-                    {expanded && (
-                      <div className="mt-3 border-t border-line pt-3">
-                        <dl className="grid gap-2 text-xs sm:grid-cols-3">
-                          <div>
-                            <dt className="text-muted">First signed in</dt>
-                            <dd className="mt-0.5 font-medium text-ink">{exactTime(s.createdAt)}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-muted">Last active</dt>
-                            <dd className="mt-0.5 font-medium text-ink">{exactTime(s.lastSeenAt)}</dd>
-                          </div>
-                          <div>
-                            <dt className="text-muted">Approximate location</dt>
-                            <dd className="mt-0.5 font-medium text-ink">{s.location ?? 'Not available'}</dd>
-                          </div>
-                        </dl>
-                        {renamingSessionId === s.id ? (
-                          <form
-                            onSubmit={(event) => void renameSession(event, s.id)}
-                            className="mt-3 flex flex-col gap-2 rounded-lg border border-line bg-canvas/50 p-3 sm:flex-row sm:items-end"
-                          >
-                            <label className="min-w-0 flex-1 text-xs font-medium text-muted">
-                              Device name
-                              <input
-                                autoFocus
-                                maxLength={40}
-                                value={sessionNameDraft}
-                                onChange={(event) => setSessionNameDraft(event.target.value)}
-                                placeholder="Personal MacBook"
-                                className={`${inputClass} mt-1 py-2`}
-                              />
-                            </label>
-                            <div className="flex gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setRenamingSessionId(null);
-                                  setSessionNameDraft('');
-                                }}
-                                className="rounded-lg border border-line px-3 py-2 text-xs font-medium text-muted hover:text-ink"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                type="submit"
-                                disabled={savingSessionName || !sessionNameDraft.trim()}
-                                className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
-                              >
-                                {savingSessionName ? 'Saving…' : 'Save name'}
-                              </button>
-                            </div>
-                          </form>
-                        ) : (
+                        {!s.current && (
                           <button
                             type="button"
-                            onClick={() => beginSessionRename(s)}
-                            className="mt-3 text-xs font-medium text-accent hover:underline"
+                            onClick={() => void revoke(s.id)}
+                            disabled={revokingId === s.id}
+                            className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2 text-sm text-muted transition hover:text-ink disabled:opacity-60"
                           >
-                            Rename device
+                            {revokingId === s.id ? '...' : 'Sign out'}
                           </button>
                         )}
                       </div>
-                    )}
-                  </li>
+                      {expanded && (
+                        <div className="mt-3 border-t border-line pt-3">
+                          <dl className="grid gap-2 text-xs sm:grid-cols-3">
+                            <div>
+                              <dt className="text-muted">First signed in</dt>
+                              <dd className="mt-0.5 font-medium text-ink">
+                                {exactTime(s.createdAt)}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="text-muted">Last active</dt>
+                              <dd className="mt-0.5 font-medium text-ink">
+                                {exactTime(s.lastSeenAt)}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt className="text-muted">Approximate location</dt>
+                              <dd className="mt-0.5 font-medium text-ink">
+                                {s.location ?? 'Not available'}
+                              </dd>
+                            </div>
+                          </dl>
+                          {renamingSessionId === s.id ? (
+                            <form
+                              onSubmit={(event) => void renameSession(event, s.id)}
+                              className="mt-3 flex flex-col gap-2 rounded-lg border border-line bg-canvas/50 p-3 sm:flex-row sm:items-end"
+                            >
+                              <label className="min-w-0 flex-1 text-xs font-medium text-muted">
+                                Device name
+                                <input
+                                  autoFocus
+                                  maxLength={40}
+                                  value={sessionNameDraft}
+                                  onChange={(event) => setSessionNameDraft(event.target.value)}
+                                  placeholder="Personal MacBook"
+                                  className={`${inputClass} mt-1 py-2`}
+                                />
+                              </label>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setRenamingSessionId(null);
+                                    setSessionNameDraft('');
+                                  }}
+                                  className="rounded-lg border border-line px-3 py-2 text-xs font-medium text-muted hover:text-ink"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  disabled={savingSessionName || !sessionNameDraft.trim()}
+                                  className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                                >
+                                  {savingSessionName ? 'Saving…' : 'Save name'}
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => beginSessionRename(s)}
+                              className="mt-3 text-xs font-medium text-accent hover:underline"
+                            >
+                              Rename device
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </li>
                   );
                 })
               )}
             </ul>
-            {sessionError && <p role="alert" className="mt-3 text-sm font-medium text-neg">{sessionError}</p>}
+            {sessionError && (
+              <p role="alert" className="mt-3 text-sm font-medium text-neg">
+                {sessionError}
+              </p>
+            )}
           </section>
           <hr className="my-6 border-line" />
           <SecurityActivity refreshKey={securityRevision} />
           <hr className="my-6 border-line" />
-          <section aria-labelledby="your-data-heading" className="flex items-center justify-between gap-4">
+          <section
+            aria-labelledby="your-data-heading"
+            className="flex items-center justify-between gap-4"
+          >
             <div>
-              <h2 id="your-data-heading" className="text-xs font-medium uppercase tracking-wide text-muted">
+              <h2
+                id="your-data-heading"
+                className="text-xs font-medium uppercase tracking-wide text-muted"
+              >
                 Your data
               </h2>
               <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted">
-                Download your profile, sign-in methods, active devices, and security history as JSON.
-                Passwords and session credentials are never included.
+                Download your profile, sign-in methods, active devices, and security history as
+                JSON. Passwords and session credentials are never included.
               </p>
-              {exportError && <p role="alert" className="mt-1.5 text-xs font-medium text-neg">{exportError}</p>}
+              {exportError && (
+                <p role="alert" className="mt-1.5 text-xs font-medium text-neg">
+                  {exportError}
+                </p>
+              )}
             </div>
             <button
               type="button"
@@ -872,7 +993,11 @@ export function AccountPage(): ReactNode {
               disabled={exportStatus !== null}
               className="shrink-0 rounded-full border border-line px-4 py-2 text-xs font-semibold text-ink transition hover:border-accent hover:text-accent disabled:cursor-default disabled:opacity-60"
             >
-              {exportStatus === 'exporting' ? 'Preparing…' : exportStatus === 'downloaded' ? 'Downloaded' : 'Download copy'}
+              {exportStatus === 'exporting'
+                ? 'Preparing…'
+                : exportStatus === 'downloaded'
+                  ? 'Downloaded'
+                  : 'Download copy'}
             </button>
           </section>
         </>
