@@ -57,6 +57,26 @@ export interface SecurityEvent {
   createdAt: string;
 }
 
+export interface AccountExport {
+  exportedAt: string;
+  account: {
+    email: string;
+    displayName: string;
+    emailVerified: boolean;
+    signInMethods: string[];
+    createdAt: string;
+    updatedAt: string;
+  };
+  activeSessions: Array<{
+    device: string | null;
+    location: string | null;
+    createdAt: string;
+    lastSeenAt: string;
+    expiresAt: string;
+  }>;
+  securityActivity: Array<Omit<SecurityEvent, 'id'>>;
+}
+
 async function req<T>(path: string, method: string, body?: unknown): Promise<T> {
   const init: RequestInit = { method, credentials: 'include' };
   if (body !== undefined) {
@@ -102,6 +122,7 @@ export const authApi = {
   disconnectGoogle: () => req<{ ok: boolean }>('/auth/disconnect-google', 'POST'),
   listSessions: () => req<{ sessions: SessionInfo[] }>('/auth/sessions', 'GET'),
   listSecurityEvents: () => req<{ events: SecurityEvent[] }>('/auth/security-events', 'GET'),
+  exportAccount: () => req<AccountExport>('/auth/export', 'GET'),
   renameSession: (id: string, label: string) =>
     req<{ session: Pick<SessionInfo, 'id' | 'device'> }>('/auth/sessions/rename', 'POST', { id, label }),
   revokeSession: (id: string) => req<{ ok: boolean }>('/auth/sessions/revoke', 'POST', { id }),
