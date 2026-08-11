@@ -9,10 +9,11 @@ import { GoogleSignIn } from '../components/GoogleSignIn';
 import { EmailSuggestion } from '../components/EmailSuggestion';
 import { inboxFor } from '../lib/inbox';
 import {
-  forgetRecentEmail,
+  forgetRecentAccount,
   maskEmail,
-  readRecentEmail,
-  rememberRecentEmail,
+  readRecentAccounts,
+  recentAccountTimeLabel,
+  rememberRecentAccount,
 } from '../lib/recentAccount';
 
 const LOGIN_METHOD_KEY = 'aidenjang:login-method';
@@ -40,7 +41,8 @@ export function LoginPage(): ReactNode {
   const returnTo = params.get('return_to');
   const returnApp = returnAppFor(returnTo);
   const carriedEmail = (location.state as { email?: unknown } | null)?.email;
-  const [recentEmail, setRecentEmail] = useState(readRecentEmail);
+  const [recentAccounts, setRecentAccounts] = useState(readRecentAccounts);
+  const recentEmail = recentAccounts[0]?.email ?? null;
   const [email, setEmail] = useState(typeof carriedEmail === 'string' ? carriedEmail : recentEmail ?? '');
   const [password, setPassword] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
@@ -74,8 +76,8 @@ export function LoginPage(): ReactNode {
     try {
       if (magicMode) {
         await authApi.magicLink(email, returnTo, turnstileToken);
-        rememberRecentEmail(email);
-        setRecentEmail(email.trim().toLowerCase());
+        rememberRecentAccount(email, 'email-link');
+        setRecentAccounts(readRecentAccounts());
         setMagicSent(true);
         setMagicResent(false);
         setResendIn(30);
@@ -86,7 +88,7 @@ export function LoginPage(): ReactNode {
         setLoading(false);
       } else {
         await authApi.login(email, password, turnstileToken);
-        rememberRecentEmail(email);
+        rememberRecentAccount(email, 'password');
         // replace: once signed in, back should not return to the login form.
         window.location.replace(safeReturnTo(returnTo) ?? '/account');
       }
@@ -199,6 +201,79 @@ export function LoginPage(): ReactNode {
       ) : (
         <>
           <GoogleSignIn returnTo={returnTo} />
+          {recentAccounts.length > 0 && (
+            <section aria-labelledby="recent-accounts-heading" className="mb-4">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h2 id="recent-accounts-heading" className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted">
+                  Recent on this device
+                </h2>
+                <span className="text-[10px] text-muted">stored only here</span>
+              </div>
+              <ul className="space-y-1.5">
+                {recentAccounts.map((account) => {
+                  const selected = email.trim().toLowerCase() === account.email;
+                  return (
+                    <li
+                      key={account.email}
+                      className={`flex items-center gap-2 rounded-xl border p-1.5 transition ${
+                        selected ? 'border-accent/35 bg-accent/10' : 'border-line bg-field'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmail(account.email);
+                          const useMagic = account.method === 'email-link';
+                          setMagicMode(useMagic);
+                          rememberLoginMethod(useMagic);
+                          setPassword('');
+                          setError(null);
+                        }}
+                        className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1.5 text-left"
+                        aria-label={`Continue as ${account.email}`}
+                      >
+                        <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent/15 text-xs font-bold uppercase text-accent">
+                          {account.email.split('@')[0]?.slice(0, 2) || '?'}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <strong className="block truncate text-sm font-semibold text-ink">{maskEmail(account.email)}</strong>
+                          <small className="block text-[10px] text-muted">
+                            {account.method === 'email-link' ? 'email link' : 'password'} · {recentAccountTimeLabel(account.lastUsedAt)}
+                          </small>
+                        </span>
+                        <span aria-hidden className={`text-sm ${selected ? 'text-accent' : 'text-muted'}`}>{selected ? '✓' : '→'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          forgetRecentAccount(account.email);
+                          const next = readRecentAccounts();
+                          setRecentAccounts(next);
+                          if (selected) setEmail(next[0]?.email ?? '');
+                        }}
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted transition hover:bg-card hover:text-ink"
+                        aria-label={`Forget ${account.email} on this device`}
+                      >
+                        ×
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('');
+                  setPassword('');
+                  setError(null);
+                  window.setTimeout(() => document.getElementById('email')?.focus(), 0);
+                }}
+                className="mt-2 text-xs font-medium text-accent hover:underline"
+              >
+                Use another account
+              </button>
+            </section>
+          )}
           <div
             role="tablist"
             aria-label="Sign-in method"
@@ -265,25 +340,6 @@ export function LoginPage(): ReactNode {
                   setError(null);
                 }}
               />
-              {recentEmail && email.trim().toLowerCase() === recentEmail && (
-                <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-line bg-field px-3 py-2 text-xs text-muted">
-                  <span>
-                    <span className="font-medium text-ink">{maskEmail(recentEmail)}</span>{' '}
-                    was last used on this device
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      forgetRecentEmail();
-                      setRecentEmail(null);
-                      setEmail('');
-                    }}
-                    className="shrink-0 font-medium text-accent hover:underline"
-                  >
-                    Forget
-                  </button>
-                </div>
-              )}
             </div>
 
             {!magicMode && (
