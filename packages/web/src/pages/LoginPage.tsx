@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { returnAppFor, safeReturnTo } from '../lib/returnTo';
@@ -27,6 +27,22 @@ function rememberLoginMethod(magic: boolean): void {
   }
 }
 
+function inboxFor(email: string): { label: string; href: string } | null {
+  const domain = email.trim().split('@').pop()?.toLowerCase();
+  if (!domain) return null;
+  if (domain === 'gmail.com' || domain === 'googlemail.com') {
+    return { label: 'Open Gmail', href: 'https://mail.google.com/' };
+  }
+  if (['outlook.com', 'hotmail.com', 'live.com', 'msn.com'].includes(domain)) {
+    return { label: 'Open Outlook', href: 'https://outlook.live.com/mail/' };
+  }
+  if (domain === 'yahoo.com') return { label: 'Open Yahoo Mail', href: 'https://mail.yahoo.com/' };
+  if (domain === 'icloud.com' || domain === 'me.com' || domain === 'mac.com') {
+    return { label: 'Open iCloud Mail', href: 'https://www.icloud.com/mail/' };
+  }
+  return null;
+}
+
 export function LoginPage(): ReactNode {
   const [params] = useSearchParams();
   const returnTo = params.get('return_to');
@@ -46,6 +62,13 @@ export function LoginPage(): ReactNode {
   // Magic-link mode: sign in via an emailed link instead of a password.
   const [magicMode, setMagicMode] = useState(preferredMagicMode);
   const [magicSent, setMagicSent] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = window.setInterval(() => setResendIn((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendIn > 0]);
 
   const withReturn = (p: string) => (returnTo ? `${p}?return_to=${encodeURIComponent(returnTo)}` : p);
 
@@ -57,6 +80,7 @@ export function LoginPage(): ReactNode {
       if (magicMode) {
         await authApi.magicLink(email, returnTo, turnstileToken);
         setMagicSent(true);
+        setResendIn(30);
         setLoading(false);
       } else {
         await authApi.login(email, password, turnstileToken);
@@ -90,18 +114,29 @@ export function LoginPage(): ReactNode {
             Check your inbox. If <strong>{email}</strong> has an account, a sign-in link is on its
             way. It expires in 15 minutes.{returnApp ? ` Then we’ll bring you back to ${returnApp.name}.` : ''}
           </div>
+          {inboxFor(email) && (
+            <a
+              href={inboxFor(email)!.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${buttonClass} flex items-center justify-center gap-2 text-center no-underline`}
+            >
+              {inboxFor(email)!.label} <span aria-hidden>↗</span>
+            </a>
+          )}
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
             <button
               type="button"
+              disabled={resendIn > 0}
               onClick={() => {
                 setMagicSent(false);
                 setMagicMode(true);
                 setTurnstileToken('');
                 setResetSignal((n) => n + 1);
               }}
-              className="font-medium text-accent hover:underline"
+              className="font-medium text-accent hover:underline disabled:cursor-default disabled:text-muted disabled:no-underline"
             >
-              Send another link
+              {resendIn > 0 ? `Send another in ${resendIn}s` : 'Send another link'}
             </button>
             <button
               type="button"
