@@ -12,6 +12,7 @@ import { PasswordStrength } from '../components/PasswordStrength';
 import { Skeleton } from '../components/Skeleton';
 import { APPS, appHref } from '../lib/apps';
 import { SecurityActivity } from '../components/SecurityActivity';
+import { RecoveryRehearsal } from '../components/RecoveryRehearsal';
 import { securityCheckup, type SecurityAction } from '../lib/securityCheckup';
 import { sessionHorizon } from '../lib/sessionHorizon';
 
@@ -620,10 +621,8 @@ export function AccountPage(): ReactNode {
       <hr className="my-6 border-line" />
 
       {!changingPw && (
-        <section
-          aria-label="Security check-up"
-          className="rounded-2xl border border-line bg-field p-4"
-        >
+        <>
+        <section aria-label="Security check-up" className="rounded-2xl border border-line bg-field p-4">
           <div className="flex items-center gap-4">
             <div
               className="grid h-20 w-20 shrink-0 place-items-center rounded-full p-[5px]"
@@ -701,6 +700,13 @@ export function AccountPage(): ReactNode {
             ))}
           </ul>
         </section>
+        <RecoveryRehearsal
+          user={user}
+          activeSessions={sessions?.length ?? 0}
+          onReviewSessions={() => runSecurityAction('review_sessions')}
+          onVerifyEmail={() => void resendVerification()}
+        />
+        </>
       )}
 
       <section aria-label="Security">
