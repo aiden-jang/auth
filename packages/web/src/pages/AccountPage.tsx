@@ -23,6 +23,7 @@ export function AccountPage(): ReactNode {
   const [loading, setLoading] = useState(true);
   const [verificationStatus, setVerificationStatus] = useState<'sending' | 'sent' | null>(null);
   const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [emailCopied, setEmailCopied] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState('');
   const [savingName, setSavingName] = useState(false);
@@ -42,6 +43,8 @@ export function AccountPage(): ReactNode {
   const [sessions, setSessions] = useState<SessionInfo[] | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [revokingOthers, setRevokingOthers] = useState(false);
+  const [refreshingSessions, setRefreshingSessions] = useState(false);
+  const [sessionsRefreshed, setSessionsRefreshed] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [showDelete, setShowDelete] = useState(false);
   const [deletePw, setDeletePw] = useState('');
@@ -75,6 +78,26 @@ export function AccountPage(): ReactNode {
     }
   }
 
+  async function refreshSessions(manual = false): Promise<void> {
+    if (manual) setRefreshingSessions(true);
+    setSessionError(null);
+    try {
+      const result = await authApi.listSessions();
+      setSessions(result.sessions);
+      if (manual) {
+        setSessionsRefreshed(true);
+        window.setTimeout(() => setSessionsRefreshed(false), 1800);
+      }
+    } catch {
+      // Preserve a previously loaded list. A refresh failure should not make every known session
+      // disappear and falsely imply that no devices are signed in.
+      setSessions((current) => current ?? []);
+      setSessionError('Couldn’t refresh active devices. Try again.');
+    } finally {
+      if (manual) setRefreshingSessions(false);
+    }
+  }
+
   async function resendVerification(): Promise<void> {
     if (verificationStatus === 'sending') return;
     setVerificationStatus('sending');
@@ -86,6 +109,17 @@ export function AccountPage(): ReactNode {
     } catch (err) {
       setVerificationStatus(null);
       setVerificationError(err instanceof Error ? err.message : 'Couldn’t send the verification email.');
+    }
+  }
+
+  async function copyEmail(): Promise<void> {
+    if (!user || emailCopied) return;
+    try {
+      await navigator.clipboard.writeText(user.email);
+      setEmailCopied(true);
+      window.setTimeout(() => setEmailCopied(false), 1800);
+    } catch {
+      // The address remains selectable as the no-fail fallback.
     }
   }
 
@@ -215,10 +249,7 @@ export function AccountPage(): ReactNode {
   }, []);
 
   useEffect(() => {
-    authApi
-      .listSessions()
-      .then((r) => setSessions(r.sessions))
-      .catch(() => setSessions([]));
+    void refreshSessions();
   }, []);
 
   // Surface a failed "Connect Google" round-trip (the callback redirects here with ?error).
@@ -349,9 +380,14 @@ export function AccountPage(): ReactNode {
             </dd>
           </div>
         )}
-        <div className="flex justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
           <dt className="text-muted">Email</dt>
-          <dd className="font-medium">{user.email}</dd>
+          <dd className="flex min-w-0 items-center gap-2 font-medium">
+            <span className="truncate">{user.email}</span>
+            <button type="button" onClick={() => void copyEmail()} className="shrink-0 text-xs font-medium text-accent hover:underline">
+              {emailCopied ? 'Copied' : 'Copy'}
+            </button>
+          </dd>
         </div>
         <div className="flex items-center justify-between gap-4">
           <dt className="text-muted">Email status</dt>
@@ -593,16 +629,26 @@ export function AccountPage(): ReactNode {
           <section aria-label="Active sessions">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Active sessions</h2>
-              {sessions && sessions.length > 1 && (
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => void revokeOthers()}
-                  disabled={revokingOthers}
-                  className="cursor-pointer text-xs font-medium text-accent hover:underline disabled:opacity-60"
+                  onClick={() => void refreshSessions(true)}
+                  disabled={refreshingSessions}
+                  className="text-xs font-medium text-muted hover:text-accent hover:underline disabled:cursor-default disabled:opacity-60"
                 >
-                  {revokingOthers ? 'Signing out...' : 'Sign out everywhere else'}
+                  {refreshingSessions ? 'Refreshing…' : sessionsRefreshed ? 'Up to date' : 'Refresh'}
                 </button>
-              )}
+                {sessions && sessions.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => void revokeOthers()}
+                    disabled={revokingOthers}
+                    className="cursor-pointer text-xs font-medium text-accent hover:underline disabled:opacity-60"
+                  >
+                    {revokingOthers ? 'Signing out...' : 'Sign out everywhere else'}
+                  </button>
+                )}
+              </div>
             </div>
             <ul className="mt-3 space-y-2">
               {sessions === null ? (
