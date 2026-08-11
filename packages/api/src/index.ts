@@ -6,7 +6,7 @@ import { and, desc, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Context } from 'hono';
 import type { Env } from './env.js';
-import { createDb } from './db/client.js';
+import { createDb, type DB } from './db/client.js';
 import { securityEvents, sessions, users } from './db/schema.js';
 import { hashPassword, verifyPassword } from './auth/password.js';
 import {
@@ -24,6 +24,7 @@ import { consumeToken, issueToken } from './auth/verification.js';
 import { sendEmail } from './email.js';
 import { verifyTurnstile } from './turnstile.js';
 import { recordSecurityEvent } from './securityEvents.js';
+import { isFamiliarSignIn, signInAlertHtml } from './signInAlert.js';
 
 export { RateLimiter } from './rateLimiter.js';
 
@@ -134,6 +135,34 @@ const publicUser = (u: {
 let dummyHash: Promise<string> | null = null;
 const getDummyHash = (): Promise<string> => (dummyHash ??= hashPassword('timing-equalizer'));
 
+async function newSignInAlert(
+  db: DB,
+  userId: string,
+  meta: SessionMeta,
+  accountUrl: string,
+): Promise<string | null> {
+  const recent = await db
+    .select({
+      device: securityEvents.device,
+      location: securityEvents.location,
+      createdAt: securityEvents.createdAt,
+    })
+    .from(securityEvents)
+    .where(and(eq(securityEvents.userId, userId), eq(securityEvents.type, 'signed_in')))
+    .orderBy(desc(securityEvents.createdAt))
+    .limit(20);
+  return isFamiliarSignIn(recent, meta) ? null : signInAlertHtml(meta, accountUrl);
+}
+
+function deliverSignInAlert(c: Ctx, email: string, html: string | null): void {
+  if (!html) return;
+  c.executionCtx.waitUntil(
+    sendEmail(c.env, { to: email, subject: 'New sign-in to your aidenjang account', html }).catch(
+      (error) => console.error('[sign-in alert] delivery failed:', error),
+    ),
+  );
+}
+
 const registerBody = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(200),
@@ -208,8 +237,15 @@ app.post('/auth/login', async (c) => {
     return c.json({ error: 'INVALID_CREDENTIALS', message: 'Wrong email or password.' }, 401);
   }
   const meta = sessionMeta(c);
+  const alert = await newSignInAlert(
+    db,
+    user.id,
+    meta,
+    new URL('/account#active-sessions', c.env.APP_URL ?? new URL(c.req.url).origin).toString(),
+  );
   const { token, expiresAt } = await createSession(db, user.id, meta);
   await recordSecurityEvent(db, user.id, 'signed_in', meta);
+  deliverSignInAlert(c, user.email, alert);
   setSessionCookie(c, token, expiresAt);
   return c.json({
     user: publicUser({ ...user, hasPassword: user.passwordHash != null, hasGoogle: user.googleId != null }),
@@ -317,8 +353,15 @@ app.get('/auth/google/callback', async (c) => {
 
     const user = await upsertGoogleUser(db, identity);
     const meta = sessionMeta(c);
+    const alert = await newSignInAlert(
+      db,
+      user.id,
+      meta,
+      new URL('/account#active-sessions', uiBase).toString(),
+    );
     const { token, expiresAt } = await createSession(db, user.id, meta);
     await recordSecurityEvent(db, user.id, 'signed_in', meta);
+    deliverSignInAlert(c, user.email, alert);
     setSessionCookie(c, token, expiresAt);
     return c.redirect(safeAppRedirect(saved.r ?? '', uiBase));
   } catch (err) {
@@ -409,9 +452,18 @@ app.get('/auth/magic/callback', async (c) => {
   const db = createDb(c.env);
   const userId = await consumeToken(db, token, 'magic');
   if (!userId) return c.redirect(new URL('/login?error=magic_failed', uiBase).toString());
+  const account = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).get();
+  if (!account) return c.redirect(new URL('/login?error=magic_failed', uiBase).toString());
   const meta = sessionMeta(c);
+  const alert = await newSignInAlert(
+    db,
+    userId,
+    meta,
+    new URL('/account#active-sessions', uiBase).toString(),
+  );
   const { token: sessionToken, expiresAt } = await createSession(db, userId, meta);
   await recordSecurityEvent(db, userId, 'signed_in', meta);
+  deliverSignInAlert(c, account.email, alert);
   setSessionCookie(c, sessionToken, expiresAt);
   return c.redirect(safeAppRedirect(c.req.query('return_to') ?? '', uiBase));
 });
