@@ -3,11 +3,7 @@ import { authApi, type Passkey } from '../lib/api';
 import { addPasskey, passkeysSupported } from '../lib/passkeys';
 import { Skeleton } from './Skeleton';
 
-/*
- * Surfaces whether a key is synced, which no platform does: somebody with one device-bound key is a
- * dropped phone away from the recovery flow. Removal goes through the account page's step-up prompt,
- * so this only has to not swallow the refusal.
- */
+/* Removal goes through the account page's step-up prompt, so this only has to not swallow a refusal. */
 
 function whenish(iso: string | null): string {
   if (!iso) return 'not used yet';

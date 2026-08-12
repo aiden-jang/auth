@@ -4,11 +4,8 @@ import { sessions } from '../db/schema.js';
 import { hashToken } from './token.js';
 
 /*
- * The takeover chain this closes: set-password accepted a live session as proof (a Google-only
- * account has no password to ask for), and disconnect-google is allowed once a password exists. From
- * a stolen cookie, in that order, a thief sets a password then cuts the owner's Google link. Neither
- * rule was wrong alone. Sensitive actions now need a recently-proved session, and every credential
- * change emails the owner.
+ * Closes a takeover chain: from a stolen cookie, set a password (a Google-only account has none to ask
+ * for), then cut the owner's Google link. Neither rule was wrong alone.
  */
 
 /** Not extended by activity: a window since you last proved who you are, not since you last clicked. */
@@ -49,17 +46,9 @@ export async function reauthAgeMs(db: DB, token: string): Promise<number | null>
   const provedAt = row.reauthAt ?? row.createdAt;
   const age = Date.now() - provedAt.getTime();
   /*
-   * A non-finite age is "cannot vouch for this session", not "zero".
-   *
-   * Guarded here rather than at the callers, because the two of them fail in opposite directions and
-   * only one is safe. isFresh does `age < WINDOW`, and NaN fails every comparison, so it correctly
-   * refuses. sudoUntil does `age >= WINDOW` to bail out, which NaN also fails, so it sailed past the
-   * guard and returned `new Date(NaN)` — and /auth/me calls toISOString() on that, which throws a
-   * RangeError and 500s the endpoint every app uses to resolve identity.
-   *
-   * Reachable whenever the timestamp does not survive the round trip: a row written before the column
-   * existed, a null created_at, a driver returning something unexpected. Returning null makes both
-   * callers degrade the same safe way.
+   * Null, never NaN. NaN fails `age >= WINDOW` too, so sudoUntil sailed past its bail-out and returned
+   * `new Date(NaN)`, which /auth/me then called toISOString() on: a RangeError 500ing identity for
+   * every app. Reachable from any row whose timestamp did not survive the round trip.
    */
   return Number.isFinite(age) ? age : null;
 }

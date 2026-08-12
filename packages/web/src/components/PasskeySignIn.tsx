@@ -3,9 +3,8 @@ import { passkeysLikely, signInWithPasskey } from '../lib/passkeys';
 import { safeReturnTo } from '../lib/returnTo';
 
 /*
- * Hides itself when the platform has no authenticator, rather than offering a dead end as the primary
- * action. Cancelling shows nothing: WebAuthn reports cancel, no-matching-key and timeout as the same
- * error so a site cannot probe which credentials exist, so we genuinely cannot tell them apart.
+ * Cancelling shows no error. WebAuthn reports cancel, no-matching-key and timeout identically so a site
+ * cannot probe which credentials exist, so there is genuinely nothing to distinguish.
  */
 export function PasskeySignIn({ returnTo }: { returnTo?: string | null }): ReactNode {
   const [offer, setOffer] = useState(false);
