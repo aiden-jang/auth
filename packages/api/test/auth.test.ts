@@ -116,12 +116,8 @@ describe('login and session', () => {
 });
 
 describe('caching', () => {
-  /*
-   * A shipped bug: /auth/me had no Cache-Control, and a GET with no directives is heuristically
-   * cacheable. Sign out, press back, the page re-checks the session, the browser answers from its own
-   * cache, and you look signed in until you refresh. A missing header is invisible in every other kind
-   * of test, so it needs its own.
-   */
+  // Shipped bug: /auth/me had no Cache-Control, and a GET with no directives is heuristically
+  // cacheable. Sign out, press back, and you look signed in until you refresh.
   it('never lets a session response be cached, signed in or out', async () => {
     const { cookie } = await register();
 

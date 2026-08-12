@@ -2,11 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, authApi, isReauthRequired, reauthCanUsePassword } from '../src/lib/api';
 
 /*
- * The step-up flow is driven entirely by the server's error code, so these tests guard the seam it
- * travels through. Before this, `req` threw a bare Error carrying only `message`, which meant the
- * only way to recognise a re-auth refusal from the UI was to match on its prose. That works right
- * up until somebody rewords a sentence, and then the prompt silently stops appearing and the
- * account page just shows "Confirm your password to continue." as a dead-end error.
+ * The step-up flow branches on the server's error code, so this guards that seam. Matching on the
+ * prose instead breaks silently the first time somebody rewords a sentence.
  */
 
 const realFetch = globalThis.fetch;
@@ -65,8 +62,7 @@ describe('api errors', () => {
     globalThis.fetch = vi.fn(async () => new Response('gateway exploded', { status: 502 })) as unknown as typeof fetch;
     const err = await authApi.disconnectGoogle().catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiError);
-    // The code is for branching in code; the message is for a person, so it says neither "502" nor
-    // "gateway exploded".
+    // The code is for branching; the message is for a person.
     expect((err as ApiError).code).toBe('HTTP_502');
     expect((err as ApiError).status).toBe(502);
     expect((err as Error).message).not.toMatch(/502|gateway/i);
@@ -80,12 +76,8 @@ describe('api errors', () => {
 });
 
 /*
- * Failures that never reached the server, or came back without a sentence.
- *
- * Every page in this app renders `err.message` straight into the UI, so whatever lands here is what a
- * person reads. Before this, a dropped connection showed the browser's own "Failed to fetch" and a
- * proxy error page showed "Request failed (502)", both on the sign-in form. Somebody who cannot get in
- * cannot get anywhere, so that is the worst screen on the platform to leak transport internals onto.
+ * Every page renders `err.message` straight into the UI, so a dropped connection would put "Failed to
+ * fetch" on the sign-in form.
  */
 describe('failures with nothing human in them', () => {
   it('turns a dropped connection into something a person can act on', async () => {
@@ -122,7 +114,7 @@ describe('failures with nothing human in them', () => {
     Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true });
 
     const err = await authApi.me().catch((e: unknown) => e);
-    // Sending somebody to reboot their router over our outage is worse than saying nothing about it.
+    // Never send somebody to reboot their router over our outage.
     expect((err as Error).message).not.toMatch(/offline/i);
     expect((err as Error).message).toMatch(/could not reach/i);
 

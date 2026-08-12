@@ -36,14 +36,6 @@ describe('credential change alerts', () => {
   });
 
   it('gives the time in a form somebody can read', async () => {
-    /*
-     * This used to print `at.toISOString()`.
-     *
-     * A developer's timestamp in a "was this you?" mail asks the reader to parse
-     * 2026-08-11T09:30:00.000Z at the exact moment they are trying to decide whether to panic. The
-     * zone is spelled out because the service knows the account's coarse location but not its
-     * timezone, and guessing wrong on a security alert is worse than being explicit.
-     */
     const { html } = credentialAlertEmail('password_changed', META, 'https://a.test/account', AT);
     expect(html).not.toContain('2026-08-11T09:30:00.000Z');
     expect(html).toContain('11 August 2026');

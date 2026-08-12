@@ -4,16 +4,9 @@ import { addPasskey, passkeysSupported } from '../lib/passkeys';
 import { Skeleton } from './Skeleton';
 
 /*
- * The passkeys on this account.
- *
- * Two things this deliberately says out loud, because both change what somebody decides:
- *
- * A key marked "synced" survives losing the device, and one that is not does not. That is the single
- * most useful fact about a passkey and no platform surfaces it, so somebody with one device-bound key
- * is one dropped phone from the recovery flow without ever being told.
- *
- * And removing one needs confirming, because it changes how you sign in. The step-up prompt on the
- * account page handles that; this component only has to not swallow the refusal.
+ * Surfaces whether a key is synced, which no platform does: somebody with one device-bound key is a
+ * dropped phone away from the recovery flow. Removal goes through the account page's step-up prompt,
+ * so this only has to not swallow the refusal.
  */
 
 function whenish(iso: string | null): string {

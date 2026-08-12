@@ -11,12 +11,8 @@ import {
   type SessionLike,
 } from './sessionMap';
 
-/*
- * A map that puts a session in the wrong hemisphere is worse than no map, because the whole reason to
- * draw one is so a glance can answer "is anything signed in somewhere I have never been". These check
- * the two ways that goes wrong: a coordinate table with a sign error in it, and a location string parsed
- * into the wrong country.
- */
+/* Two ways this goes wrong: a sign error in the table, and a location string parsed into the wrong
+ * country. Both put a session in the wrong hemisphere. */
 
 const session = (location: string | null, current = false): SessionLike => ({
   id: Math.random().toString(36).slice(2),
@@ -38,12 +34,7 @@ describe('the coordinate table', () => {
     for (const code of KNOWN_COUNTRIES) expect(code, code).toMatch(/^[A-Z]{2}$/);
   });
 
-  /*
-   * Spot checks against the one error a table like this actually gets: a flipped sign.
-   *
-   * A transposed digit moves a dot a few hundred miles and nobody notices. A missing minus puts the
-   * United States in China, and these are the hemispheres worth pinning down.
-   */
+  // A transposed digit moves a dot a few hundred miles; a missing minus puts the US in China.
   it('puts countries in the right hemispheres', () => {
     const inWest = (code: string) => COUNTRY_TABLE[code]![1] < 0;
     const inSouth = (code: string) => COUNTRY_TABLE[code]![0] < 0;
@@ -73,7 +64,7 @@ describe('the projection', () => {
   });
 
   it('puts north above south and east right of west', () => {
-    // The y axis is inverted relative to latitude, which is exactly the sign error worth a test.
+    // The y axis is inverted relative to latitude.
     expect(project(51, 0).y).toBeLessThan(project(-34, 0).y);
     expect(project(0, 139).x).toBeGreaterThan(project(0, -74).x);
   });
@@ -99,7 +90,7 @@ describe('reading a stored location', () => {
   });
 
   it('survives a city with a comma in it', () => {
-    // Taking the last part rather than the second means "Washington, D.C., US" still lands in the US.
+    // Last part, not the second, or "Washington, D.C., US" lands nowhere.
     expect(countryOf('Washington, D.C., US')).toBe('US');
   });
 
@@ -117,7 +108,7 @@ describe('reading a stored location', () => {
 
 describe('placing sessions', () => {
   it('gives one dot per country, not per session', () => {
-    // Four laptops in one country are four dots in the same place, which reads as one and hides the count.
+    // Four laptops in one country are four dots in one pixel.
     const reading = mapSessions([session('Brooklyn, US'), session('Austin, US'), session('Berlin, DE')]);
     expect(reading.points).toHaveLength(2);
     expect(reading.points.find((p) => p.country === 'US')?.count).toBe(2);
@@ -131,13 +122,7 @@ describe('placing sessions', () => {
   });
 
   it('keeps the current flag whichever order the sessions arrive in', () => {
-    /*
-     * `||=` rather than assignment.
-     *
-     * Written the obvious way, a later session in the same country overwrites the flag an earlier one
-     * set, so "this device" vanishes from the map whenever another laptop in the same country happens to
-     * sort after it. Only the current-last order catches an assignment bug, so both are checked.
-     */
+    // Only the current-last order catches an assignment bug in place of `||=`, so both are checked.
     const currentLast = mapSessions([session('Brooklyn, US'), session('Austin, US', true)]);
     expect(currentLast.points.find((p) => p.country === 'US')?.hasCurrent).toBe(true);
 
@@ -146,13 +131,7 @@ describe('placing sessions', () => {
   });
 
   it('counts what it cannot place instead of silently dropping it', () => {
-    /*
-     * The honesty requirement.
-     *
-     * A session the table has no coordinates for still exists and is still signed in. Dropping it makes
-     * the map say "two sessions, both here" about an account with three, on the page whose entire job is
-     * telling you what is signed in.
-     */
+    // Dropping one makes the map say "two sessions" about an account with three.
     const reading = mapSessions([session('Brooklyn, US'), session(null), session('Somewhere, ZZ')]);
     expect(reading.points).toHaveLength(1);
     expect(reading.unplaced).toBe(2);
@@ -191,12 +170,7 @@ describe('the summary line', () => {
     expect(mapSummary(mapSessions([]))).toBe('Nothing signed in anywhere.');
   });
 
-  /*
-   * No verdict, on purpose.
-   *
-   * This sits on a security page, and the app cannot tell whether a session in Frankfurt is you on
-   * holiday or somebody else. Anything reassuring here is a guess presented as a finding.
-   */
+  // The app cannot tell whether Frankfurt is you on holiday, so anything reassuring is a guess.
   it('never tells you whether this is fine', () => {
     const lines = [
       mapSummary(mapSessions([])),

@@ -4,13 +4,7 @@ interface Message {
   to: string;
   subject: string;
   html: string;
-  /**
-   * The plain-text alternative.
-   *
-   * Optional only so a caller can be terse; every template here supplies one. A message with no text
-   * part renders as raw markup in text-only clients and is one of the cheapest things a spam filter
-   * scores against, which for a sign-in link is the difference between arriving and not.
-   */
+  /** Always supply one: without it, text-only clients get raw markup and spam score goes up. */
   text?: string;
 }
 
@@ -23,8 +17,6 @@ export async function sendEmail(env: Env, msg: Message): Promise<void> {
   const subject = isLocal ? `[dev] ${msg.subject}` : msg.subject;
 
   if (!env.RESEND_API_KEY) {
-    // The text part in dev, not the markup: it is the readable one, and the whole message is legible
-    // in a terminal without copying HTML into a browser.
     console.log(`[email:dev] to=${msg.to} subject=${JSON.stringify(subject)}\n${msg.text ?? msg.html}`);
     return;
   }

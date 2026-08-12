@@ -1,17 +1,6 @@
 /*
- * Where the sessions are, roughly, on a map.
- *
- * The point of this is one glance answering "is anything signed in somewhere I have never been", which is
- * the question the list of device rows makes you assemble in your head. A map is worth it only because
- * that question is spatial.
- *
- * Country level, and no finer. The session row stores "Brooklyn, US" and the schema goes out of its way
- * to keep no IP address, so turning that into a precise pin would both walk back a deliberate privacy
- * decision and claim an accuracy the data does not have. Edge geolocation puts people in the wrong
- * borough routinely and the right country almost always, so the country is the honest unit.
- *
- * Nothing here is stored or fetched. The coordinates are a lookup table compiled into the page, so adding
- * a map costs no new column, no new endpoint and no third-party request.
+ * Country level and no finer. The schema deliberately keeps no IP, and edge geolocation lands in the
+ * wrong borough often enough that a city pin would claim an accuracy the data does not have.
  */
 
 /** Approximate centroid of each country, keyed by the ISO-3166 alpha-2 code Cloudflare reports. */
@@ -31,7 +20,7 @@ const COUNTRY_POINTS: Record<string, [lat: number, lon: number]> = {
   TW: [23.7, 121.0], UA: [48.4, 31.2], US: [39.8, -98.6], VN: [14.1, 108.3], ZA: [-30.6, 22.9],
 };
 
-/** A width x height box in SVG user units. Equirectangular, so the maths stays inspectable. */
+/** Equirectangular, in SVG user units. */
 export const MAP_WIDTH = 360;
 export const MAP_HEIGHT = 180;
 
@@ -39,13 +28,7 @@ export function project(lat: number, lon: number): { x: number; y: number } {
   return { x: ((lon + 180) / 360) * MAP_WIDTH, y: ((90 - lat) / 180) * MAP_HEIGHT };
 }
 
-/**
- * The country code out of a stored location string.
- *
- * The value is built as `[city, country].filter(Boolean).join(', ')`, so it is "Brooklyn, US", or a bare
- * "US" when the edge knew the country but not the city, or null. Taking the last comma-separated part
- * handles all three, and cities containing a comma cannot break it.
- */
+/** Takes the last comma-separated part, so "Washington, D.C., US" still lands in the US. */
 export function countryOf(location: string | null | undefined): string | null {
   if (!location) return null;
   const last = location.split(',').pop()?.trim().toUpperCase() ?? '';
@@ -62,26 +45,18 @@ export interface MapPoint {
   country: string;
   x: number;
   y: number;
-  /** How many sessions sit in this country. */
   count: number;
-  /** Whether the device you are reading this on is one of them. */
   hasCurrent: boolean;
 }
 
 export interface MapReading {
   points: MapPoint[];
-  /** Sessions whose country is missing or not in the table, which the map must admit to rather than drop. */
+  /** Not droppable: the map has to admit to sessions it could not place. */
   unplaced: number;
-  /** Distinct countries placed, for the summary line. */
   countries: number;
 }
 
-/**
- * Group sessions into one dot per country.
- *
- * Clustered rather than one dot per session, because four laptops in the same country are four dots in
- * exactly the same place, which reads as one dot and makes the count invisible. The count goes on the dot.
- */
+/** One dot per country: four laptops in one country are four dots in one pixel. */
 export function mapSessions(sessions: readonly SessionLike[]): MapReading {
   const byCountry = new Map<string, MapPoint>();
   let unplaced = 0;
@@ -104,20 +79,14 @@ export function mapSessions(sessions: readonly SessionLike[]): MapReading {
   }
 
   return {
-    // Sorted so the render order is stable across refreshes rather than following Map insertion order,
-    // which follows whatever order the API happened to return sessions in.
+    // Stable render order; Map insertion order follows however the API returned them.
     points: [...byCountry.values()].sort((a, b) => a.country.localeCompare(b.country)),
     unplaced,
     countries: byCountry.size,
   };
 }
 
-/**
- * The line under the map.
- *
- * Says what is true and stops. This sits on a security page, so an implied verdict ("looks fine") is the
- * one thing it must not offer: the app cannot know whether Frankfurt is you on holiday or somebody else.
- */
+/** No verdict: the app cannot tell whether Frankfurt is you on holiday or somebody else. */
 export function mapSummary(reading: MapReading): string {
   const { countries, unplaced } = reading;
   const placed = reading.points.reduce((sum, point) => sum + point.count, 0);
@@ -132,6 +101,6 @@ export function mapSummary(reading: MapReading): string {
   return `${sessions} across ${where}${rest}.`;
 }
 
-/** Countries the table knows, exported so a test can check the coordinates are all real. */
+/** Exported so a test can check the coordinates are all real. */
 export const KNOWN_COUNTRIES = Object.keys(COUNTRY_POINTS);
 export const COUNTRY_TABLE = COUNTRY_POINTS;

@@ -3,16 +3,8 @@ import { APP_ACCENTS, CANVAS, CARD, contrast, luminance, readableOn, themeFor, t
 import { returnAppFor } from './returnTo';
 
 /*
- * A theme that fails contrast is not a style preference, it is a page somebody cannot read.
- *
- * These accents were each picked against their own app's background: bloomnote's pink against cream,
- * wherever's amber against a dark aubergine. Dropping them onto this page is exactly the situation where
- * one of them quietly stops being legible, so every app in the launcher is checked rather than the two
- * that were looked at by eye.
- *
- * These run in vitest's node environment, which has no `window`, and `safeReturnTo` resolves relative
- * URLs against `window.location.origin`. Without the stub below every return target resolves to null,
- * which makes the "refuses a hostile return_to" test pass while proving nothing at all.
+ * The window stub is load-bearing. Without it `safeReturnTo` returns null for everything, and the
+ * hostile-return_to test passes while proving nothing.
  */
 
 beforeAll(() => {
@@ -23,12 +15,11 @@ describe('the contrast maths', () => {
   it('agrees with the values WCAG defines', () => {
     expect(contrast('#000000', '#ffffff')).toBeCloseTo(21, 5);
     expect(contrast('#ffffff', '#ffffff')).toBeCloseTo(1, 5);
-    // Symmetric: the order of the arguments is not part of the answer.
     expect(contrast('#8b7bff', CARD)).toBeCloseTo(contrast(CARD, '#8b7bff'), 10);
   });
 
   it('refuses a colour it cannot read rather than returning a plausible number', () => {
-    // A silent NaN here would sail through every threshold comparison below as `false`.
+    // A silent NaN sails through every threshold comparison below as `false`.
     expect(() => luminance('#fff' as Hex)).toThrow();
     expect(() => luminance('nonsense' as Hex)).toThrow();
   });
@@ -51,22 +42,12 @@ describe('every app in the launcher', () => {
   });
 
   it.each(APP_ACCENTS)('keeps $name recognisable rather than washing it to white', ({ accent }) => {
-    /*
-     * The lightening loop is the risk in this file.
-     *
-     * Raising lightness until a colour passes will always terminate at white, and a page themed white is
-     * not themed at all. Every accent has to stay closer to itself than to paper.
-     */
+    // Lightening until a colour passes always terminates at white, which is not a theme.
     const theme = themeFor({ name: 'x', accent });
     expect(contrast(theme.accent, accent)).toBeLessThan(contrast(theme.accent, '#ffffff'));
   });
 
-  /*
-   * The gradient, not just the accent.
-   *
-   * The button label is one colour across two stops, so checking it against the accent alone would pass
-   * while the far end of the gradient made the text unreadable. Both ends are checked.
-   */
+  // One label colour across two stops, so checking the accent alone misses the far end.
   it.each(APP_ACCENTS)('gives $name a button label readable at both ends of the gradient', ({ accent }) => {
     const theme = themeFor({ name: 'x', accent });
     expect(contrast(theme.buttonFrom, theme.accentInk)).toBeGreaterThanOrEqual(4.5);
@@ -79,14 +60,13 @@ describe('every app in the launcher', () => {
   });
 
   it('leaves the current accents alone, since they already read here', () => {
-    // Documents why the lightening path below is tested with colours no app uses: today none needs it.
+    // Why the lightening path is tested with colours no app uses: today none needs it.
     for (const { name, accent } of APP_ACCENTS) {
       expect(themeFor({ name, accent }).accent, name).toBe(accent);
     }
   });
 
   it('reads on the canvas too, not only the card', () => {
-    // Some of these land on the gradient background rather than inside a card.
     for (const { name, accent } of APP_ACCENTS) {
       const theme = themeFor({ name, accent });
       expect(contrast(theme.accent, CANVAS), name).toBeGreaterThanOrEqual(4.5);
@@ -100,13 +80,7 @@ describe('choosing a theme', () => {
     expect(contrast(themeFor(null).accent, CARD)).toBeGreaterThanOrEqual(4.5);
   });
 
-  /*
-   * The security property, not a styling one.
-   *
-   * A theme taken from the query string turns this page into one that can wear any brand, which is the
-   * whole mechanism of a convincing fake login. The colour is reachable only through returnAppFor, which
-   * resolves against the app whitelist, so an attacker-controlled return_to gets the house purple.
-   */
+  // A theme an attacker can set is a login page that can wear any brand.
   it('will not wear a colour from an unrecognised return target', () => {
     for (const hostile of [
       'https://evil.example.com',
@@ -126,12 +100,8 @@ describe('choosing a theme', () => {
     expect(themeFor(app).accent).not.toBe(themeFor(null).accent);
   });
 
-  /*
-   * The lightening path, which no accent in APPS currently reaches.
-   *
-   * That makes it the code most likely to be wrong when it finally matters: a future app with a deep
-   * accent is exactly when a broken fallback ships unnoticed. These force it with colours nobody uses.
-   */
+  // No accent in APPS reaches the lightening path, so it is the code most likely to be wrong when a
+  // future app finally needs it. Forced here with colours nobody uses.
   it('raises a too-dark accent until it can be read', () => {
     const deep = themeFor({ name: 'deep', accent: '#1a2340' });
     expect(contrast('#1a2340', CARD)).toBeLessThan(4.5); // the premise

@@ -1,14 +1,6 @@
 /**
- * What to say while somebody waits.
- *
- * Signing in is the one moment in the whole platform where a person is actively wondering whether to
- * trust it, and a bare spinner spends that moment saying nothing. This fills it.
- *
- * The rule that makes this reassurance rather than theatre: **every line is a true, specific claim about
- * this implementation.** No "we take your security seriously", no "bank-grade encryption", nothing that
- * would survive being pasted into a different product. Each one is checkable against the code, and the
- * comments below say where. Vague security copy is worse than a spinner, because it teaches people that
- * the words in these places mean nothing.
+ * Every line must be a true, specific claim about this implementation, with the comment below it
+ * naming where to check. Nothing that would survive being pasted into a different product.
  */
 
 export type WaitingOn =
@@ -22,13 +14,7 @@ export type WaitingOn =
   | 'signup'
   | 'reauth';
 
-/**
- * One line per waiting moment.
- *
- * Deliberately one and not a rotating set. Cycling messages under a spinner reads as filler designed to
- * make a wait feel shorter, which is the opposite of the intent, and it makes each line feel less like a
- * fact about the system.
- */
+/** One line each, not a rotating set: cycling copy reads as filler rather than as a fact. */
 const LINES: Record<WaitingOn, string> = {
   // auth/password.ts: PBKDF2-HMAC-SHA256, 100k iterations, per-password random salt. The stored value
   // is the derived hash, so the original is never written down anywhere.
@@ -60,10 +46,5 @@ export function reassurance(waitingOn: WaitingOn): string {
   return LINES[waitingOn];
 }
 
-/**
- * Every line, for the test that keeps them honest.
- *
- * Exported so a test can assert the whole set avoids the vocabulary that makes security copy meaningless.
- * Without that, the first person in a hurry adds "bank-grade" and nothing catches it.
- */
+/** Exported so a test can catch the first person who adds "bank-grade". */
 export const ALL_REASSURANCE = Object.entries(LINES) as [WaitingOn, string][];

@@ -2,15 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { relyingParty } from './passkeys.js';
 
 /*
- * The relying party id is the one WebAuthn parameter that must never come from the request.
- *
- * A credential is cryptographically bound to the rp id it was made under, and the browser refuses to
- * use it anywhere else. That binding is the entire anti-phishing property of passkeys: it is why a
- * convincing copy of the sign-in page on another domain cannot ask for the real key. Derive the id
- * from a header the caller controls and you hand that property away, because an attacker can then
- * choose which domain a ceremony is bound to.
- *
- * So it comes from APP_URL, which is configuration, and these tests exist to keep it that way.
+ * The rp id must never come from the request. A credential is bound to the rp id it was made under,
+ * which is the whole anti-phishing property of passkeys; take it from a caller-controlled header and
+ * an attacker chooses which domain a ceremony binds to. These keep it coming from APP_URL.
  */
 describe('relying party', () => {
   it('uses the registrable domain, not the full host', () => {
