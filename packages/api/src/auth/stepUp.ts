@@ -41,14 +41,46 @@ export const SUDO_WINDOW_MS = 10 * 60 * 1000;
  */
 export async function reauthAgeMs(db: DB, token: string): Promise<number | null> {
   const id = await hashToken(token);
-  const row = await db
-    .select({ reauthAt: sessions.reauthAt, createdAt: sessions.createdAt })
-    .from(sessions)
-    .where(eq(sessions.id, id))
-    .get();
+  let row: { reauthAt: Date | null; createdAt: Date } | undefined;
+  try {
+    row = await db
+      .select({ reauthAt: sessions.reauthAt, createdAt: sessions.createdAt })
+      .from(sessions)
+      .where(eq(sessions.id, id))
+      .get();
+  } catch (error) {
+    /*
+     * Never take the whole service down over the freshness read.
+     *
+     * Not hypothetical caution: deploying the code that added `reauth_at` before running its migration
+     * took the platform down. Writes threw outright (`no column named reauth_at`), so nobody could sign
+     * in, and /auth/me 500d too, which every app calls to resolve identity.
+     *
+     * Whether a missing column throws here or comes back as an unusable value depends on the driver, so
+     * both are handled: this catch, and the finite check below. Returning null means "cannot vouch for
+     * this session", which callers treat as not fresh, so sensitive actions ask for a password again and
+     * everything else keeps working. Asking more often is the safe direction to fail in.
+     */
+    console.error('[step-up] freshness read failed, treating session as unproven:', error);
+    return null;
+  }
   if (!row) return null;
   const provedAt = row.reauthAt ?? row.createdAt;
-  return Date.now() - provedAt.getTime();
+  const age = Date.now() - provedAt.getTime();
+  /*
+   * A non-finite age is "cannot vouch for this session", not "zero".
+   *
+   * Guarded here rather than at the callers, because the two of them fail in opposite directions and
+   * only one is safe. isFresh does `age < WINDOW`, and NaN fails every comparison, so it correctly
+   * refuses. sudoUntil does `age >= WINDOW` to bail out, which NaN also fails, so it sailed past the
+   * guard and returned `new Date(NaN)` — and /auth/me calls toISOString() on that, which throws a
+   * RangeError and 500s the endpoint every app uses to resolve identity.
+   *
+   * Reachable whenever the timestamp does not survive the round trip: a row written before the column
+   * existed, a null created_at, a driver returning something unexpected. Returning null makes both
+   * callers degrade the same safe way.
+   */
+  return Number.isFinite(age) ? age : null;
 }
 
 /** Whether this session proved itself inside the window. Unknown sessions are never fresh. */

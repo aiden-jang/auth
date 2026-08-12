@@ -693,3 +693,48 @@ describe('session hygiene on credential changes', () => {
     expect(types).toContain('google_disconnected');
   });
 });
+
+/*
+ * A missing column must not take the platform down.
+ *
+ * This is the postmortem of a real outage, written as a test. The code that added `reauth_at` was
+ * deployed before the migration ran, so the freshness query referenced a column production did not
+ * have. Every session-creating route answered 500, and so did /auth/me, which every app calls to
+ * resolve identity. A step-up convenience became a total sign-in outage.
+ *
+ * The read path now degrades instead: it cannot vouch for the session, so the session is treated as
+ * unproven and sensitive actions ask for a password again. Asking more often is the safe direction to
+ * fail in; the whole service being down is not.
+ */
+describe('surviving a schema that is behind the code', () => {
+  it('still answers /auth/me when the freshness column is missing', async () => {
+    const { cookie } = await register();
+    // Exactly what production looked like: the code expects the column, the table does not have it.
+    await env.DB.prepare('ALTER TABLE sessions DROP COLUMN reauth_at').run();
+    try {
+      const res = await get('/auth/me', cookie);
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { user: { email: string }; sudoUntil: string | null };
+      expect(body.user.email).toBeTruthy();
+      // Unknown rather than fresh, which is what makes the degrade safe.
+      expect(body.sudoUntil).toBeNull();
+    } finally {
+      await env.DB.prepare('ALTER TABLE sessions ADD reauth_at integer').run();
+    }
+  });
+
+  it('asks for a password rather than letting a sensitive action through', async () => {
+    const g = await registerGoogle();
+    const added = await post('/auth/set-password', { newPassword: 'a-real-password-now' }, g.cookie);
+    const rotated = sessionCookie(added)!;
+    await env.DB.prepare('ALTER TABLE sessions DROP COLUMN reauth_at').run();
+    try {
+      const res = await post('/auth/disconnect-google', {}, rotated);
+      // Not a 500, and not a silent pass either.
+      expect(res.status).toBe(403);
+      expect(((await res.json()) as { error: string }).error).toBe('REAUTH_REQUIRED');
+    } finally {
+      await env.DB.prepare('ALTER TABLE sessions ADD reauth_at integer').run();
+    }
+  });
+});
