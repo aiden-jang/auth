@@ -27,9 +27,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* The stops fall back to the house colours, so anything not wrapped in a theme is unchanged. A page
+   arriving from one of the apps sets them to that app's accent (see lib/theme.ts). */
 .btn-gradient {
-  background: linear-gradient(115deg, #a78bfa 0%, #6ee7f0 100%);
-  color: #09090f;
+  background: linear-gradient(115deg, var(--btn-from, #a78bfa) 0%, var(--btn-to, #6ee7f0) 100%);
+  color: var(--color-accent-ink, #09090f);
 }
 
 /* Tailwind v4's preflight no longer sets a pointer cursor on buttons, so

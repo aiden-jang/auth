@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { APPS, appHref } from '../lib/apps';
 import type { ReturnApp } from '../lib/returnTo';
+import { themeFor, themeStyle } from '../lib/theme';
 
 export const inputClass =
   'w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20';
@@ -145,8 +146,18 @@ export function AuthCard({
   returnApp?: ReturnApp | null;
   children: ReactNode;
 }): ReactNode {
+  /*
+   * The page wears the colour of the app it will return you to.
+   *
+   * Scoped to this element rather than written to the document root, so the theme cannot outlive the page
+   * that asked for it: signing in from bloomnote and landing on the account page should not leave the hub
+   * pink. `returnApp` is already whitelist-validated by returnAppFor, which is what makes it safe to take
+   * a colour from at all.
+   */
+  const theme = themeFor(returnApp ?? null);
+
   return (
-    <main className="grid min-h-screen md:grid-cols-2">
+    <main className="grid min-h-screen md:grid-cols-2" style={themeStyle(theme)}>
       <BrandPanel />
 
       <section className="flex flex-col justify-center px-5 py-12 sm:px-10">
