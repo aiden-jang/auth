@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { setCookie, deleteCookie } from 'hono/cookie';
 import { DEFAULT_CSP, harden } from './harden.js';
 import { onUnhandledError, requestIdFrom } from './requestId.js';
+import { renderEmail, type RenderedEmail } from './emailLayout.js';
 import { and, desc, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Context } from 'hono';
@@ -44,8 +45,8 @@ import { consumeToken, issueToken } from './auth/verification.js';
 import { sendEmail } from './email.js';
 import { verifyTurnstile } from './turnstile.js';
 import { recordSecurityEvent } from './securityEvents.js';
-import { isFamiliarSignIn, signInAlertHtml } from './signInAlert.js';
-import { credentialAlertHtml, credentialAlertSubject, type CredentialChange } from './credentialAlert.js';
+import { isFamiliarSignIn, signInAlertEmail } from './signInAlert.js';
+import { credentialAlertEmail, credentialAlertSubject, type CredentialChange } from './credentialAlert.js';
 import { isFresh, stampReauth, sudoUntil, SUDO_WINDOW_MS } from './auth/stepUp.js';
 
 export { RateLimiter } from './rateLimiter.js';
@@ -170,7 +171,7 @@ async function newSignInAlert(
   userId: string,
   meta: SessionMeta,
   accountUrl: string,
-): Promise<string | null> {
+): Promise<RenderedEmail | null> {
   const recent = await db
     .select({
       device: securityEvents.device,
@@ -181,7 +182,7 @@ async function newSignInAlert(
     .where(and(eq(securityEvents.userId, userId), eq(securityEvents.type, 'signed_in')))
     .orderBy(desc(securityEvents.createdAt))
     .limit(20);
-  return isFamiliarSignIn(recent, meta) ? null : signInAlertHtml(meta, accountUrl);
+  return isFamiliarSignIn(recent, meta) ? null : signInAlertEmail(meta, accountUrl);
 }
 
 /*
@@ -195,7 +196,7 @@ function deliverCredentialAlert(c: Ctx, email: string, kind: CredentialChange, m
     sendEmail(c.env, {
       to: email,
       subject: credentialAlertSubject(kind),
-      html: credentialAlertHtml(kind, meta, accountUrl),
+      ...credentialAlertEmail(kind, meta, accountUrl),
     }).catch((error) => console.error('[credential alert] delivery failed:', error)),
   );
 }
@@ -227,10 +228,10 @@ async function needsStepUp(
   );
 }
 
-function deliverSignInAlert(c: Ctx, email: string, html: string | null): void {
-  if (!html) return;
+function deliverSignInAlert(c: Ctx, email: string, alert: RenderedEmail | null): void {
+  if (!alert) return;
   c.executionCtx.waitUntil(
-    sendEmail(c.env, { to: email, subject: 'New sign-in to your aidenjang account', html }).catch(
+    sendEmail(c.env, { to: email, subject: 'New sign-in to your aidenjang account', ...alert }).catch(
       (error) => console.error('[sign-in alert] delivery failed:', error),
     ),
   );
@@ -269,7 +270,15 @@ app.post('/auth/register', async (c) => {
   await sendEmail(c.env, {
     to: email,
     subject: 'Verify your email',
-    html: `<p>Welcome to aidenjang. Confirm your email: <a href="${link(c.env, '/verify-email', verifyToken)}">verify email</a></p>`,
+    ...renderEmail({
+      preheader: 'Confirm this address to finish setting up your aidenjang account.',
+      heading: 'Confirm your email',
+      paragraphs: [
+        'Your aidenjang account is made. One tap confirms this is your address, and then it works everywhere I build.',
+      ],
+      action: { label: 'Confirm my email', url: link(c.env, '/verify-email', verifyToken) },
+      footnote: 'This link lasts 24 hours. If you did not create an account, ignore this and nothing happens.',
+    }),
   });
 
   return c.json(
@@ -483,7 +492,17 @@ app.post('/auth/forgot-password', async (c) => {
     await sendEmail(c.env, {
       to: email,
       subject: 'Reset your aidenjang password',
-      html: `<p>Reset your password: <a href="${link(c.env, '/reset-password', token)}">choose a new password</a>. This link expires in an hour.</p>`,
+      ...renderEmail({
+      preheader: 'Choose a new password for your aidenjang account.',
+      heading: 'Reset your password',
+      paragraphs: [
+        'Somebody asked to reset the password on your aidenjang account.',
+        'If that was not you, you can ignore this. Your password does not change until somebody opens this link and sets a new one.',
+      ],
+      action: { label: 'Choose a new password', url: link(c.env, '/reset-password', token) },
+      // Named as a thing not to forward, because a reset link is a password until it is used.
+      footnote: 'This link lasts one hour and works once. Anybody who has it can set your password, so do not forward it.',
+    }),
     });
   }
   return c.json({ ok: true });
@@ -515,7 +534,13 @@ app.post('/auth/magic-link', async (c) => {
     await sendEmail(c.env, {
       to: email,
       subject: 'Your aidenjang sign-in link',
-      html: `<p>Sign in to aidenjang: <a href="${href}">click here to sign in</a>. This link expires in 15 minutes and works once.</p>`,
+      ...renderEmail({
+      preheader: 'Your sign-in link for aidenjang. It lasts 15 minutes.',
+      heading: 'Your sign-in link',
+      paragraphs: ['Open this to sign in. No password needed.'],
+      action: { label: 'Sign in to aidenjang', url: href },
+      footnote: 'This link lasts 15 minutes and works once. Anybody who has it can sign in as you, so do not forward it.',
+    }),
     });
   }
   return c.json({ ok: true });
@@ -585,7 +610,13 @@ app.post('/auth/resend-verification', async (c) => {
   await sendEmail(c.env, {
     to: user.email,
     subject: 'Verify your email',
-    html: `<p>Confirm your email: <a href="${link(c.env, '/verify-email', token)}">verify email</a></p>`,
+    ...renderEmail({
+      preheader: 'Confirm this address for your aidenjang account.',
+      heading: 'Confirm your email',
+      paragraphs: ['Here is a fresh link. The previous one no longer works.'],
+      action: { label: 'Confirm my email', url: link(c.env, '/verify-email', token) },
+      footnote: 'This link lasts 24 hours.',
+    }),
   });
   return c.json({ ok: true });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isFamiliarSignIn, signInAlertHtml } from './signInAlert.js';
+import { isFamiliarSignIn, signInAlertEmail } from './signInAlert.js';
 
 describe('new-device sign-in alerts', () => {
   const now = Date.parse('2026-08-11T12:00:00.000Z');
@@ -23,7 +23,7 @@ describe('new-device sign-in alerts', () => {
   });
 
   it('escapes metadata before placing it in the email', () => {
-    const html = signInAlertHtml(
+    const { html } = signInAlertEmail(
       { device: '<script>alert(1)</script>', location: 'A&B' },
       'https://accounts.example/account?x=1&y=2',
       new Date(now),

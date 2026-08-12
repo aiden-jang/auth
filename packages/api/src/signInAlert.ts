@@ -1,4 +1,5 @@
 import type { SessionMeta } from './auth/session.js';
+import { readableTime, renderEmail, type RenderedEmail } from './emailLayout.js';
 
 export interface SignInFingerprint {
   device: string | null;
@@ -21,20 +22,20 @@ export function isFamiliarSignIn(
   );
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  })[character]!);
-}
-
-export function signInAlertHtml(meta: SessionMeta, accountUrl: string, at = new Date()): string {
-  const device = escapeHtml(meta.device ?? 'Unknown device');
-  const location = escapeHtml(meta.location ?? 'Location unavailable');
-  const safeUrl = escapeHtml(accountUrl);
-  const when = escapeHtml(at.toISOString());
-  return `<p>A new device signed in to your aidenjang account.</p><p><strong>${device}</strong><br>${location}<br>${when}</p><p>If this was you, there is nothing to do. If not, <a href="${safeUrl}">review your active sessions</a> and sign out anything you do not recognize.</p>`;
+export function signInAlertEmail(meta: SessionMeta, accountUrl: string, at = new Date()): RenderedEmail {
+  return renderEmail({
+    preheader: 'A device you have not used before signed in. If it was not you, sign it out.',
+    heading: 'A new device signed in',
+    paragraphs: [
+      'Someone signed in to your aidenjang account from a device we have not seen recently.',
+      'If this was you, there is nothing to do.',
+      'If it was not, sign that device out and change your password.',
+    ],
+    facts: [
+      { label: 'Device', value: meta.device ?? 'Unknown device' },
+      { label: 'Location', value: meta.location ?? 'Location unavailable' },
+      { label: 'When', value: readableTime(at) },
+    ],
+    action: { label: 'Review your devices', url: accountUrl },
+  });
 }
