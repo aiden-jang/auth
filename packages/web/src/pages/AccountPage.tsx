@@ -10,6 +10,7 @@ import { AccountShell, buttonClass, inputClass, labelClass } from '../components
 import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
 import { Skeleton } from '../components/Skeleton';
+import { SessionMap } from '../components/SessionMap';
 import { APPS, appHref } from '../lib/apps';
 import { SecurityActivity } from '../components/SecurityActivity';
 import { PasskeyList } from '../components/PasskeyList';
@@ -922,6 +923,13 @@ export function AccountPage(): ReactNode {
                 )}
               </div>
             </div>
+            {/* Above the list, because the question it answers ("anything signed in somewhere strange?")
+                is the one you arrive with. The list below is where you act on the answer. */}
+            {sessions !== null && sessions.length > 0 && (
+              <div className="mt-3">
+                <SessionMap sessions={sessions} />
+              </div>
+            )}
             <ul className="mt-3 space-y-2">
               {sessions === null ? (
                 <>

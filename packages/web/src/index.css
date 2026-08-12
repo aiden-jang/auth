@@ -108,9 +108,34 @@ button:not(:disabled) {
   100% { transform: translateX(100%); }
 }
 
+/* Session map dots: they arrive rather than appear, and the current device keeps a slow ring so it is
+   findable without relying on colour alone. */
+.session-dot {
+  animation: dot-in 420ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes dot-in {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+.session-dot-pulse {
+  animation: dot-pulse 2.6s ease-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes dot-pulse {
+  0% { opacity: 0.55; transform: scale(1); }
+  70%, 100% { opacity: 0; transform: scale(2.6); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .aurora::before,
   .aurora::after,
   .skeleton::after { animation: none; }
   .animate-enter { animation: none; }
+  /* The dots stay, the movement goes: they are content, not decoration. The pulse ring becomes a plain
+     outline so "this device" is still marked without anything moving. */
+  .session-dot { animation: none; }
+  .session-dot-pulse { animation: none; opacity: 0.5; }
 }
