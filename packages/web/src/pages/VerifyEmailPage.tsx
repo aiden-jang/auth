@@ -24,7 +24,7 @@ export function VerifyEmailPage(): ReactNode {
       {status === 'pending' && <p className="text-sm text-muted">Confirming your email...</p>}
       {status === 'ok' && (
         <div className="space-y-4">
-          <p className="text-sm text-pos">Your email is verified. You're all set.</p>
+          <p className="text-sm text-pos">Your email is verified. Nothing else to do.</p>
           <Link to="/account" className="font-medium text-accent hover:underline">Go to your account</Link>
         </div>
       )}
