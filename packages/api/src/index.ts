@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { setCookie, deleteCookie } from 'hono/cookie';
 import { DEFAULT_CSP, harden } from './harden.js';
+import { onUnhandledError, requestIdFrom } from './requestId.js';
 import { and, desc, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Context } from 'hono';
@@ -33,7 +34,6 @@ import {
   finishLogin,
   finishRegistration,
   listPasskeys,
-  PasskeyError,
   relyingParty,
   renamePasskey,
   startLogin,
@@ -50,22 +50,17 @@ import { isFresh, stampReauth, sudoUntil, SUDO_WINDOW_MS } from './auth/stepUp.j
 
 export { RateLimiter } from './rateLimiter.js';
 
-type Ctx = Context<{ Bindings: Env }>;
+type Env2 = { Bindings: Env; Variables: { requestId: string } };
+/* Helpers take a context from any route, so the path parameter stays open. Pinning it to the default
+   makes every `Context<Env2, "/auth/login">` a type error at the call site. */
+type Ctx = Context<Env2>;
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<Env2>();
 
 // Safety net: any error a route does not handle itself is logged server-side (Workers Logs /
 // `wrangler tail`) and returned as a generic 500. On the identity service especially, an internal
 // failure must never leak a stack trace or implementation detail to the client.
-app.onError((err, c) => {
-  // A failed passkey ceremony is a normal outcome (wrong device, cancelled prompt, expired attempt),
-  // so it carries its own message and status rather than being logged as a fault and returned as a 500.
-  if (err instanceof PasskeyError) {
-    return c.json({ error: err.code, message: err.message }, err.code === 'NOT_FOUND' ? 404 : 400);
-  }
-  console.error('Unhandled error:', err);
-  return c.json({ error: 'InternalError' }, 500);
-});
+app.onError(onUnhandledError);
 
 // Security response headers on every route. CSRF is left to the session cookie's SameSite=Lax
 // attribute, Turnstile, and the CORS allowlist below, since auth is intentionally callable
@@ -79,6 +74,14 @@ const AUTH_CSP =
     "connect-src 'self' https://static.cloudflareinsights.com",
     `connect-src 'self' https://static.cloudflareinsights.com ${TURNSTILE_ORIGIN}`,
   ) + `; frame-src ${TURNSTILE_ORIGIN}`;
+app.use('*', async (c, next) => {
+  const requestId = requestIdFrom(c.req.raw);
+  c.set('requestId', requestId);
+  await next();
+  // On every response, not just failures: a 200 with a surprising body needs correlating as much as a 500.
+  c.header('x-request-id', requestId);
+});
+
 app.use('*', harden({ csrf: false, csp: AUTH_CSP }));
 
 app.use('/auth/*', (c, next) =>
@@ -135,7 +138,7 @@ const link = (env: Env, path: string, token: string): string =>
 
 // Capture who/where a session was created from, for the active-sessions list. Device is a parsed
 // label (not the raw UA); location is a coarse city/country from Cloudflare's edge (not the raw IP).
-const sessionMeta = (c: Context<{ Bindings: Env }>): SessionMeta => {
+const sessionMeta = (c: Ctx): SessionMeta => {
   const cf = c.req.raw.cf as { city?: string; country?: string } | undefined;
   const location = [cf?.city, cf?.country].filter(Boolean).join(', ') || null;
   return { device: deviceLabel(c.req.header('user-agent')), location };
