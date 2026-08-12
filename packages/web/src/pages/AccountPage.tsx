@@ -471,7 +471,7 @@ export function AccountPage(): ReactNode {
                   disabled={securityReviewStatus === 'securing'}
                   className="btn-gradient rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
                 >
-                  {securityReviewStatus === 'securing' ? 'Securing account…' : 'No — secure my account'}
+                  {securityReviewStatus === 'securing' ? 'Securing account…' : 'That was not me'}
                 </button>
                 <button
                   type="button"

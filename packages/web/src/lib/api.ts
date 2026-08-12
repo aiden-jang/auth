@@ -110,18 +110,65 @@ export function reauthCanUsePassword(err: unknown): boolean {
   return err instanceof ApiError && err.details.canUsePassword === true;
 }
 
+/**
+ * What to say when the server did not give us a sentence to say.
+ *
+ * Every page here shows `err.message` directly, which was fine for the errors this service writes
+ * (they are already human) and bad for everything else. A dropped connection surfaced the browser's
+ * own `Failed to fetch`, and a proxy error page surfaced `Request failed (502)`. Both were shown
+ * verbatim on the sign-in form, which is the single worst place in the whole platform to look broken
+ * and explain nothing: somebody who cannot get in cannot get anywhere.
+ *
+ * A status code is not a message. Anything that is genuinely our fault says so, because "try again"
+ * is useless advice if the problem is at this end and the person is about to retype their password
+ * assuming they got it wrong.
+ */
+function describeStatus(status: number): string {
+  if (status === 429) return 'Too many tries in a row. Give it a minute and go again.';
+  if (status === 408 || status === 504) return 'That took too long to answer. Try again in a moment.';
+  if (status === 502 || status === 503) return 'The sign-in service is briefly unavailable. Try again shortly.';
+  if (status >= 500) return 'Something broke on our end, not yours. Try again in a moment.';
+  if (status === 404) return 'That link or page is gone.';
+  if (status === 403) return 'That is not allowed from here.';
+  return 'That did not go through. Try again in a moment.';
+}
+
 async function req<T>(path: string, method: string, body?: unknown): Promise<T> {
   const init: RequestInit = { method, credentials: 'include' };
   if (body !== undefined) {
     init.headers = { 'Content-Type': 'application/json' };
     init.body = JSON.stringify(body);
   }
-  const res = await fetch(`${BASE}${path}`, init);
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, init);
+  } catch {
+    /*
+     * fetch only rejects for transport failures: offline, DNS, a killed connection, CORS. Caught here
+     * rather than at 25 call sites, all of which already render err.message and none of which should
+     * have to know what a TypeError from fetch looks like.
+     */
+    // `onLine === false` rather than falsy: where the property is missing we do not know, and
+    // telling somebody they are offline when they are not sends them to reboot their router over
+    // what was actually our outage.
+    const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    throw new ApiError(
+      offline
+        ? 'You appear to be offline. Reconnect and try again.'
+        : 'Could not reach the sign-in service. Check your connection and try again.',
+      'NETWORK',
+      0,
+    );
+  }
+
   const isJson = res.headers.get('content-type')?.includes('application/json') ?? false;
-  const data: unknown = isJson ? await res.json() : undefined;
+  // A non-JSON body on an error is a proxy or edge error page, never something worth showing.
+  const data: unknown = isJson ? await res.json().catch(() => undefined) : undefined;
   if (!res.ok) {
     const obj = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
-    const message = typeof obj.message === 'string' ? obj.message : `Request failed (${res.status})`;
+    // The server's own message wins: it is written for this exact situation and we are guessing.
+    const message = typeof obj.message === 'string' ? obj.message : describeStatus(res.status);
     const code = typeof obj.error === 'string' ? obj.error : `HTTP_${res.status}`;
     throw new ApiError(message, code, res.status, obj);
   }
