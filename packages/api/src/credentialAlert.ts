@@ -1,4 +1,5 @@
 import type { SessionMeta } from './auth/session.js';
+import { escapeHtml, readableTime, renderEmail, type RenderedEmail } from './emailLayout.js';
 
 /*
  * "Your sign-in method changed" mail.
@@ -50,31 +51,29 @@ export function credentialAlertSubject(kind: CredentialChange): string {
   return COPY[kind].subject;
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;',
-  })[character]!);
-}
-
-export function credentialAlertHtml(
+export function credentialAlertEmail(
   kind: CredentialChange,
   meta: SessionMeta,
   accountUrl: string,
   at = new Date(),
-): string {
+): RenderedEmail {
   const copy = COPY[kind];
-  const device = escapeHtml(meta.device ?? 'Unknown device');
-  const location = escapeHtml(meta.location ?? 'Location unavailable');
-  const safeUrl = escapeHtml(accountUrl);
-  const when = escapeHtml(at.toISOString());
-  return (
-    `<p>Someone ${copy.happened}.</p>` +
-    `<p><strong>${device}</strong><br>${location}<br>${when}</p>` +
-    `<p>If that was you, you are done here. If it was not, ${copy.ifNotYou} ` +
-    `You can do both from <a href="${safeUrl}">your account page</a>.</p>`
-  );
+  return renderEmail({
+    // The preview line answers the only question that matters before opening it.
+    preheader: `${copy.subject}. If that was not you, act now.`,
+    heading: copy.subject,
+    paragraphs: [
+      `Someone ${escapeHtml(copy.happened)}.`,
+      `If that was you, there is nothing to do.`,
+      `If it was not, ${escapeHtml(copy.ifNotYou)}`,
+    ],
+    // Device, place and time are the three things that let somebody recognise their own action, so they
+    // get their own labelled block rather than being run together in a sentence.
+    facts: [
+      { label: 'Device', value: meta.device ?? 'Unknown device' },
+      { label: 'Location', value: meta.location ?? 'Location unavailable' },
+      { label: 'When', value: readableTime(at) },
+    ],
+    action: { label: 'Review your account', url: accountUrl },
+  });
 }
