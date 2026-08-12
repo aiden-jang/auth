@@ -27,6 +27,15 @@ export interface AuthUser {
   hasGoogle: boolean;
 }
 
+export interface Passkey {
+  id: string;
+  label: string;
+  /** Synced to a provider's cloud, so losing the device does not lose the key. */
+  backedUp: boolean;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
 export interface SessionInfo {
   id: string;
   current: boolean;
@@ -48,7 +57,9 @@ export type SecurityEventType =
   | 'google_disconnected'
   | 'device_renamed'
   | 'device_signed_out'
-  | 'other_devices_signed_out';
+  | 'other_devices_signed_out'
+  | 'passkey_added'
+  | 'passkey_removed';
 
 export interface SecurityEvent {
   id: string;
@@ -202,6 +213,16 @@ export const authApi = {
   setPassword: (newPassword: string) =>
     req<{ ok: boolean }>('/auth/set-password', 'POST', { newPassword }),
   disconnectGoogle: () => req<{ ok: boolean }>('/auth/disconnect-google', 'POST'),
+  listPasskeys: () => req<{ passkeys: Passkey[] }>('/auth/passkeys', 'GET'),
+  passkeyRegisterOptions: () => req<{ options: unknown }>('/auth/passkeys/register/options', 'POST'),
+  passkeyRegisterVerify: (response: unknown, label?: string) =>
+    req<{ passkey: Passkey }>('/auth/passkeys/register/verify', 'POST', { response, label }),
+  passkeyLoginOptions: () => req<{ options: unknown }>('/auth/passkeys/login/options', 'POST'),
+  passkeyLoginVerify: (response: unknown) =>
+    req<{ user: AuthUser; usedPasskey: string }>('/auth/passkeys/login/verify', 'POST', { response }),
+  renamePasskey: (id: string, label: string) =>
+    req<{ ok: boolean }>('/auth/passkeys/rename', 'POST', { id, label }),
+  deletePasskey: (id: string) => req<{ ok: boolean }>('/auth/passkeys/delete', 'POST', { id }),
   listSessions: () => req<{ sessions: SessionInfo[] }>('/auth/sessions', 'GET'),
   listSecurityEvents: () => req<{ events: SecurityEvent[] }>('/auth/security-events', 'GET'),
   exportAccount: () => req<AccountExport>('/auth/export', 'GET'),

@@ -73,3 +73,55 @@ export const securityEvents = sqliteTable('security_events', {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+/*
+ * Passkeys.
+ *
+ * The public key is the whole point: it is not a secret, so a leak of this table does not let anybody
+ * sign in as anybody. That is the property passwords never had and the reason this is the front door
+ * now rather than a setting.
+ *
+ * `id` is the credential id the authenticator generated (base64url), which is what a login response
+ * gives us to look the key up by, so it is the natural primary key.
+ */
+export const credentials = sqliteTable('credentials', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  publicKey: text('public_key').notNull(),
+  /*
+   * The authenticator's signature counter.
+   *
+   * Its only job is cloning detection: a counter that goes backwards means two things are answering
+   * for one credential. Plenty of authenticators (most platform ones, including Apple's) always report
+   * zero, so a zero counter can never be treated as suspicious, only a decrease from a non-zero one.
+   */
+  counter: integer('counter').notNull().default(0),
+  /** Synced to a provider's cloud, so losing the device does not lose the key. Shown to the user. */
+  backedUp: integer('backed_up', { mode: 'boolean' }).notNull().default(false),
+  /** 'internal', 'hybrid', 'usb'... how it was reachable, for a useful label rather than a guess. */
+  transports: text('transports'),
+  /** Editable, because "iPhone" beats a base64 blob when deciding which key to remove. */
+  label: text('label').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
+});
+
+/*
+ * One in-flight WebAuthn ceremony.
+ *
+ * Server-side rather than in a cookie the client hands back, because a challenge has to be single-use.
+ * The row is deleted the moment it is consumed, so a captured response cannot be replayed; a cookie
+ * holding the challenge itself would be replayable until it expired.
+ *
+ * `userId` is null for a sign-in, where a discoverable credential tells us who it is only afterwards.
+ */
+export const webauthnChallenges = sqliteTable('webauthn_challenges', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  challenge: text('challenge').notNull(),
+  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+});

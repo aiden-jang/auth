@@ -13,6 +13,7 @@
     "db:migrate:local": "wrangler d1 migrations apply aidenjang-identity --local"
   },
   "dependencies": {
+    "@simplewebauthn/server": "^13.3.2",
     "drizzle-orm": "^0.38.3",
     "hono": "^4.6.14",
     "zod": "^3.23.8"

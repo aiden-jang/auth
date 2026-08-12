@@ -43,6 +43,13 @@
       "when": 1786636800000,
       "tag": "0005_step_up_reauth",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1786637000000,
+      "tag": "0006_passkeys",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,7 @@ import { AuthCard, buttonClass, inputClass, labelClass } from '../components/Aut
 import { PasswordInput } from '../components/PasswordInput';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { GoogleSignIn } from '../components/GoogleSignIn';
+import { PasskeySignIn } from '../components/PasskeySignIn';
 import { EmailSuggestion } from '../components/EmailSuggestion';
 import { inboxFor } from '../lib/inbox';
 import {
@@ -200,6 +201,8 @@ export function LoginPage(): ReactNode {
         </div>
       ) : (
         <>
+          {/* Above Google and the form: nothing to type, and nothing on our side worth stealing. */}
+          <PasskeySignIn returnTo={returnTo} />
           <GoogleSignIn returnTo={returnTo} />
           {recentAccounts.length > 0 && (
             <section aria-labelledby="recent-accounts-heading" className="mb-4">

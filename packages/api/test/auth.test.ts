@@ -2,7 +2,7 @@ import { SELF, env } from 'cloudflare:test';
 import { and, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { createDb } from '../src/db/client.js';
-import { authTokens, sessions, users } from '../src/db/schema.js';
+import { authTokens, credentials, sessions, users } from '../src/db/schema.js';
 import { issueToken } from '../src/auth/verification.js';
 import { hashToken } from '../src/auth/token.js';
 import { createSession } from '../src/auth/session.js';
@@ -736,5 +736,197 @@ describe('surviving a schema that is behind the code', () => {
     } finally {
       await env.DB.prepare('ALTER TABLE sessions ADD reauth_at integer').run();
     }
+  });
+});
+
+/*
+ * Passkeys.
+ *
+ * The signature checking is @simplewebauthn's and is not re-tested here. What is mine, and therefore
+ * what these cover, is the policy around it: who may start a ceremony, that a challenge is good exactly
+ * once, that a credential belongs to somebody, and that starting a sign-in tells an anonymous caller
+ * nothing about whether an account exists.
+ */
+describe('passkeys', () => {
+  /** A credential row without a real authenticator, for the management paths. */
+  async function seedPasskey(userId: string, label = 'Test key'): Promise<string> {
+    const id = `cred-${crypto.randomUUID()}`;
+    await db().insert(credentials).values({
+      id,
+      userId,
+      publicKey: Buffer.from('not-a-real-key').toString('base64'),
+      counter: 0,
+      backedUp: true,
+      label,
+    });
+    return id;
+  }
+
+  it('needs a session to start registering one', async () => {
+    expect((await post('/auth/passkeys/register/options', {})).status).toBe(401);
+    expect((await get('/auth/passkeys')).status).toBe(401);
+  });
+
+  it('hands back options and a challenge cookie', async () => {
+    const { cookie } = await register();
+    const res = await post('/auth/passkeys/register/options', {}, cookie);
+    expect(res.status).toBe(200);
+
+    const { options } = (await res.json()) as {
+      options: { challenge: string; rp: { id: string }; authenticatorSelection: { residentKey: string } };
+    };
+    expect(options.challenge).toBeTruthy();
+    // Discoverable, or "sign in" could not work without typing an email first.
+    expect(options.authenticatorSelection.residentKey).toBe('required');
+    expect(res.headers.getSetCookie().some((c) => c.startsWith('platform_webauthn='))).toBe(true);
+  });
+
+  /*
+   * Single use is the property that stops a captured response being replayed. The row is deleted when
+   * it is read, whether or not verification then succeeds, so a failed attempt also burns its challenge
+   * and nobody gets to grind guesses against one.
+   */
+  it('spends a challenge even on a failed attempt', async () => {
+    const { cookie } = await register();
+    const optionsRes = await post('/auth/passkeys/register/options', {}, cookie);
+    const challengeCookie = optionsRes.headers
+      .getSetCookie()
+      .find((c) => c.startsWith('platform_webauthn='))!
+      .split(';')[0]!;
+
+    const body = { response: { id: 'nope', rawId: 'nope', type: 'public-key', response: {} } };
+    const first = await post('/auth/passkeys/register/verify', body, `${cookie}; ${challengeCookie}`);
+    expect(first.status).toBe(400);
+
+    const second = await post('/auth/passkeys/register/verify', body, `${cookie}; ${challengeCookie}`);
+    expect(((await second.json()) as { error: string }).error).toBe('NO_CHALLENGE');
+  });
+
+  it("will not let one account finish another account's ceremony", async () => {
+    const a = await register();
+    const b = await register();
+    const optionsRes = await post('/auth/passkeys/register/options', {}, a.cookie);
+    const challengeCookie = optionsRes.headers
+      .getSetCookie()
+      .find((c) => c.startsWith('platform_webauthn='))!
+      .split(';')[0]!;
+
+    // b presents a's challenge. Without the owner check this would bind a key to the wrong account.
+    const res = await post(
+      '/auth/passkeys/register/verify',
+      { response: { id: 'x', rawId: 'x', type: 'public-key', response: {} } },
+      `${b.cookie}; ${challengeCookie}`,
+    );
+    expect(((await res.json()) as { error: string }).error).toBe('NO_CHALLENGE');
+  });
+
+  it('offers sign-in options to anyone, revealing nothing', async () => {
+    // No email goes in, so the response cannot differ by whether an account exists. Any difference here
+    // would turn the sign-in page into an account-enumeration oracle.
+    const first = await post('/auth/passkeys/login/options', {});
+    const second = await post('/auth/passkeys/login/options', {});
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+
+    const a = (await first.json()) as { options: Record<string, unknown> };
+    const b = (await second.json()) as { options: Record<string, unknown> };
+    expect(Object.keys(a.options).sort()).toEqual(Object.keys(b.options).sort());
+    // Fresh challenge each time, or it would not be a challenge.
+    expect(a.options.challenge).not.toBe(b.options.challenge);
+  });
+
+  it('refuses a credential it has never seen', async () => {
+    const optionsRes = await post('/auth/passkeys/login/options', {});
+    const challengeCookie = optionsRes.headers
+      .getSetCookie()
+      .find((c) => c.startsWith('platform_webauthn='))!
+      .split(';')[0]!;
+    const res = await post(
+      '/auth/passkeys/login/verify',
+      { response: { id: 'never-registered', rawId: 'never-registered', type: 'public-key', response: {} } },
+      challengeCookie,
+    );
+    expect(((await res.json()) as { error: string }).error).toBe('UNKNOWN_CREDENTIAL');
+  });
+
+  it('fails verification for a known credential with a bogus signature', async () => {
+    // Proves the library is actually wired in rather than the route waving things through.
+    const { id, cookie } = await register();
+    const credId = await seedPasskey(id);
+    const optionsRes = await post('/auth/passkeys/login/options', {});
+    const challengeCookie = optionsRes.headers
+      .getSetCookie()
+      .find((c) => c.startsWith('platform_webauthn='))!
+      .split(';')[0]!;
+
+    const res = await post(
+      '/auth/passkeys/login/verify',
+      { response: { id: credId, rawId: credId, type: 'public-key', response: { signature: 'AAAA' } } },
+      challengeCookie,
+    );
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe('VERIFICATION_FAILED');
+    expect(cookie).toBeTruthy();
+  });
+
+  it('lists only your own passkeys', async () => {
+    const mine = await register();
+    const theirs = await register();
+    await seedPasskey(mine.id, 'My laptop');
+    await seedPasskey(theirs.id, 'Their phone');
+
+    const res = await get('/auth/passkeys', mine.cookie);
+    const { passkeys } = (await res.json()) as { passkeys: { label: string }[] };
+    expect(passkeys.map((p) => p.label)).toEqual(['My laptop']);
+  });
+
+  it("will not rename or remove somebody else's passkey", async () => {
+    const mine = await register();
+    const theirs = await register();
+    const victim = await seedPasskey(theirs.id, 'Their phone');
+
+    expect((await post('/auth/passkeys/rename', { id: victim, label: 'Mine now' }, mine.cookie)).status).toBe(404);
+    expect((await post('/auth/passkeys/delete', { id: victim }, mine.cookie)).status).toBe(404);
+
+    const still = await get('/auth/passkeys', theirs.cookie);
+    expect(((await still.json()) as { passkeys: unknown[] }).passkeys).toHaveLength(1);
+  });
+
+  it('renames your own', async () => {
+    const { id, cookie } = await register();
+    const credId = await seedPasskey(id, 'Old name');
+    expect((await post('/auth/passkeys/rename', { id: credId, label: 'MacBook' }, cookie)).status).toBe(200);
+    const { passkeys } = (await (await get('/auth/passkeys', cookie)).json()) as { passkeys: { label: string }[] };
+    expect(passkeys[0]?.label).toBe('MacBook');
+  });
+
+  it('removes one, and records it', async () => {
+    const { id, cookie } = await register();
+    const credId = await seedPasskey(id);
+    expect((await post('/auth/passkeys/delete', { id: credId }, cookie)).status).toBe(200);
+    expect(((await (await get('/auth/passkeys', cookie)).json()) as { passkeys: unknown[] }).passkeys).toHaveLength(0);
+
+    const events = (await (await get('/auth/security-events', cookie)).json()) as { events: { type: string }[] };
+    expect(events.events.map((e) => e.type)).toContain('passkey_removed');
+  });
+
+  /*
+   * Removing a passkey changes how you sign in, so it sits behind the same freshness gate as unlinking
+   * Google. A cookie lifted from a closed laptop must not be able to strip the owner's keys.
+   */
+  it('asks for confirmation before removing one on an old session', async () => {
+    const { id, cookie } = await register();
+    const credId = await seedPasskey(id);
+    const raw = cookie.split('=')[1]!;
+    await db()
+      .update(sessions)
+      .set({ reauthAt: new Date(Date.now() - 60 * 60 * 1000) })
+      .where(eq(sessions.id, await hashToken(raw)));
+
+    const res = await post('/auth/passkeys/delete', { id: credId }, cookie);
+    expect(res.status).toBe(403);
+    expect(((await res.json()) as { error: string }).error).toBe('REAUTH_REQUIRED');
+    // And it is still there.
+    expect(((await (await get('/auth/passkeys', cookie)).json()) as { passkeys: unknown[] }).passkeys).toHaveLength(1);
   });
 });
