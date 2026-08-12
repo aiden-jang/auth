@@ -3,15 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { SessionMap } from './SessionMap';
 import { project, type SessionLike } from '../lib/sessionMap';
 
-/*
- * The component, rendered.
- *
- * There is no jsdom in this package and the account page needs a signed-in session to reach, so this
- * renders to static markup instead. That is enough for what actually matters here: that a dot lands on
- * the coordinates the projection computed, that "this device" is marked, and that the picture has a text
- * equivalent. A map on a security page that says nothing to a screen reader locks somebody out of their
- * own account information.
- */
+/* No jsdom in this package, so these render to static markup. */
 
 const session = (id: string, location: string | null, current = false): SessionLike => ({ id, location, current });
 
@@ -43,12 +35,7 @@ describe('rendering the map', () => {
   });
 
   it('marks this device with more than a colour', () => {
-    /*
-     * The pulse ring is not decoration.
-     *
-     * "The green one is you" is no answer for a red-green colourblind reader, so the current device also
-     * gets a ring that nothing else has. Reduced motion keeps the ring and drops the movement.
-     */
+    // "The green one is you" is no answer for a colourblind reader, so the ring is not decoration.
     const withCurrent = render([session('a', 'Brooklyn, US', true)]);
     const without = render([session('a', 'Brooklyn, US')]);
     expect(withCurrent).toContain('session-dot-pulse');
@@ -56,8 +43,7 @@ describe('rendering the map', () => {
   });
 
   it('says so plainly rather than drawing an empty grid', () => {
-    // Every session unplaceable would otherwise render a graticule with nothing on it, which reads as
-    // a broken component rather than as an answer.
+    // Otherwise an empty graticule, which reads as a broken component.
     const html = render([session('a', null)]);
     expect(html).not.toContain('<svg');
     expect(html).toContain('No location for this session.');
@@ -73,7 +59,7 @@ describe('rendering the map', () => {
   });
 
   it('staggers the dots without letting a busy account crawl', () => {
-    // Capped: twenty sessions should not take two seconds to finish assembling themselves.
+    // Capped, or a busy account spends two seconds assembling itself.
     const many = Array.from({ length: 20 }, (_, i) => session(`s${i}`, `City, ${['US', 'DE', 'JP', 'GB', 'AU', 'BR', 'IN', 'CA', 'FR', 'ES'][i % 10]}`));
     const delays = [...render(many).matchAll(/animation-delay:(\d+)ms/g)].map((m) => Number(m[1]));
     expect(delays.length).toBeGreaterThan(1);

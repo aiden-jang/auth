@@ -5,12 +5,8 @@ import type { Env } from '../env.js';
 export const SESSION_COOKIE = 'platform_session';
 
 /*
- * Generic over the env, not a fixed alias.
- *
- * These helpers only read the URL and write cookies, so a context from any route should be acceptable.
- * Hono's Context is invariant in its env (both `get` and `set` mention it), so a concrete
- * `Context<{ Bindings: Env }>` rejects a context from an app that declares any Variables at all, in both
- * directions. Inferring the env per call is the only version that stays open as the app grows.
+ * Generic, not a fixed alias: Hono's Context is invariant in its env, so a concrete
+ * `Context<{ Bindings: Env }>` rejects every call once the app declares any Variables.
  */
 type Ctx<E extends { Bindings: Env }> = Context<E>;
 
@@ -36,13 +32,8 @@ export function setSessionCookie<E extends { Bindings: Env }>(c: Ctx<E>, token: 
 }
 
 /*
- * The in-flight WebAuthn ceremony id.
- *
- * SameSite=Strict rather than Lax, unlike the session cookie. A session has to survive arriving from
- * another site (that is the whole point of a return_to sign-in flow); a ceremony never legitimately
- * starts on one page and finishes from a cross-site navigation, so Strict costs nothing here and takes
- * a class of cross-site completion off the table. Short-lived, and the row it points at is deleted the
- * moment it is used.
+ * Strict, unlike the session cookie's Lax: a session must survive arriving from another site, a
+ * ceremony never legitimately does. Takes cross-site completion off the table for free.
  */
 export function setChallengeCookie<E extends { Bindings: Env }>(c: Ctx<E>, name: string, id: string, ttlMs: number): void {
   setCookie(c, name, id, {

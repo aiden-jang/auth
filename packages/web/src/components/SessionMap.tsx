@@ -2,25 +2,16 @@ import type { ReactNode } from 'react';
 import { MAP_HEIGHT, MAP_WIDTH, mapSessions, mapSummary, type SessionLike } from '../lib/sessionMap';
 
 /*
- * Signed-in sessions, as dots on a world map.
- *
- * Deliberately a graticule rather than a coastline. A world silhouette small enough to inline is a world
- * silhouette wrong enough to notice, and this is a page about being precise with somebody's security
- * data: a map that quietly misplaces Denmark undermines the dots sitting on top of it. Latitude and
- * longitude lines are honest about what they are, and the dots are positioned by real coordinates.
- *
- * The dots are the content, so they carry a text equivalent. The map is not the only place this
- * information exists (every session is listed below it in full) but a picture that says nothing to a
- * screen reader on a security page is a picture that excludes people from their own account.
+ * A graticule, not a coastline: a world silhouette small enough to inline is one wrong enough to
+ * notice, and a map that misplaces Denmark undermines the dots on top of it.
  */
 
-/** Every 30 degrees. Enough to read as a globe, sparse enough not to compete with the dots. */
+/** Every 30 degrees. */
 const GRATICULE_LONS = [-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150];
 const GRATICULE_LATS = [-60, -30, 0, 30, 60];
 
 function radiusFor(count: number): number {
-  // Grows slowly: a country with eight sessions should read as busier than one with two, not eight times
-  // bigger, or one dot swallows a continent.
+  // Grows slowly, or one busy country swallows a continent.
   return 3 + Math.min(3, Math.sqrt(count - 1) * 1.6);
 }
 
@@ -28,7 +19,7 @@ export function SessionMap({ sessions }: { sessions: readonly SessionLike[] }): 
   const reading = mapSessions(sessions);
   const summary = mapSummary(reading);
 
-  // Nothing to place means an empty grid, which looks like a broken component rather than a quiet answer.
+  // An empty grid reads as a broken component.
   if (reading.points.length === 0) {
     return (
       <p className="rounded-xl border border-line bg-field px-4 py-3 text-xs text-muted">{summary}</p>
@@ -51,7 +42,7 @@ export function SessionMap({ sessions }: { sessions: readonly SessionLike[] }): 
             })}
             {GRATICULE_LATS.map((lat) => {
               const y = ((90 - lat) / 180) * MAP_HEIGHT;
-              // The equator is drawn a touch stronger, so the map has one line you can orient from.
+              // One stronger line to orient from.
               return (
                 <line
                   key={`lat${lat}`}
@@ -69,8 +60,7 @@ export function SessionMap({ sessions }: { sessions: readonly SessionLike[] }): 
             <g
               key={point.country}
               className="session-dot"
-              // Staggered so the dots arrive rather than appear, capped so a busy account does not
-              // spend two seconds assembling itself.
+              // Capped, or a busy account spends two seconds assembling itself.
               style={{ animationDelay: `${Math.min(index * 70, 560)}ms` }}
             >
               {point.hasCurrent && (

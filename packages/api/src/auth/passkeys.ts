@@ -15,20 +15,11 @@ import type { DB } from '../db/client.js';
 import { credentials, users, webauthnChallenges } from '../db/schema.js';
 
 /*
- * Passkeys.
- *
- * The verification itself is @simplewebauthn/server, deliberately. WebAuthn assertion checking is
- * signature verification over a hash of attacker-influenced bytes, with a list of things that must be
- * compared exactly and a couple that must not be; getting one of them subtly wrong produces a login
- * that works perfectly and accepts forgeries. That is not a thing to hand-roll on the front door to
- * somebody's whole account, so this file owns storage, policy and plumbing, and nothing else.
- *
- * What passkeys actually buy, and why they go first rather than in a settings screen: the stored
- * secret stops being a secret. `credentials.public_key` is public by construction, so a leak of that
- * table lets nobody sign in as anybody, and there is no shared string to phish, reuse, or forget.
+ * Storage, policy and plumbing only. Verification is @simplewebauthn/server on purpose: a subtly wrong
+ * assertion check produces a login that works perfectly and accepts forgeries.
  */
 
-/** How long a started ceremony stays valid. Long enough to find the right finger, short enough to matter. */
+/** How long a started ceremony stays valid. */
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 /** Cookie holding the id of the in-flight ceremony. Not the challenge: see webauthnChallenges. */
@@ -54,21 +45,17 @@ export class PasskeyError extends Error {
 }
 
 export interface RelyingParty {
-  /** The registrable domain. A credential is bound to this and unusable anywhere else. */
+  /** A credential is bound to this and unusable anywhere else. */
   id: string;
-  /** Shown in the platform's own prompt, so it is a product name and not a hostname. */
+  /** Shown in the platform's own prompt, so a product name and not a hostname. */
   name: string;
-  /** Exact origin the ceremony must have come from. */
   origin: string;
 }
 
 /**
- * Where this service lives, from its own URL.
- *
- * The relying party id must be the registrable domain rather than the full host, or a credential made
- * on accounts.aidenjang.com would be unusable from anywhere else on the domain. It cannot be taken
- * from the request: a header the caller controls deciding which domain a credential is bound to is the
- * whole attack. So it is derived from APP_URL, which is configuration.
+ * Derive the rp id from APP_URL, never from the request. A caller-controlled header deciding which
+ * domain a credential binds to is the whole attack. It is the registrable domain, not the full host,
+ * or a credential made on accounts.aidenjang.com works nowhere else on the domain.
  */
 export function relyingParty(appUrl: string | undefined, requestUrl: string): RelyingParty {
   const url = new URL(appUrl ?? requestUrl);
@@ -79,19 +66,15 @@ export function relyingParty(appUrl: string | undefined, requestUrl: string): Re
 }
 
 /**
- * The last two labels of a hostname.
- *
- * Correct for this service (aidenjang.com) and wrong in general: a real public-suffix list is the only
- * way to know that foo.co.uk is registrable and foo.com.au is not. Hard-coding the shape we deploy
- * beats shipping a 15KB suffix list to a Worker that serves exactly one domain, but it is a landmine
- * for anybody who points this at a multi-part TLD, so it says so out loud.
+ * Last two labels. Correct for aidenjang.com and wrong for any multi-part TLD (foo.co.uk), which needs
+ * a real public-suffix list. A landmine if this is ever pointed at one.
  */
 function registrableDomain(host: string): string {
   const labels = host.split('.');
   return labels.length <= 2 ? host : labels.slice(-2).join('.');
 }
 
-/** Stash a challenge and return the id the cookie should carry. Also sweeps anything expired. */
+/** Returns the id the cookie should carry. Also sweeps anything expired. */
 async function stashChallenge(db: DB, challenge: string, userId: string | null): Promise<string> {
   const id = crypto.randomUUID();
   await db.insert(webauthnChallenges).values({
@@ -100,17 +83,12 @@ async function stashChallenge(db: DB, challenge: string, userId: string | null):
     challenge,
     expiresAt: new Date(Date.now() + CHALLENGE_TTL_MS),
   });
-  // Opportunistic cleanup: no cron needed for a table whose rows are all short-lived by definition.
+  // Opportunistic: no cron needed for a table of short-lived rows.
   await db.delete(webauthnChallenges).where(lt(webauthnChallenges.expiresAt, new Date()));
   return id;
 }
 
-/**
- * Consume a challenge. Always deletes it, whether or not it was usable.
- *
- * Single-use is the point. Deleting before verifying, rather than after success, means a response that
- * fails verification still burns its challenge, so an attacker cannot grind attempts against one.
- */
+/** Deletes before verifying, not after success, so a failed response still burns its challenge. */
 async function takeChallenge(db: DB, id: string | undefined): Promise<{ challenge: string; userId: string | null }> {
   if (!id) throw new PasskeyError('NO_CHALLENGE', 'That sign-in attempt expired. Try again.');
   const row = await db.select().from(webauthnChallenges).where(eq(webauthnChallenges.id, id)).get();
@@ -143,7 +121,6 @@ export async function listPasskeys(db: DB, userId: string): Promise<PasskeyView[
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-/** Start adding a passkey to an account that is already signed in. */
 export async function startRegistration(
   db: DB,
   rp: RelyingParty,
@@ -155,20 +132,19 @@ export async function startRegistration(
     rpID: rp.id,
     userName: user.email,
     userDisplayName: user.displayName,
-    // Stops the same device silently making a second key for the same account, which would leave two
-    // indistinguishable entries in the list and no way to tell which one to remove.
+    // Or the same device makes a second, indistinguishable key with no way to tell them apart.
     excludeCredentials: existing.map((c) => ({ id: c.id })),
     authenticatorSelection: {
-      // Discoverable, because the whole promise is tapping one button without typing an email first.
+      // Discoverable: the promise is one tap without typing an email first.
       residentKey: 'required',
-      // A passkey that does not confirm the human present is a bearer token in a keychain.
+      // Without this a passkey is a bearer token in a keychain.
       userVerification: 'preferred',
     },
   });
   return { options, challengeId: await stashChallenge(db, options.challenge, user.id) };
 }
 
-/** Finish adding a passkey. Returns the stored row so the caller can log and label it. */
+/** Returns the stored row so the caller can log and label it. */
 export async function finishRegistration(
   db: DB,
   rp: RelyingParty,
@@ -178,8 +154,7 @@ export async function finishRegistration(
   label: string,
 ): Promise<PasskeyView> {
   const { challenge, userId: challengeUser } = await takeChallenge(db, challengeId);
-  // The ceremony has to belong to the session finishing it, or a challenge started for one account
-  // could be completed against another.
+  // Or a challenge started for one account could be completed against another.
   if (challengeUser !== userId) throw new PasskeyError('NO_CHALLENGE', 'That attempt was not yours.');
 
   let verification;
@@ -205,7 +180,7 @@ export async function finishRegistration(
   await db.insert(credentials).values({
     id: credential.id,
     userId,
-    // base64 rather than raw bytes: D1 columns are text, and this is a public key, not a secret.
+    // base64: D1 columns are text, and this is a public key, not a secret.
     publicKey: Buffer.from(credential.publicKey).toString('base64'),
     counter: credential.counter,
     backedUp: credentialBackedUp,
@@ -224,13 +199,7 @@ export async function finishRegistration(
   };
 }
 
-/**
- * Start a sign-in.
- *
- * No email, no `allowCredentials`. The authenticator offers whatever keys it holds for this domain and
- * tells us who it is afterwards, which is what makes "sign in" one tap. It also means this endpoint
- * reveals nothing: the options are identical whether or not any account exists.
- */
+/** No email and no `allowCredentials`, so the options are identical whether or not an account exists. */
 export async function startLogin(
   db: DB,
   rp: RelyingParty,
@@ -280,14 +249,8 @@ export async function finishLogin(
   }
   if (!verification.verified) throw new PasskeyError('VERIFICATION_FAILED', 'That passkey could not be verified.');
 
-  /*
-   * Cloning check.
-   *
-   * A counter that went backwards means two authenticators are answering for one credential, which is
-   * the one signal WebAuthn gives that a key was copied. Only meaningful when the stored counter is
-   * already above zero: most platform authenticators (Apple's included) always report zero, and
-   * treating that as a regression would lock out the majority of real passkeys.
-   */
+  // Cloning check, and only when the stored counter is above zero: Apple's authenticators always
+  // report zero, so treating that as a regression locks out most real passkeys.
   const next = verification.authenticationInfo.newCounter;
   if (row.counter > 0 && next <= row.counter) {
     throw new PasskeyError('COUNTER_REGRESSED', 'That passkey looks like a copy. Use another way in.');
@@ -316,11 +279,8 @@ export async function renamePasskey(db: DB, userId: string, id: string, label: s
 }
 
 /**
- * Remove a passkey.
- *
- * Scoped to the owner, so an id guessed from somewhere else deletes nothing. Deliberately allowed to
- * remove the last one: an account always keeps the emailed link as a way in, so this cannot strand
- * anybody, and refusing would make a lost device impossible to clean up.
+ * Scoped to the owner, so a guessed id deletes nothing. Deliberately allows removing the last one:
+ * the emailed link is always a way in, and refusing makes a lost device impossible to clean up.
  */
 export async function deletePasskey(db: DB, userId: string, id: string): Promise<void> {
   const row = await db

@@ -4,15 +4,8 @@ import { partOfDay, welcome, welcomeLine } from '../src/lib/welcome';
 import type { RecentAccount } from '../src/lib/recentAccount';
 
 /*
- * These two tests exist to stop a specific kind of rot.
- *
- * Security copy decays toward meaninglessness: somebody in a hurry writes "bank-grade encryption" and
- * nobody catches it, and after that the words in these places carry no information. The whole value of a
- * line under a spinner is that it is a checkable claim about the code, so the vocabulary that signals
- * "marketing wrote this" is asserted against directly.
- *
- * And the welcome line renders before anybody has authenticated, possibly on a borrowed laptop, so the
- * test that matters is that it never names an account.
+ * Two kinds of rot: security copy drifting into "bank-grade encryption", and the welcome line naming
+ * an account on a screen nobody has authenticated on.
  */
 
 describe('reassurance copy', () => {
@@ -26,7 +19,7 @@ describe('reassurance copy', () => {
   });
 
   it('avoids the vocabulary that makes security copy meaningless', () => {
-    // Every one of these would be true of any product, which is exactly why none of them belongs here.
+    // All true of any product, which is why none belongs here.
     const empty = [
       /bank[- ]grade/i, /military[- ]grade/i, /industry[- ]standard/i, /state of the art/i,
       /we take .* seriously/i, /rest assured/i, /peace of mind/i, /your safety is/i,
@@ -89,12 +82,6 @@ describe('the welcome line', () => {
     expect(line).toBe('Good evening. This device has been here before.');
   });
 
-  /*
-   * The one that actually matters.
-   *
-   * This renders before anybody has signed in, so the screen may belong to a friend, a colleague or a
-   * library. Naming an account there tells the person holding the laptop something that is not theirs.
-   */
   it('never names or hints at an account', () => {
     const accounts = [account(), account({ email: 'someone.else@work.example' })];
     for (const at of [3, 9, 14, 20]) {
@@ -106,7 +93,7 @@ describe('the welcome line', () => {
   });
 
   it('reads the same however many accounts are remembered', () => {
-    // The count is a device fact, so it must not leak how many people use this machine beyond one/many.
+    // Must not leak how many people use this machine beyond one/many.
     const many = [account(), account({ email: 'b@b.test' }), account({ email: 'c@c.test' })];
     expect(welcomeLine(many, new Date(2026, 7, 12, 9))).not.toMatch(/\d/);
   });

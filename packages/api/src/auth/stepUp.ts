@@ -4,39 +4,20 @@ import { sessions } from '../db/schema.js';
 import { hashToken } from './token.js';
 
 /*
- * Step-up re-authentication, for the handful of actions that can cost somebody their account.
- *
- * A session cookie proves "this browser signed in at some point". That is enough to read your own
- * data or rename a device, and it is not enough to change how you sign in. The gap matters because
- * two individually-reasonable rules combined into a lockout:
- *
- *   1. set-password treated a live session as proof of ownership, since a Google-only account has
- *      no current password to ask for.
- *   2. disconnect-google is allowed once a password exists, so the owner can't be left with no way
- *      in.
- *
- * Run in order from a stolen cookie, that is: give the account a password the thief knows, then cut
- * the Google link the real owner uses. Neither step was wrong on its own. The chain was.
- *
- * So sensitive actions now require the session to have proved itself recently, and every credential
- * change emails the owner. Freshness shrinks the window a stolen cookie is useful in; the email is
- * the part that doesn't depend on us guessing correctly.
+ * The takeover chain this closes: set-password accepted a live session as proof (a Google-only
+ * account has no password to ask for), and disconnect-google is allowed once a password exists. From
+ * a stolen cookie, in that order, a thief sets a password then cuts the owner's Google link. Neither
+ * rule was wrong alone. Sensitive actions now need a recently-proved session, and every credential
+ * change emails the owner.
  */
 
-/**
- * How long a re-authentication counts for.
- *
- * Long enough to change a password and unlink a provider without typing it twice, short enough that
- * a cookie lifted from a closed laptop is almost never inside it. Deliberately not extended by
- * activity: this is a window since you last proved who you are, not since you last clicked.
- */
+/** Not extended by activity: a window since you last proved who you are, not since you last clicked. */
 export const SUDO_WINDOW_MS = 10 * 60 * 1000;
 
 /**
- * Milliseconds since this session last proved itself, or null if the session is unknown.
+ * Milliseconds since this session last proved itself, or null if unknown.
  *
- * Falls back to `createdAt` when `reauthAt` is null, which is every session that predates the
- * column. That is the truthful reading rather than a lenient one: creating a session did involve
+ * Falls back to `createdAt` for sessions predating the column: creating one did involve
  * authenticating, at that moment.
  */
 export async function reauthAgeMs(db: DB, token: string): Promise<number | null> {

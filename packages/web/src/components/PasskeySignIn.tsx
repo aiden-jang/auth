@@ -3,16 +3,9 @@ import { passkeysLikely, signInWithPasskey } from '../lib/passkeys';
 import { safeReturnTo } from '../lib/returnTo';
 
 /*
- * Passkey-first sign-in.
- *
- * First in the visual order, and only when the platform will actually offer one. A prominent
- * "Sign in with a passkey" on a browser that has no platform authenticator is a dead end dressed as the
- * primary action, so this hides itself rather than failing in front of somebody. Password, email link
- * and Google stay exactly where they were underneath: passkey-first is an ordering, not an ultimatum.
- *
- * Cancelling shows nothing at all. WebAuthn deliberately reports a cancel, a non-matching key and a
- * timeout as the same error so a site cannot probe which credentials exist, which means we genuinely
- * cannot tell them apart, and "nothing happened" is the only honest response.
+ * Hides itself when the platform has no authenticator, rather than offering a dead end as the primary
+ * action. Cancelling shows nothing: WebAuthn reports cancel, no-matching-key and timeout as the same
+ * error so a site cannot probe which credentials exist, so we genuinely cannot tell them apart.
  */
 export function PasskeySignIn({ returnTo }: { returnTo?: string | null }): ReactNode {
   const [offer, setOffer] = useState(false);

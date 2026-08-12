@@ -89,14 +89,8 @@ export interface AccountExport {
   securityActivity: Array<Omit<SecurityEvent, 'id'>>;
 }
 
-/**
- * A failed request, with the server's error code kept.
- *
- * The old helper threw a bare Error carrying only `message`, which is fine for showing a sentence
- * and useless for reacting to one. Recovering from REAUTH_REQUIRED needs the code and the
- * `canUsePassword` hint alongside it, and string-matching the prose would break the first time
- * anyone rewords a message. Still an Error subclass, so every existing `err.message` path is intact.
- */
+/** Keeps the server's code: recovering from REAUTH_REQUIRED needs it, and string-matching the prose
+ *  breaks the first time anyone rewords a message. */
 export class ApiError extends Error {
   readonly code: string;
   readonly status: number;
@@ -122,17 +116,8 @@ export function reauthCanUsePassword(err: unknown): boolean {
 }
 
 /**
- * What to say when the server did not give us a sentence to say.
- *
- * Every page here shows `err.message` directly, which was fine for the errors this service writes
- * (they are already human) and bad for everything else. A dropped connection surfaced the browser's
- * own `Failed to fetch`, and a proxy error page surfaced `Request failed (502)`. Both were shown
- * verbatim on the sign-in form, which is the single worst place in the whole platform to look broken
- * and explain nothing: somebody who cannot get in cannot get anywhere.
- *
- * A status code is not a message. Anything that is genuinely our fault says so, because "try again"
- * is useless advice if the problem is at this end and the person is about to retype their password
- * assuming they got it wrong.
+ * Every page shows `err.message` directly, so a dropped connection would put `Failed to fetch` on the
+ * sign-in form. Anything that is our fault must say so, or somebody retypes a password that was right.
  */
 function describeStatus(status: number): string {
   if (status === 429) return 'Too many tries in a row. Give it a minute and go again.';
@@ -155,14 +140,8 @@ async function req<T>(path: string, method: string, body?: unknown): Promise<T> 
   try {
     res = await fetch(`${BASE}${path}`, init);
   } catch {
-    /*
-     * fetch only rejects for transport failures: offline, DNS, a killed connection, CORS. Caught here
-     * rather than at 25 call sites, all of which already render err.message and none of which should
-     * have to know what a TypeError from fetch looks like.
-     */
-    // `onLine === false` rather than falsy: where the property is missing we do not know, and
-    // telling somebody they are offline when they are not sends them to reboot their router over
-    // what was actually our outage.
+    // `=== false`, not falsy: a missing property means we do not know, and a wrong "you are offline"
+    // sends somebody to reboot their router over our outage.
     const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
     throw new ApiError(
       offline
@@ -178,7 +157,7 @@ async function req<T>(path: string, method: string, body?: unknown): Promise<T> 
   const data: unknown = isJson ? await res.json().catch(() => undefined) : undefined;
   if (!res.ok) {
     const obj = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
-    // The server's own message wins: it is written for this exact situation and we are guessing.
+    // The server's message wins: it was written for this situation and we are guessing.
     const message = typeof obj.message === 'string' ? obj.message : describeStatus(res.status);
     const code = typeof obj.error === 'string' ? obj.error : `HTTP_${res.status}`;
     throw new ApiError(message, code, res.status, obj);
