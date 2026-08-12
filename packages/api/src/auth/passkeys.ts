@@ -53,9 +53,8 @@ export interface RelyingParty {
 }
 
 /**
- * Derive the rp id from APP_URL, never from the request. A caller-controlled header deciding which
- * domain a credential binds to is the whole attack. It is the registrable domain, not the full host,
- * or a credential made on accounts.aidenjang.com works nowhere else on the domain.
+ * From APP_URL, never the request: a caller-controlled header choosing which domain a credential binds
+ * to is the whole attack. Registrable domain, not the host, or the credential works on one subdomain.
  */
 export function relyingParty(appUrl: string | undefined, requestUrl: string): RelyingParty {
   const url = new URL(appUrl ?? requestUrl);
