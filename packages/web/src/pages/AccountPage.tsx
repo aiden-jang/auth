@@ -12,6 +12,7 @@ import { PasswordStrength } from '../components/PasswordStrength';
 import { Skeleton } from '../components/Skeleton';
 import { APPS, appHref } from '../lib/apps';
 import { SecurityActivity } from '../components/SecurityActivity';
+import { PasskeyList } from '../components/PasskeyList';
 import { RecoveryRehearsal } from '../components/RecoveryRehearsal';
 import { securityCheckup, type SecurityAction } from '../lib/securityCheckup';
 import { sessionHorizon } from '../lib/sessionHorizon';
@@ -1096,6 +1097,11 @@ export function AccountPage(): ReactNode {
               </p>
             )}
           </section>
+          <hr className="my-6 border-line" />
+          <PasskeyList
+            guard={stepUp.guard}
+            onChanged={() => setSecurityRevision((value) => value + 1)}
+          />
           <hr className="my-6 border-line" />
           <SecurityActivity refreshKey={securityRevision} />
           <hr className="my-6 border-line" />

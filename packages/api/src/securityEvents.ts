@@ -13,7 +13,9 @@ export type SecurityEventType =
   | 'google_disconnected'
   | 'device_renamed'
   | 'device_signed_out'
-  | 'other_devices_signed_out';
+  | 'other_devices_signed_out'
+  | 'passkey_added'
+  | 'passkey_removed';
 
 export async function recordSecurityEvent(
   db: DB,

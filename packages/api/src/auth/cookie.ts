@@ -27,6 +27,33 @@ export function setSessionCookie(c: Ctx, token: string, expiresAt: Date): void {
   });
 }
 
+/*
+ * The in-flight WebAuthn ceremony id.
+ *
+ * SameSite=Strict rather than Lax, unlike the session cookie. A session has to survive arriving from
+ * another site (that is the whole point of a return_to sign-in flow); a ceremony never legitimately
+ * starts on one page and finishes from a cross-site navigation, so Strict costs nothing here and takes
+ * a class of cross-site completion off the table. Short-lived, and the row it points at is deleted the
+ * moment it is used.
+ */
+export function setChallengeCookie(c: Ctx, name: string, id: string, ttlMs: number): void {
+  setCookie(c, name, id, {
+    httpOnly: true,
+    secure: isSecureRequest(c),
+    sameSite: 'Strict',
+    path: '/',
+    expires: new Date(Date.now() + ttlMs),
+    ...(c.env.COOKIE_DOMAIN ? { domain: c.env.COOKIE_DOMAIN } : {}),
+  });
+}
+
+export function clearChallengeCookie(c: Ctx, name: string): void {
+  deleteCookie(c, name, {
+    path: '/',
+    ...(c.env.COOKIE_DOMAIN ? { domain: c.env.COOKIE_DOMAIN } : {}),
+  });
+}
+
 export function clearSessionCookie(c: Ctx): void {
   deleteCookie(c, SESSION_COOKIE, {
     path: '/',
