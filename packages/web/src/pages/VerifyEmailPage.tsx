@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { AuthCard } from '../components/AuthCard';
+import { reassurance } from '../lib/reassurance';
 
 export function VerifyEmailPage(): ReactNode {
   const [params] = useSearchParams();
@@ -21,7 +22,14 @@ export function VerifyEmailPage(): ReactNode {
 
   return (
     <AuthCard title="Verify your email">
-      {status === 'pending' && <p className="text-sm text-muted">Confirming your email...</p>}
+      {status === 'pending' && (
+        <div className="space-y-1">
+          <p className="text-sm text-muted">Confirming your email...</p>
+          <p role="status" className="text-xs text-muted">
+            {reassurance('verify-email')}
+          </p>
+        </div>
+      )}
       {status === 'ok' && (
         <div className="space-y-4">
           <p className="text-sm text-pos">Your email is verified. Nothing else to do.</p>

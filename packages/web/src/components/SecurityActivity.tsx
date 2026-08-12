@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { authApi, type SecurityEvent, type SecurityEventType } from '../lib/api';
 import { Skeleton } from './Skeleton';
+import { reassurance } from '../lib/reassurance';
 
 const eventCopy: Record<SecurityEventType, { icon: string; title: string }> = {
   account_created: { icon: '✦', title: 'Account created' },
@@ -76,6 +77,10 @@ export function SecurityActivity({ refreshKey }: { refreshKey: number }): ReactN
           <div className="space-y-2 p-4">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
+            {/* A true statement about what this log holds, rather than a silent shimmer. */}
+            <p role="status" className="pt-1 text-xs text-muted">
+              {reassurance('activity')}
+            </p>
           </div>
         ) : failed ? (
           <p role="status" className="p-4 text-sm text-muted">Couldn’t load recent activity.</p>
