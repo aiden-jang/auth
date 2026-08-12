@@ -7,6 +7,8 @@ import { PasswordInput } from '../components/PasswordInput';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { GoogleSignIn } from '../components/GoogleSignIn';
 import { PasskeySignIn } from '../components/PasskeySignIn';
+import { reassurance } from '../lib/reassurance';
+import { welcomeLine } from '../lib/welcome';
 import { EmailSuggestion } from '../components/EmailSuggestion';
 import { inboxFor } from '../lib/inbox';
 import {
@@ -43,6 +45,7 @@ export function LoginPage(): ReactNode {
   const returnApp = returnAppFor(returnTo);
   const carriedEmail = (location.state as { email?: unknown } | null)?.email;
   const [recentAccounts, setRecentAccounts] = useState(readRecentAccounts);
+  const [greeting] = useState(() => welcomeLine(readRecentAccounts()));
   const recentEmail = recentAccounts[0]?.email ?? null;
   const [email, setEmail] = useState(typeof carriedEmail === 'string' ? carriedEmail : recentEmail ?? '');
   const [password, setPassword] = useState('');
@@ -126,7 +129,7 @@ export function LoginPage(): ReactNode {
   return (
     <AuthCard
       title="Welcome back"
-      {...(!returnApp ? { subtitle: 'Sign in to pick up where you left off.' } : {})}
+      {...(!returnApp ? { subtitle: greeting } : {})}
       returnApp={returnApp}
     >
       {magicSent ? (
@@ -399,6 +402,12 @@ export function LoginPage(): ReactNode {
                   ? 'Email me a sign-in link'
                   : 'Log in'}
             </button>
+            {/* Says what is actually happening rather than filling the wait. See lib/reassurance.ts. */}
+            {loading && (
+              <p role="status" className="text-center text-xs text-muted">
+                {reassurance(magicMode ? 'magic-link' : 'password-login')}
+              </p>
+            )}
           </form>
 
           <p className="mt-5 text-center text-sm text-muted">
