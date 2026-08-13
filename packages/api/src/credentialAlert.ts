@@ -59,6 +59,7 @@ export function credentialAlertEmail(
 ): RenderedEmail {
   const copy = COPY[kind];
   return renderEmail({
+    reason: 'alert',
     // The preview line answers the only question that matters before opening it.
     preheader: `${copy.subject}. If that was not you, act now.`,
     heading: copy.subject,

@@ -273,6 +273,7 @@ app.post('/auth/register', async (c) => {
     to: email,
     subject: 'Verify your email',
     ...renderEmail({
+      reason: 'sign-up',
       preheader: 'Confirm this address to finish setting up your aidenjang account.',
       heading: 'Confirm your email',
       paragraphs: [
@@ -500,6 +501,7 @@ app.post('/auth/forgot-password', async (c) => {
       to: email,
       subject: 'Reset your aidenjang password',
       ...renderEmail({
+      reason: 'password-reset',
       preheader: 'Choose a new password for your aidenjang account.',
       heading: 'Reset your password',
       paragraphs: [
@@ -543,6 +545,7 @@ app.post('/auth/magic-link', async (c) => {
       to: email,
       subject: 'Your aidenjang sign-in link',
       ...renderEmail({
+      reason: 'sign-in',
       preheader: 'Your sign-in link for aidenjang. It lasts 15 minutes.',
       heading: 'Your sign-in link',
       paragraphs: ['Open this to sign in. No password needed.'],
@@ -620,6 +623,7 @@ app.post('/auth/resend-verification', async (c) => {
     to: user.email,
     subject: 'Verify your email',
     ...renderEmail({
+      reason: 'sign-up',
       preheader: 'Confirm this address for your aidenjang account.',
       heading: 'Confirm your email',
       paragraphs: ['Here is a fresh link. The previous one no longer works.'],

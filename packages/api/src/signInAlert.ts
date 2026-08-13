@@ -24,6 +24,7 @@ export function isFamiliarSignIn(
 
 export function signInAlertEmail(meta: SessionMeta, accountUrl: string, at = new Date()): RenderedEmail {
   return renderEmail({
+    reason: 'alert',
     preheader: 'A device you have not used before signed in. If it was not you, sign it out.',
     heading: 'A new device signed in',
     paragraphs: [
