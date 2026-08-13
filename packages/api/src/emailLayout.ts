@@ -33,6 +33,14 @@ export interface EmailContent {
   action?: EmailAction;
   footnote?: string;
   facts?: { label: string; value: string }[];
+  /**
+   * The app they were trying to reach, named in the footer's "why am I getting this".
+   *
+   * Sign-in happens on the accounts page, so the sender stays "aidenjang"; this is the other half,
+   * what the person was actually doing. Someone who clicked sign in on owewell recognises owewell.
+   * Omitted where there is nothing to point at, which falls back to the house name.
+   */
+  app?: string | null | undefined;
 }
 
 export interface RenderedEmail {
@@ -87,6 +95,10 @@ const FONT =
   `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif`;
 
 export function renderEmail(content: EmailContent): RenderedEmail {
+  // Same sentence twice, escaped only for the HTML part: the text part must stay literal.
+  const appName = content.app ?? 'aidenjang';
+  const why = (name: string): string =>
+    `You are getting this because someone used this address to sign in to ${name}.`;
   const paragraphs = content.paragraphs
     .map(
       (paragraph) =>
@@ -126,8 +138,7 @@ export function renderEmail(content: EmailContent): RenderedEmail {
       ? `If the button does not work, paste this into your browser:<br>` +
         `<span style="word-break:break-all;color:${MUTED};">${escapeHtml(content.action.url)}</span><br><br>`
       : '') +
-    `You are getting this because someone used this address to sign in to aidenjang. ` +
-    `This mailbox is not monitored.` +
+    `${why(escapeHtml(appName))} This mailbox is not monitored.` +
     `</div></td></tr></table></td></tr></table></body></html>`;
 
   const text = [
@@ -139,7 +150,7 @@ export function renderEmail(content: EmailContent): RenderedEmail {
     ...(content.footnote ? ['', stripTags(content.footnote)] : []),
     '',
     '--',
-    'You are getting this because someone used this address to sign in to aidenjang.',
+    why(appName),
     'This mailbox is not monitored.',
   ].join('\n');
 

@@ -29,7 +29,7 @@ export function ForgotPasswordPage(): ReactNode {
 
   async function requestReset(): Promise<void> {
     try {
-      await authApi.forgot(email, turnstileToken);
+      await authApi.forgot(email, turnstileToken, returnTo);
     } catch {
       // Always show the same confirmation, so this flow never reveals whether an account exists.
     } finally {
