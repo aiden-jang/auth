@@ -24,7 +24,18 @@ export interface EmailAction {
   url: string;
 }
 
+/**
+ * Why this email exists, which is not the same question as what it says.
+ *
+ * Required rather than defaulted: every one of these used to read "someone used this address to sign
+ * in", including the one that fires when a password changes. A footer that answers "why am I getting
+ * this" with the wrong reason is worse than no footer, because the reader is usually consulting it to
+ * decide whether the message is a fake.
+ */
+export type EmailReason = 'sign-in' | 'sign-up' | 'password-reset' | 'alert';
+
 export interface EmailContent {
+  reason: EmailReason;
   /** Without one, clients preview the first words of the body instead. */
   preheader: string;
   heading: string;
@@ -38,7 +49,8 @@ export interface EmailContent {
    *
    * Sign-in happens on the accounts page, so the sender stays "aidenjang"; this is the other half,
    * what the person was actually doing. Someone who clicked sign in on owewell recognises owewell.
-   * Omitted where there is nothing to point at, which falls back to the house name.
+   * Omitted where there is nothing to point at, which falls back to the house name. Ignored for an
+   * `alert`, which is about the account itself and not about any one app.
    */
   app?: string | null | undefined;
 }
@@ -95,10 +107,21 @@ const FONT =
   `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif`;
 
 export function renderEmail(content: EmailContent): RenderedEmail {
-  // Same sentence twice, escaped only for the HTML part: the text part must stay literal.
+  // Built twice, escaped only for the HTML part: the text part must stay literal.
   const appName = content.app ?? 'aidenjang';
-  const why = (name: string): string =>
-    `You are getting this because someone used this address to sign in to ${name}.`;
+  const why = (name: string): string => {
+    switch (content.reason) {
+      case 'sign-in':
+        return `You are getting this because someone used this address to sign in to ${name}.`;
+      case 'sign-up':
+        return `You are getting this because this address was used to make an account on ${name}.`;
+      case 'password-reset':
+        return `You are getting this because somebody asked to reset the password for this address on ${name}.`;
+      // No app name: a credential change is about the account, which is the same one everywhere.
+      case 'alert':
+        return 'You are getting this as a security notice for the account on this address.';
+    }
+  };
   const paragraphs = content.paragraphs
     .map(
       (paragraph) =>

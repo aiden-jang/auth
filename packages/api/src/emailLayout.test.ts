@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { escapeHtml, readableTime, renderEmail } from './emailLayout.js';
+import { escapeHtml, readableTime, renderEmail, type EmailReason } from './emailLayout.js';
 
 /* Structural checks target known email-client behaviour; the escaping ones are a security property. */
 
 const basic = () =>
   renderEmail({
+    reason: 'sign-in',
     preheader: 'Confirm this address.',
     heading: 'Confirm your email',
     paragraphs: ['One tap and you are done.'],
@@ -14,7 +15,7 @@ const basic = () =>
 
 describe('why am I getting this', () => {
   const withApp = (app?: string | null) =>
-    renderEmail({ preheader: 'p', heading: 'h', paragraphs: ['b'], app });
+    renderEmail({ reason: 'sign-in', preheader: 'p', heading: 'h', paragraphs: ['b'], app });
 
   it('names the app the person was actually trying to reach', () => {
     // The sender stays "aidenjang" because that is the page they signed in on. This line is the
@@ -29,6 +30,36 @@ describe('why am I getting this', () => {
       const { html, text } = withApp(nothing);
       expect(html).toContain('used this address to sign in to aidenjang.');
       expect(text).toContain('used this address to sign in to aidenjang.');
+    }
+  });
+
+  /*
+   * The bug this replaced: one hardcoded "someone used this address to sign in", on all six emails,
+   * including the one that fires when a password changes. Telling somebody they are getting a
+   * password-changed alert because they signed in is how a real email gets reported as a fake.
+   */
+  it('gives each kind of email its own reason', () => {
+    const reasonFor = (reason: EmailReason) =>
+      renderEmail({ reason, preheader: 'p', heading: 'h', paragraphs: ['b'], app: 'owewell' }).text;
+
+    expect(reasonFor('sign-in')).toContain('used this address to sign in to owewell.');
+    expect(reasonFor('sign-up')).toContain('used to make an account on owewell.');
+    expect(reasonFor('password-reset')).toContain('reset the password for this address on owewell.');
+    expect(reasonFor('alert')).toContain('as a security notice for the account on this address.');
+  });
+
+  it('does not tell an alert reader they signed in', () => {
+    const { html, text } = renderEmail({
+      reason: 'alert',
+      preheader: 'p',
+      heading: 'Your password changed',
+      paragraphs: ['b'],
+      // Supplied and deliberately ignored: a credential change is not about one app.
+      app: 'owewell',
+    });
+    for (const part of [html, text]) {
+      expect(part).not.toMatch(/used this address to sign in/);
+      expect(part).not.toContain('owewell');
     }
   });
 
@@ -93,7 +124,7 @@ describe('the action', () => {
   });
 
   it('leaves the button out entirely when there is nothing to do', () => {
-    const { html } = renderEmail({ preheader: 'p', heading: 'h', paragraphs: ['body'] });
+    const { html } = renderEmail({ reason: 'sign-in', preheader: 'p', heading: 'h', paragraphs: ['body'] });
     expect(html).not.toContain('bgcolor=');
     expect(html).not.toContain('If the button does not work');
   });
@@ -110,6 +141,7 @@ describe('the plain-text part', () => {
   it('strips markup that is not a link', () => {
     // Tag-free paragraphs let the tag stripper be deleted without a test noticing.
     const { text } = renderEmail({
+      reason: 'sign-in',
       preheader: 'p',
       heading: 'h',
       paragraphs: ['Somebody <strong>changed your password</strong> just now.'],
@@ -124,6 +156,7 @@ describe('the plain-text part', () => {
 
   it('turns an inline link into readable text plus its url', () => {
     const { text } = renderEmail({
+      reason: 'sign-in',
       preheader: 'p',
       heading: 'h',
       paragraphs: ['See <a href="https://accounts.test/account">your account</a> for details.'],
@@ -133,6 +166,7 @@ describe('the plain-text part', () => {
 
   it('unescapes entities, which are markup and not content', () => {
     const { text } = renderEmail({
+      reason: 'sign-in',
       preheader: 'p',
       heading: 'h',
       paragraphs: [escapeHtml('Ben & Jerry\'s <device>')],
@@ -143,6 +177,7 @@ describe('the plain-text part', () => {
 
   it('lists the facts a security alert turns on', () => {
     const { text } = renderEmail({
+      reason: 'sign-in',
       preheader: 'p',
       heading: 'h',
       paragraphs: [],
@@ -155,6 +190,7 @@ describe('the plain-text part', () => {
 describe('escaping', () => {
   it('escapes every value the layout places for a caller', () => {
     const { html } = renderEmail({
+      reason: 'sign-in',
       preheader: '<script>a</script>',
       heading: '<script>b</script>',
       paragraphs: [],
@@ -167,6 +203,7 @@ describe('escaping', () => {
 
   it('escapes the url in both the href and the spelled-out copy', () => {
     const { html } = renderEmail({
+      reason: 'sign-in',
       preheader: 'p',
       heading: 'h',
       paragraphs: [],
