@@ -72,6 +72,33 @@ it.)
 are conveniences; every invariant, from lockout prevention to session ownership on revoke, is
 enforced in the Worker, and there are tests that prove a user cannot revoke another user's session.
 
+## Talking about this
+
+**The short version.** One login that works across five apps on different subdomains, without any
+of those apps ever seeing the session secret. It runs on a Worker, D1 and one Durable Object, and
+costs nothing.
+
+**The shape.** You sign in at accounts.aidenjang.com. The Worker sets an httpOnly cookie on the
+parent domain, so the browser sends it to every subdomain automatically. When owewell wants to know
+who you are, its own Worker forwards the cookie to `/auth/me` and gets back a user or a 401. The
+browser never reads the cookie and app JavaScript never touches it. What's in D1 is a SHA-256 hash
+of the cookie value, so someone who dumps the database still can't sign in as anyone.
+
+**The call I'd defend.** Apps forward the cookie server-side instead of getting their own JWT. A JWT
+would save the round trip, but then signing out everywhere doesn't work: those tokens stay valid
+until they expire and there's nothing to revoke. Session revocation was worth more to me than the
+latency, because "sign out on the laptop I left at the office" is the feature people actually want.
+The round trip is a same-datacenter call between two Workers, so it's a few milliseconds.
+
+**What breaks first.** D1. Every authenticated request in every app becomes a session lookup, so D1
+read volume grows with total traffic across all five apps rather than with sign-ins. The fix is a
+short-TTL cache in front of the lookup, which trades a few seconds of revocation lag for most of the
+reads. I haven't needed it yet.
+
+**What I'd change.** The rate limiter is one Durable Object per IP per action, which means a lot of
+tiny objects that mostly sit idle. Fine at this size, wasteful at a bigger one. Cloudflare's own rate
+limiting binding would do the same job without the objects, and I'd use it if I started over.
+
 ## Testing
 
 Tests run inside the **real Workers runtime** via `@cloudflare/vitest-pool-workers`, against an
@@ -79,7 +106,8 @@ isolated in-memory D1 with the app's migrations applied per file, plus the live 
 Object. Coverage includes registration, login and sessions, verification and reset tokens, password
 change, Google-only accounts, magic links, session listing and revocation, and account deletion. The
 suite is kept **hermetic** by neutralizing any secrets a local `.dev.vars` would otherwise leak into
-the test Worker (so Turnstile is treated as unconfigured and no real email is sent). 48 tests: 45 in the API, 3 in the client.
+the test Worker (so Turnstile is treated as unconfigured and no real email is sent). 251 tests: 139 in the
+API, 109 in the web app, 3 in the client.
 
 ## Repo layout
 
