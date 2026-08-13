@@ -172,8 +172,20 @@ export const authApi = {
     req<{ ok: boolean; sudoUntil: string | null }>('/auth/reauth', 'POST', { password }),
   login: (email: string, password: string, turnstileToken?: string) =>
     req<{ user: AuthUser }>('/auth/login', 'POST', { email, password, turnstileToken }),
-  register: (email: string, password: string, displayName: string, turnstileToken?: string) =>
-    req<{ user: AuthUser }>('/auth/register', 'POST', { email, password, displayName, turnstileToken }),
+  register: (
+    email: string,
+    password: string,
+    displayName: string,
+    turnstileToken?: string,
+    returnTo?: string | null,
+  ) =>
+    req<{ user: AuthUser }>('/auth/register', 'POST', {
+      email,
+      password,
+      displayName,
+      turnstileToken,
+      returnTo: returnTo ?? undefined,
+    }),
   logout: () => req<{ ok: boolean }>('/auth/logout', 'POST'),
   magicLink: (email: string, returnTo?: string | null, turnstileToken?: string) =>
     req<{ ok: boolean }>('/auth/magic-link', 'POST', {
@@ -181,8 +193,12 @@ export const authApi = {
       returnTo: returnTo ?? undefined,
       turnstileToken,
     }),
-  forgot: (email: string, turnstileToken?: string) =>
-    req<{ ok: boolean }>('/auth/forgot-password', 'POST', { email, turnstileToken }),
+  forgot: (email: string, turnstileToken?: string, returnTo?: string | null) =>
+    req<{ ok: boolean }>('/auth/forgot-password', 'POST', {
+      email,
+      turnstileToken,
+      returnTo: returnTo ?? undefined,
+    }),
   reset: (token: string, newPassword: string) =>
     req<{ ok: boolean }>('/auth/reset-password', 'POST', { token, newPassword }),
   updateProfile: (displayName: string) =>

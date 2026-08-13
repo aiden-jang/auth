@@ -4,6 +4,7 @@ import { setCookie, deleteCookie } from 'hono/cookie';
 import { DEFAULT_CSP, harden } from './harden.js';
 import { onUnhandledError, requestIdFrom } from './requestId.js';
 import { renderEmail, type RenderedEmail } from './emailLayout.js';
+import { returnAppName } from './returnApp.js';
 import { and, desc, eq, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Context } from 'hono';
@@ -242,6 +243,7 @@ const registerBody = z.object({
   password: z.string().min(8).max(200),
   displayName: z.string().trim().min(1).max(80),
   turnstileToken: z.string().optional(),
+  returnTo: z.string().optional(),
 });
 
 app.post('/auth/register', async (c) => {
@@ -278,6 +280,7 @@ app.post('/auth/register', async (c) => {
       ],
       action: { label: 'Confirm my email', url: link(c.env, '/verify-email', verifyToken) },
       footnote: 'This link lasts 24 hours. If you did not create an account, ignore this and nothing happens.',
+      app: returnAppName(parsed.data.returnTo),
     }),
   });
 
@@ -473,7 +476,11 @@ app.get('/auth/me', async (c) => {
   return c.json({ user: publicUser(user), sudoUntil: until?.toISOString() ?? null });
 });
 
-const forgotBody = z.object({ email: z.string().email(), turnstileToken: z.string().optional() });
+const forgotBody = z.object({
+  email: z.string().email(),
+  turnstileToken: z.string().optional(),
+  returnTo: z.string().optional(),
+});
 
 // Always 200, whether or not the email exists (no account enumeration).
 app.post('/auth/forgot-password', async (c) => {
@@ -502,6 +509,7 @@ app.post('/auth/forgot-password', async (c) => {
       action: { label: 'Choose a new password', url: link(c.env, '/reset-password', token) },
       // Named as a thing not to forward, because a reset link is a password until it is used.
       footnote: 'This link lasts one hour and works once. Anybody who has it can set your password, so do not forward it.',
+      app: returnAppName(parsed.data.returnTo),
     }),
     });
   }
@@ -540,6 +548,7 @@ app.post('/auth/magic-link', async (c) => {
       paragraphs: ['Open this to sign in. No password needed.'],
       action: { label: 'Sign in to aidenjang', url: href },
       footnote: 'This link lasts 15 minutes and works once. Anybody who has it can sign in as you, so do not forward it.',
+      app: returnAppName(parsed.data.returnTo),
     }),
     });
   }

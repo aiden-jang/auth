@@ -12,6 +12,36 @@ const basic = () =>
     footnote: 'This link lasts 24 hours.',
   });
 
+describe('why am I getting this', () => {
+  const withApp = (app?: string | null) =>
+    renderEmail({ preheader: 'p', heading: 'h', paragraphs: ['b'], app });
+
+  it('names the app the person was actually trying to reach', () => {
+    // The sender stays "aidenjang" because that is the page they signed in on. This line is the
+    // other half: what they were doing, which is the bit that makes the email make sense.
+    const { html, text } = withApp('owewell');
+    expect(html).toContain('used this address to sign in to owewell.');
+    expect(text).toContain('used this address to sign in to owewell.');
+  });
+
+  it('falls back to the house name when there is nothing to point at', () => {
+    for (const nothing of [undefined, null]) {
+      const { html, text } = withApp(nothing);
+      expect(html).toContain('used this address to sign in to aidenjang.');
+      expect(text).toContain('used this address to sign in to aidenjang.');
+    }
+  });
+
+  it('escapes the name in the HTML part and leaves the text part literal', () => {
+    // returnApp.ts is what stops a hostile name reaching here, but this renders into markup and
+    // must not depend on a caller upstream having been careful.
+    const { html, text } = withApp('<b>bank</b>');
+    expect(html).not.toContain('<b>bank</b>');
+    expect(html).toContain('&lt;b&gt;bank&lt;/b&gt;');
+    expect(text).toContain('sign in to <b>bank</b>.');
+  });
+});
+
 describe('the document', () => {
   it('is a whole document, not a fragment', () => {
     const { html } = basic();
