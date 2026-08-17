@@ -18,7 +18,11 @@ html {
 }
 
 body {
+  /* 100vh first as the fallback, then 100dvh, which is the one that matters on a phone: mobile
+     Safari counts the URL bar inside 100vh, so a "full height" page is taller than the screen and
+     the layout jumps as the bar hides. Browsers that do not know dvh keep the line above. */
   min-height: 100vh;
+  min-height: 100dvh;
   background: radial-gradient(115% 70% at 50% -8%, #1a1633 0%, #0c0a16 46%, #09090f 100%) no-repeat;
   background-attachment: fixed;
   color: var(--color-ink);
@@ -138,4 +142,22 @@ button:not(:disabled) {
      outline so "this device" is still marked without anything moving. */
   .session-dot { animation: none; }
   .session-dot-pulse { animation: none; opacity: 0.5; }
+}
+
+/*
+ * Where the keyboard is.
+ *
+ * There was not one focus rule in this app, so keyboard users got the browser's default ring, which
+ * is drawn for a white page and has no relationship to anything here. Two rules, and the second is
+ * the one that is easy to leave out: :focus-visible only *adds* a ring, it never removes the one the
+ * UA draws, so without the companion a mouse click still leaves a rectangle behind.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-accent, #8b7bff);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
 }
