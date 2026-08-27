@@ -44,8 +44,8 @@ export function PrivacyPage(): ReactNode {
             date you can ask the room to remember. Also how long the room has been going and a
             short, capped list of recent visits, which is what makes the cat seem to know you. If
             you tie a seat to your account, the room stores which account it is and nothing else
-            about you. Unlike the rooms below, an mrrp room is meant to last, so it stays until you
-            ask for it to go.
+            about you. Unlike the rooms below, an mrrp room is meant to last, so it stays until one
+            of you ends it.
           </li>
           <li>
             <strong>wherever:</strong> the room code, the restaurant options, and everyone&rsquo;s
@@ -97,8 +97,10 @@ export function PrivacyPage(): ReactNode {
       <Section heading="Keeping and deleting your data">
         Account data stays until you remove it or ask us to. You can delete groups, expenses, and
         gardens inside the apps. wherever and iguess rooms are temporary and clear themselves, so
-        there is nothing to delete. An mrrp room is built to last and has no delete button, so email
-        to have one removed. To wipe your entire account and everything attached to it, email{' '}
+        there is nothing to delete. An mrrp room is built to last, and both people in it have a way
+        out: whoever made the room can delete the whole thing, and the other one can leave, which
+        takes their side of it and leaves the room standing. Both are immediate and neither can be
+        undone. To wipe your entire account and everything attached to it, email{' '}
         <a className="text-accent hover:underline" href="mailto:privacy@aidenjang.com">
           privacy@aidenjang.com
         </a>{' '}
