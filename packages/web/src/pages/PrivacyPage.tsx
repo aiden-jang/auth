@@ -91,6 +91,12 @@ export function PrivacyPage(): ReactNode {
           <li>
             <strong>Cloudflare Turnstile</strong> runs a privacy-preserving bot check on sign-up.
           </li>
+          <li>
+            <strong>Open-Meteo</strong> tells mrrp what the weather is doing, so the window in the
+            room can show it. It is sent a point in the middle of the timezone the room was set to,
+            which is the same for everyone who picked that timezone. It is not sent your location,
+            and nothing that identifies you or the room goes with it.
+          </li>
         </ul>
       </Section>
 
