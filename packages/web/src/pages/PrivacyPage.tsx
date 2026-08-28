@@ -99,10 +99,11 @@ export function PrivacyPage(): ReactNode {
         gardens inside the apps. wherever and iguess rooms are temporary and clear themselves, so
         there is nothing to delete. An mrrp room is built to last, and both people in it have a way
         out: whoever made the room can delete the whole thing, and the other one can leave, which
-        takes their side of it and leaves the room standing. Both take effect at once. Leaving
-        cannot be undone; a deleted room is unreachable straight away and erased for good a week
-        later, and only the person who deleted it can put it back inside that week. To wipe your
-        entire account and everything attached to it, email{' '}
+        takes their side of it and leaves the room standing. Both take effect at once, and both can
+        be undone for a week. A deleted room is unreachable straight away and erased for good a week
+        later, and only the person who deleted it can put it back inside that week. Someone who has
+        left can put their side back for a week too, for as long as nobody else has taken the seat
+        they freed. To wipe your entire account and everything attached to it, email{' '}
         <a className="text-accent hover:underline" href="mailto:privacy@aidenjang.com">
           privacy@aidenjang.com
         </a>{' '}
