@@ -57,8 +57,9 @@ export function TermsPage(): ReactNode {
       <Section heading="Ending things">
         You can stop using the apps and delete your account any time. The room-based apps end on
         their own once everyone leaves. An mrrp room lasts until someone ends it: whoever made it
-        can delete it for both people, and the other one can leave it. We can suspend access if
-        these terms are broken or if a feature is retired.
+        can delete it for both people, with a week to change their mind before it is erased, and the
+        other one can leave it. We can suspend access if these terms are broken or if a feature is
+        retired.
       </Section>
 
       <Section heading="Questions">
