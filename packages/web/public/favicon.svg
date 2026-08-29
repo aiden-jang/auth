@@ -1,7 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- The aidenjang accounts mark: a key on the purple→cyan gradient. Deliberately NOT the
        receipt/document glyph the product apps use (owewell) so the sign-in service reads as its
-       own thing. Font-free shapes so it stays crisp at every favicon size. -->
+       own thing. Font-free shapes so it stays crisp at every favicon size.
+
+       Re-run `pnpm --filter @aidenjang/auth-web gen:icons` after editing, or the committed PNGs
+       keep showing whatever this used to be. -->
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#a78bfa" />
