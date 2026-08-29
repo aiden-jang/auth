@@ -61,7 +61,7 @@ export type SecurityEventType =
   | 'passkey_added'
   | 'passkey_removed';
 
-/** How someone signed in. Null on every event that is not a sign-in, and on older sign-ins. */
+/** Null on anything that is not a sign-in, and on sign-ins recorded before it was tracked. */
 export type SignInMethod = 'password' | 'google' | 'passkey';
 
 export interface SecurityEvent {

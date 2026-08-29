@@ -211,7 +211,6 @@ export function LoginPage(): ReactNode {
             <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>
               {loading ? 'Signing in...' : 'Log in'}
             </button>
-            {/* Says what is actually happening rather than filling the wait. See lib/reassurance.ts. */}
             {loading && (
               <p role="status" className="text-center text-xs text-muted">
                 {reassurance('password-login')}

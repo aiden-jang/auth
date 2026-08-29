@@ -1,9 +1,6 @@
-// Rasterize public/favicon.svg into the PNG sizes iOS, Android, and link unfurlers expect, since
-// several of those surfaces ignore SVG icons. The PNGs are committed, so re-run this after every
-// edit to the SVG: `pnpm --filter @aidenjang/auth-web gen:icons`.
-//
-// Without it the two drift silently. owewell hit exactly that — its mark was redrawn, its PNGs were
-// not, and every browser tab kept showing the old design until somebody noticed months later.
+// iOS, Android and link unfurlers ignore SVG icons, so favicon.svg is also committed as PNGs.
+// Run this after every edit to the SVG, or the tab keeps the old icon and nothing fails:
+//   pnpm --filter @aidenjang/auth-web gen:icons
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Resvg } from '@resvg/resvg-js';
@@ -11,9 +8,8 @@ import { Resvg } from '@resvg/resvg-js';
 const pub = resolve(import.meta.dirname, '..', 'public');
 const svg = readFileSync(resolve(pub, 'favicon.svg'), 'utf8');
 
-// iOS and Android apply their own rounded mask and composite any transparency to black, so a
-// pre-rounded icon with see-through corners renders with black corners or vanishes from the iOS
-// share sheet. Those two need a full-bleed opaque square; the plain favicon keeps its rounding.
+// iOS and Android round the corners themselves and paint anything see-through black, so an
+// already-rounded icon comes out with black corners. Give those two a full square.
 const fullBleed = svg.replace('rx="120"', 'rx="0"');
 
 const targets = [

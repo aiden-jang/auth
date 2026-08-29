@@ -208,7 +208,6 @@ export function SignupPage(): ReactNode {
         <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>
           {loading ? 'Creating...' : 'Create account'}
         </button>
-        {/* Says what is actually happening rather than filling the wait. See lib/reassurance.ts. */}
         {loading && (
           <p role="status" className="text-center text-xs text-muted">
             {reassurance('signup')}

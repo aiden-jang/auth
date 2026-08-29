@@ -29,8 +29,8 @@ function validEmail(value: string): boolean {
   return value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-/** Entries saved before the email link went away carry a spare `method` field. Ignore it rather
- *  than rejecting the row, so nobody's remembered accounts vanish on the deploy that drops it. */
+/** Older saved entries carry a spare `method` field. Ignore it; rejecting those rows would wipe
+ *  the accounts people already have remembered on this device. */
 export function decodeRecentAccounts(raw: string | null): RecentAccount[] {
   if (!raw) return [];
   try {

@@ -22,7 +22,6 @@ describe('reassurance copy', () => {
   });
 
   it('renders every line somewhere in the app', () => {
-    // A line nobody can reach is unverifiable copy: it cannot drift visibly, so it rots quietly.
     const src = fileURLToPath(new URL('../src', import.meta.url));
     const walk = (dir: string): string[] =>
       readdirSync(dir).flatMap((name) => {

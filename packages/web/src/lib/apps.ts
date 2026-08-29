@@ -5,8 +5,7 @@
 // `tagline` stays short (a few words) so the launcher rows read at a glance.
 
 export interface AppLink {
-  /** Display name. Lower case, always: the launcher is a list of six of these and one capitalised
-   *  name pulls the eye down the column for no reason. apps.test.ts holds the line. */
+  /** Display name, always lower case. apps.test.ts holds the line. */
   name: string;
   /** A few words on what it does, in the app's voice. */
   tagline: string;
@@ -15,9 +14,8 @@ export interface AppLink {
   /** Local dev URL (the app's vite dev port), used when the account UI is
    *  itself being served from localhost. */
   devUrl: string;
-  /** Accent colour (a small dot in the launcher + branded panel). Take it from the app's own
-   *  icon so the dot matches what the app actually looks like; see apps.test.ts for the floor it
-   *  has to clear on this dark card. */
+  /** Accent colour: the launcher dot, and the panel tint after ?return_to. Take it from the app's
+   *  own icon; theme.test.ts enforces the contrast floor. */
   accent: string;
 }
 
@@ -27,8 +25,7 @@ export const APPS: AppLink[] = [
     tagline: 'split bills, keep friends',
     url: 'https://owewell.aidenjang.com',
     devUrl: 'http://localhost:30001',
-    // Its icon tile is #1f6f4f, which only reaches 3.04 on this card. Same hue, lighter, so the
-    // dot still reads as owewell's green.
+    // Don't "correct" this to owewell's own tile #1f6f4f. It reaches 3.04 here and fails the test.
     accent: '#34d399',
   },
   {
@@ -36,7 +33,6 @@ export const APPS: AppLink[] = [
     tagline: 'say it with a garden',
     url: 'https://bloomnote.aidenjang.com',
     devUrl: 'http://localhost:32100',
-    // The flower in its favicon.
     accent: '#ff8fa3',
   },
   {
@@ -44,8 +40,7 @@ export const APPS: AppLink[] = [
     tagline: 'everyone swipes, majority wins',
     url: 'https://wherever.aidenjang.com',
     devUrl: 'http://localhost:5173',
-    // The lime dot that ends the "W," in its icon. It was amber here, a colour its icon does not
-    // contain, which put it 7 degrees from mrrp and made the two dots read as one.
+    // The lime dot on its "W," icon. Keep it clear of mrrp's orange, or the two dots read as one.
     accent: '#d7ff3e',
   },
   {
@@ -57,7 +52,6 @@ export const APPS: AppLink[] = [
     tagline: 'one of you is the cat',
     url: 'https://mrrp.aidenjang.com',
     devUrl: 'http://localhost:30005',
-    // The cat's fur, the colour its icon is mostly made of.
     accent: '#e8963f',
   },
   {
@@ -65,16 +59,14 @@ export const APPS: AppLink[] = [
     tagline: 'draw it, an AI guesses',
     url: 'https://iguess.aidenjang.com',
     devUrl: 'http://localhost:33100',
-    // The light end of its violet gradient. It was sky blue here, which iguess has never been.
     accent: '#818cf8',
   },
   {
     name: 'everything is fine',
-    // Not "everything happening": that word is already in the name, and the row read as a stutter.
     tagline: 'quakes, storms and aurora, live',
     url: 'https://everythingisfine.aidenjang.com',
     devUrl: 'http://localhost:31600',
-    // Its palette is deliberately desaturated, so this is the star colour rather than an invented hue.
+    // Nearly grey on purpose. The app's whole palette is desaturated; there is no brighter hue.
     accent: '#c8d2e2',
   },
 ];

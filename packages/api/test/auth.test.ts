@@ -482,8 +482,8 @@ describe('disconnect Google', () => {
 });
 
 describe('the retired magic-link routes', () => {
-  // Not 404: wrangler.toml sets not_found_handling = "single-page-application", so an unmatched
-  // GET falls through to index.html. What matters is that neither path can hand out a session.
+  // Don't change these to expect a 404. wrangler.toml serves index.html for anything unmatched,
+  // so a dead route still answers 200. What matters is that it cannot hand out a session.
   it('cannot sign anyone in', async () => {
     const { email } = await register();
     expect((await post('/auth/magic-link', { email })).status).not.toBe(200);
@@ -493,7 +493,6 @@ describe('the retired magic-link routes', () => {
 });
 
 describe('how each sign-in happened', () => {
-  /** The signed_in rows from someone's export, newest first. */
   async function signInMethods(cookie: string): Promise<(string | null)[]> {
     const body = (await (await get('/auth/export', cookie)).json()) as {
       securityActivity: { type: string; method: string | null }[];

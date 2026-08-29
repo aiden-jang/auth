@@ -67,13 +67,38 @@ verify so it costs the same as a real one. (The one accepted leak: telling a Goo
 "use Google" reveals that account exists. It is rate-limited, and the usability win was judged worth
 it.)
 
+**Four account-page features were deleted rather than improved.** A world map of session
+locations, a scored security check-up, a recovery rehearsal, and a security activity feed. Each one
+looked like security and gave you nothing to act on: the map redrew a list that already said
+"Chrome on macOS, Boston", and the score moved when you did things without ever naming what was at
+risk. Deleting them took 1,595 lines out against 503 added. The event *recording* stayed, because
+two things still read it that nobody sees: the "was that you?" alert emails, and the data export.
+Collecting rows nobody can read would have been worse than either keeping or dropping the feature.
+
+**Magic-link sign-in was removed without usage data, but not without evidence.** Nobody could say
+how many people used it, because until recently every sign-in path recorded the same `signed_in`
+event with no method attached. What *could* be settled from the code was the thing that actually
+mattered: whether removing it would lock anyone out. `passwordHash` is set to null in exactly one
+place, Google account creation, which sets `googleId` in the same insert; `googleId` is set to null
+in exactly one place, disconnect, which refuses unless a password exists. So every account
+permanently holds a password or a Google link, and the emailed link was never anyone's only way in.
+Sign-ins now record their method, so the next decision of this kind gets numbers instead.
+
+**Rules the code states about itself are tested, not trusted.** `lib/reassurance.ts` opens by
+demanding every line be "a true, specific claim about this implementation". Six of its eight lines
+had quietly stopped being rendered anywhere, so they could not drift visibly and nothing would ever
+have caught it. There is now a test that walks `src/`, collects every `reassurance('...')` call
+site, and fails on any line without one. `lib/apps.ts` gets the same treatment for the launcher:
+names must be lower case, hosts and dev ports unique, accents valid hex clearing a contrast floor,
+because a duplicated host silently makes `returnAppFor` show the wrong app's name and colour.
+
 **Everything is enforced server-side.** The UI hints (password strength, "set a password first")
 are conveniences; every invariant, from lockout prevention to session ownership on revoke, is
 enforced in the Worker, and there are tests that prove a user cannot revoke another user's session.
 
 ## Talking about this
 
-**The short version.** One login that works across five apps on different subdomains, without any
+**The short version.** One login that works across six apps on different subdomains, without any
 of those apps ever seeing the session secret. It runs on a Worker, D1 and one Durable Object, and
 costs nothing.
 
@@ -90,9 +115,18 @@ latency, because "sign out on the laptop I left at the office" is the feature pe
 The round trip is a same-datacenter call between two Workers, so it's a few milliseconds.
 
 **What breaks first.** D1. Every authenticated request in every app becomes a session lookup, so D1
-read volume grows with total traffic across all five apps rather than with sign-ins. The fix is a
+read volume grows with total traffic across all six apps rather than with sign-ins. The fix is a
 short-TTL cache in front of the lookup, which trades a few seconds of revocation lag for most of the
 reads. I haven't needed it yet.
+
+**How things rot here, and what I do about it.** Nothing in this codebase fails when two places
+that should agree stop agreeing. The browser tab showed a key while the page header showed a
+receipt, which is owewell's glyph, so the tab and the page advertised different products, and every
+test still passed. Same shape as the copy lines nobody rendered and the launcher accents that had
+drifted to colours their apps do not contain. My answer is to make agreement checkable rather than
+remembered: the mark is one component instead of two copies, the PNG icons are generated from the
+SVG by a committed script, and the copy and launcher rules are tests. Where a test genuinely cannot
+reach, like accents that live in other repos, the rule is written down at the point of use instead.
 
 **What I'd change.** The rate limiter is one Durable Object per IP per action, which means a lot of
 tiny objects that mostly sit idle. Fine at this size, wasteful at a bigger one. Cloudflare's own rate
