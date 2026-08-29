@@ -114,8 +114,8 @@ export function PrivacyPage(): ReactNode {
           privacy@aidenjang.com
         </a>{' '}
         and it is done. You can also ask for a copy of what we hold, and in mrrp you do not have to
-        ask: &ldquo;take a copy of everything in here&rdquo; in the room hands you the lot as a
-        file.
+        ask: open &ldquo;delete this room&rdquo; or &ldquo;leave this room&rdquo; and the
+        &ldquo;Take a copy first&rdquo; link hands you the lot as a file.
       </Section>
 
       <Section heading="A note on other people's data">
