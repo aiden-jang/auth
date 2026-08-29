@@ -26,7 +26,6 @@ export function isFamiliarSignIn(
 const METHOD_LABEL: Record<SignInMethod, string> = {
   password: 'Password',
   google: 'Google',
-  link: 'Emailed sign-in link',
   passkey: 'Passkey',
 };
 

@@ -40,7 +40,6 @@ describe('new-device sign-in alerts', () => {
   it.each([
     ['password', 'Password'],
     ['google', 'Google'],
-    ['link', 'Emailed sign-in link'],
     ['passkey', 'Passkey'],
   ] as const)('names the %s method in the alert', (method, label) => {
     const { text } = signInAlertEmail(meta, 'https://accounts.example/account', method, new Date(now));

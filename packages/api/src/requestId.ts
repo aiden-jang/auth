@@ -15,7 +15,7 @@ export function requestIdFrom(request: Request): string {
   return `dev-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}`;
 }
 
-/** Allowlist, not a trimmed-down request: magic-link and reset tokens travel in the query string. */
+/** Allowlist, not a trimmed-down request: reset and verification tokens travel in the query string. */
 export function errorContext(request: Request, requestId: string): Record<string, string> {
   let path = 'unknown';
   try {

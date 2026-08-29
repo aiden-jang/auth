@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { returnAppFor, safeReturnTo } from '../lib/returnTo';
@@ -10,7 +10,6 @@ import { PasskeySignIn } from '../components/PasskeySignIn';
 import { reassurance } from '../lib/reassurance';
 import { welcomeLine } from '../lib/welcome';
 import { EmailSuggestion } from '../components/EmailSuggestion';
-import { inboxFor } from '../lib/inbox';
 import {
   forgetRecentAccount,
   maskEmail,
@@ -18,25 +17,6 @@ import {
   recentAccountTimeLabel,
   rememberRecentAccount,
 } from '../lib/recentAccount';
-
-const LOGIN_METHOD_KEY = 'aidenjang:login-method';
-
-function preferredMagicMode(): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    return window.localStorage.getItem(LOGIN_METHOD_KEY) === 'email-link';
-  } catch {
-    return false;
-  }
-}
-
-function rememberLoginMethod(magic: boolean): void {
-  try {
-    window.localStorage.setItem(LOGIN_METHOD_KEY, magic ? 'email-link' : 'password');
-  } catch {
-    // Preference is optional; authentication itself never depends on local storage.
-  }
-}
 
 export function LoginPage(): ReactNode {
   const [params] = useSearchParams();
@@ -51,25 +31,10 @@ export function LoginPage(): ReactNode {
   const [password, setPassword] = useState('');
   const [turnstileToken, setTurnstileToken] = useState('');
   const [error, setError] = useState<string | null>(
-    params.get('error') === 'google_failed'
-      ? 'Google sign-in failed. Please try again.'
-      : params.get('error') === 'magic_failed'
-        ? 'That sign-in link is invalid or expired. Request a new one.'
-        : null,
+    params.get('error') === 'google_failed' ? 'Google sign-in failed. Please try again.' : null,
   );
   const [loading, setLoading] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
-  // Magic-link mode: sign in via an emailed link instead of a password.
-  const [magicMode, setMagicMode] = useState(preferredMagicMode);
-  const [magicSent, setMagicSent] = useState(false);
-  const [magicResent, setMagicResent] = useState(false);
-  const [resendIn, setResendIn] = useState(0);
-
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const timer = window.setInterval(() => setResendIn((seconds) => Math.max(0, seconds - 1)), 1000);
-    return () => window.clearInterval(timer);
-  }, [resendIn > 0]);
 
   const withReturn = (p: string) => (returnTo ? `${p}?return_to=${encodeURIComponent(returnTo)}` : p);
 
@@ -78,48 +43,16 @@ export function LoginPage(): ReactNode {
     setError(null);
     setLoading(true);
     try {
-      if (magicMode) {
-        await authApi.magicLink(email, returnTo, turnstileToken);
-        rememberRecentAccount(email, 'email-link');
-        setRecentAccounts(readRecentAccounts());
-        setMagicSent(true);
-        setMagicResent(false);
-        setResendIn(30);
-        // Turnstile tokens are single-use. Prepare a fresh challenge now so a later resend never
-        // submits the token that sent the first message.
-        setTurnstileToken('');
-        setResetSignal((n) => n + 1);
-        setLoading(false);
-      } else {
-        await authApi.login(email, password, turnstileToken);
-        rememberRecentAccount(email, 'password');
-        // replace: once signed in, back should not return to the login form.
-        window.location.replace(safeReturnTo(returnTo) ?? '/account');
-      }
+      await authApi.login(email, password, turnstileToken);
+      rememberRecentAccount(email);
+      // replace: once signed in, back should not return to the login form.
+      window.location.replace(safeReturnTo(returnTo) ?? '/account');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setLoading(false);
       // The token was consumed server-side; drop it and re-solve so a retry uses a fresh one.
       setTurnstileToken('');
       setResetSignal((n) => n + 1);
-    }
-  }
-
-  async function resendMagicLink(): Promise<void> {
-    if (resendIn > 0 || loading || (turnstileEnabled && !turnstileToken)) return;
-    setError(null);
-    setLoading(true);
-    try {
-      await authApi.magicLink(email, returnTo, turnstileToken);
-      setMagicResent(true);
-      setResendIn(30);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send another link. Please try again.');
-    } finally {
-      // Success or failure consumes the challenge server-side, so every retry starts cleanly.
-      setTurnstileToken('');
-      setResetSignal((n) => n + 1);
-      setLoading(false);
     }
   }
 
@@ -132,78 +65,7 @@ export function LoginPage(): ReactNode {
       {...(!returnApp ? { subtitle: greeting } : {})}
       returnApp={returnApp}
     >
-      {magicSent ? (
-        <div className="space-y-4">
-          <div
-            role="status"
-            className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-sm text-pos"
-          >
-            {magicResent ? (
-              <>A fresh sign-in link is on its way to <strong>{email}</strong>.</>
-            ) : (
-              <>Check your inbox. If <strong>{email}</strong> has an account, a sign-in link is on its way.</>
-            )}{' '}
-            It expires in 15 minutes.{returnApp ? ` Then we’ll bring you back to ${returnApp.name}.` : ''}
-          </div>
-          {inboxFor(email) && (
-            <a
-              href={inboxFor(email)!.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${buttonClass} flex items-center justify-center gap-2 text-center no-underline`}
-            >
-              {inboxFor(email)!.label} <span aria-hidden>↗</span>
-            </a>
-          )}
-          {resendIn === 0 && <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />}
-          {error && (
-            <p role="alert" className="rounded-lg border border-neg/30 bg-neg/10 px-3 py-2 text-sm font-medium text-neg">
-              {error}
-            </p>
-          )}
-          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
-            <button
-              type="button"
-              disabled={resendIn > 0 || loading || (turnstileEnabled && !turnstileToken)}
-              onClick={() => void resendMagicLink()}
-              className="font-medium text-accent hover:underline disabled:cursor-default disabled:text-muted disabled:no-underline"
-            >
-              {loading
-                ? 'Sending another…'
-                : resendIn > 0
-                  ? `Send another in ${resendIn}s`
-                  : turnstileEnabled && !turnstileToken
-                    ? 'Complete the check to resend'
-                    : 'Send another link'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMagicSent(false);
-                setMagicResent(false);
-                setError(null);
-              }}
-              className="font-medium text-muted hover:text-ink hover:underline"
-            >
-              Change email
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMagicSent(false);
-                setMagicResent(false);
-                setMagicMode(false);
-                setError(null);
-                rememberLoginMethod(false);
-              }}
-              className="font-medium text-muted hover:text-ink hover:underline"
-            >
-              Use password instead
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
+      <>
           {/* Above Google and the form: nothing to type, and nothing on our side worth stealing. */}
           <PasskeySignIn returnTo={returnTo} />
           <GoogleSignIn returnTo={returnTo} />
@@ -229,9 +91,6 @@ export function LoginPage(): ReactNode {
                         type="button"
                         onClick={() => {
                           setEmail(account.email);
-                          const useMagic = account.method === 'email-link';
-                          setMagicMode(useMagic);
-                          rememberLoginMethod(useMagic);
                           setPassword('');
                           setError(null);
                         }}
@@ -244,7 +103,7 @@ export function LoginPage(): ReactNode {
                         <span className="min-w-0 flex-1">
                           <strong className="block truncate text-sm font-semibold text-ink">{maskEmail(account.email)}</strong>
                           <small className="block text-[10px] text-muted">
-                            {account.method === 'email-link' ? 'email link' : 'password'} · {recentAccountTimeLabel(account.lastUsedAt)}
+                            {recentAccountTimeLabel(account.lastUsedAt)}
                           </small>
                         </span>
                         <span aria-hidden className={`text-sm ${selected ? 'text-accent' : 'text-muted'}`}>{selected ? '✓' : '→'}</span>
@@ -280,42 +139,6 @@ export function LoginPage(): ReactNode {
               </button>
             </section>
           )}
-          <div
-            role="tablist"
-            aria-label="Sign-in method"
-            className="mb-4 grid grid-cols-2 rounded-xl border border-line bg-field p-1"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={!magicMode}
-              onClick={() => {
-                setMagicMode(false);
-                rememberLoginMethod(false);
-                setError(null);
-              }}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-                !magicMode ? 'bg-card text-ink shadow-sm' : 'text-muted hover:text-ink'
-              }`}
-            >
-              Password
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={magicMode}
-              onClick={() => {
-                setMagicMode(true);
-                rememberLoginMethod(true);
-                setError(null);
-              }}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
-                magicMode ? 'bg-card text-ink shadow-sm' : 'text-muted hover:text-ink'
-              }`}
-            >
-              Email link
-            </button>
-          </div>
           <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
             <div>
               <label htmlFor="email" className={labelClass}>
@@ -348,9 +171,8 @@ export function LoginPage(): ReactNode {
               />
             </div>
 
-            {!magicMode && (
-              <div>
-                <div className="mb-1.5 flex items-baseline justify-between">
+            <div>
+              <div className="mb-1.5 flex items-baseline justify-between">
                   <label htmlFor="password" className="text-sm font-medium text-muted">
                     Password
                   </label>
@@ -373,14 +195,7 @@ export function LoginPage(): ReactNode {
                   }}
                   required
                 />
-              </div>
-            )}
-
-            {magicMode && (
-              <p className="-mt-1 text-xs leading-relaxed text-muted">
-                No password needed. We’ll send a private link that expires in 15 minutes.
-              </p>
-            )}
+            </div>
 
             {error && (
               <p
@@ -394,18 +209,12 @@ export function LoginPage(): ReactNode {
             <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />
 
             <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>
-              {loading
-                ? magicMode
-                  ? 'Sending...'
-                  : 'Signing in...'
-                : magicMode
-                  ? 'Email me a sign-in link'
-                  : 'Log in'}
+              {loading ? 'Signing in...' : 'Log in'}
             </button>
             {/* Says what is actually happening rather than filling the wait. See lib/reassurance.ts. */}
             {loading && (
               <p role="status" className="text-center text-xs text-muted">
-                {reassurance(magicMode ? 'magic-link' : 'password-login')}
+                {reassurance('password-login')}
               </p>
             )}
           </form>
@@ -420,8 +229,7 @@ export function LoginPage(): ReactNode {
               Create an account
             </Link>
           </p>
-        </>
-      )}
+      </>
     </AuthCard>
   );
 }

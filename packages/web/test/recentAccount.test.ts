@@ -30,15 +30,22 @@ describe('maskEmail', () => {
     expect(maskEmail('not-an-email')).toBe('not-an-email');
   });
 
-  it('keeps the three most recently used accounts and their methods', () => {
-    rememberRecentAccount('one@example.com', 'password');
-    rememberRecentAccount('two@example.com', 'email-link');
-    rememberRecentAccount('three@example.com', 'password');
-    rememberRecentAccount('four@example.com', 'email-link');
-    expect(readRecentAccounts().map(account => [account.email, account.method])).toEqual([
-      ['four@example.com', 'email-link'],
-      ['three@example.com', 'password'],
-      ['two@example.com', 'email-link'],
+  it('keeps the three most recently used accounts, newest first', () => {
+    rememberRecentAccount('one@example.com');
+    rememberRecentAccount('two@example.com');
+    rememberRecentAccount('three@example.com');
+    rememberRecentAccount('four@example.com');
+    expect(readRecentAccounts().map(account => account.email)).toEqual([
+      'four@example.com',
+      'three@example.com',
+      'two@example.com',
+    ]);
+  });
+
+  it('keeps accounts saved before the email link went away, dropping the stale method', () => {
+    const saved = '[{"email":"old@example.com","method":"email-link","lastUsedAt":"2026-08-11T12:00:00Z"}]';
+    expect(decodeRecentAccounts(saved)).toEqual([
+      { email: 'old@example.com', lastUsedAt: '2026-08-11T12:00:00Z' },
     ]);
   });
 

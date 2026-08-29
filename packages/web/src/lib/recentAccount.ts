@@ -2,11 +2,8 @@ const RECENT_EMAIL_KEY = 'aidenjang:recent-email';
 const RECENT_ACCOUNTS_KEY = 'aidenjang:recent-accounts:v1';
 const MAX_RECENT_ACCOUNTS = 3;
 
-export type RecentLoginMethod = 'password' | 'email-link';
-
 export interface RecentAccount {
   email: string;
-  method: RecentLoginMethod;
   lastUsedAt: string;
 }
 
@@ -32,6 +29,8 @@ function validEmail(value: string): boolean {
   return value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+/** Entries saved before the email link went away carry a spare `method` field. Ignore it rather
+ *  than rejecting the row, so nobody's remembered accounts vanish on the deploy that drops it. */
 export function decodeRecentAccounts(raw: string | null): RecentAccount[] {
   if (!raw) return [];
   try {
@@ -41,9 +40,8 @@ export function decodeRecentAccounts(raw: string | null): RecentAccount[] {
       if (!item || typeof item !== 'object') return false;
       const value = item as Partial<RecentAccount>;
       return typeof value.email === 'string' && validEmail(value.email) &&
-        (value.method === 'password' || value.method === 'email-link') &&
         typeof value.lastUsedAt === 'string' && !Number.isNaN(new Date(value.lastUsedAt).getTime());
-    }).slice(0, MAX_RECENT_ACCOUNTS);
+    }).map(({ email, lastUsedAt }) => ({ email, lastUsedAt })).slice(0, MAX_RECENT_ACCOUNTS);
   } catch {
     return [];
   }
@@ -56,19 +54,19 @@ export function readRecentAccounts(): RecentAccount[] {
     if (accounts.length > 0) return accounts;
     const legacy = window.localStorage.getItem(RECENT_EMAIL_KEY)?.trim().toLowerCase() ?? '';
     return validEmail(legacy)
-      ? [{ email: legacy, method: 'password', lastUsedAt: new Date(0).toISOString() }]
+      ? [{ email: legacy, lastUsedAt: new Date(0).toISOString() }]
       : [];
   } catch {
     return [];
   }
 }
 
-export function rememberRecentAccount(email: string, method: RecentLoginMethod): void {
+export function rememberRecentAccount(email: string): void {
   try {
     const normalized = email.trim().toLowerCase();
     if (!validEmail(normalized)) return;
     const accounts = readRecentAccounts().filter(account => account.email !== normalized);
-    const next = [{ email: normalized, method, lastUsedAt: new Date().toISOString() }, ...accounts].slice(0, MAX_RECENT_ACCOUNTS);
+    const next = [{ email: normalized, lastUsedAt: new Date().toISOString() }, ...accounts].slice(0, MAX_RECENT_ACCOUNTS);
     window.localStorage.setItem(RECENT_ACCOUNTS_KEY, JSON.stringify(next));
     window.localStorage.removeItem(RECENT_EMAIL_KEY);
   } catch {
