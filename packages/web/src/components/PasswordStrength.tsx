@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export interface PasswordRule {
+interface PasswordRule {
   label: string;
   ok: boolean;
 }
@@ -9,7 +9,7 @@ export interface PasswordRule {
  * Score a password 0-4 and return the requirement checklist. Full marks needs the four
  * character classes AND a little length, so a short "aB1!" reads as Good, not Strong.
  */
-export function evaluatePassword(pw: string): { score: number; rules: PasswordRule[] } {
+function evaluatePassword(pw: string): { score: number; rules: PasswordRule[] } {
   const rules: PasswordRule[] = [
     { label: '8+ characters', ok: pw.length >= 8 },
     { label: 'a number', ok: /\d/.test(pw) },

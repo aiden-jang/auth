@@ -61,7 +61,7 @@ export const APPS: AppLink[] = [
 ];
 
 /** True when the account UI is being served from a local dev origin. */
-export function isLocalHost(): boolean {
+function isLocalHost(): boolean {
   if (typeof window === 'undefined') return false;
   const h = window.location.hostname;
   return h === 'localhost' || h === '127.0.0.1';

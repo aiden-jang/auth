@@ -15,7 +15,7 @@ const DOMAIN_FIXES: Record<string, string> = {
 };
 
 /** Suggest only high-confidence corrections. Guessing at uncommon domains can lock someone out. */
-export function correctedEmail(value: string): string | null {
+function correctedEmail(value: string): string | null {
   const trimmed = value.trim();
   const at = trimmed.lastIndexOf('@');
   if (at <= 0 || at === trimmed.length - 1) return null;
