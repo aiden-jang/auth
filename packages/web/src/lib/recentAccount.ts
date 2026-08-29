@@ -28,10 +28,6 @@ export function maskEmail(email: string): string {
   return `${visible}•••@${domain}`;
 }
 
-export function readRecentEmail(): string | null {
-  return readRecentAccounts()[0]?.email ?? null;
-}
-
 function validEmail(value: string): boolean {
   return value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
@@ -88,14 +84,4 @@ export function forgetRecentAccount(email: string): void {
   } catch {
     // Nothing else to clear.
   }
-}
-
-/** Compatibility for callers that only know an email; password remains the conservative default. */
-export function rememberRecentEmail(email: string): void {
-  rememberRecentAccount(email, 'password');
-}
-
-export function forgetRecentEmail(): void {
-  const email = readRecentEmail();
-  if (email) forgetRecentAccount(email);
 }
