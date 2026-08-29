@@ -39,7 +39,7 @@ grows you a garden).
    │  wherever / bloomnote       │ ──▶ │  - mints + sets the cookie    │
    │  (own repo, own DO / D1/KV) │ fwd │  - validates the session      │
    │                             │ cookie  (D1 stores sha-256(token)) │
-   │  depends on the published   │ ◀── │  - Google OIDC, magic links,  │
+   │  depends on the published   │ ◀── │  - Google OIDC, passkeys,     │
    │  @aidenjang/auth-client SDK │ AuthUser  PBKDF2 password auth      │
    └─────────────────────────────┘     └──────────────────────────────┘
 ```

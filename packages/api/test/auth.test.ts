@@ -481,33 +481,14 @@ describe('disconnect Google', () => {
   });
 });
 
-describe('magic-link sign-in', () => {
-  it('does not reveal whether an account exists', async () => {
+describe('the retired magic-link routes', () => {
+  // Not 404: wrangler.toml sets not_found_handling = "single-page-application", so an unmatched
+  // GET falls through to index.html. What matters is that neither path can hand out a session.
+  it('cannot sign anyone in', async () => {
     const { email } = await register();
-    const known = await post('/auth/magic-link', { email });
-    const unknown = await post('/auth/magic-link', { email: freshEmail() });
-    expect(known.status).toBe(200);
-    expect(unknown.status).toBe(200);
-    expect(await known.text()).toBe(await unknown.text());
-  });
-
-  it('signs in via a valid token and is single-use', async () => {
-    const { id } = await register();
-    const token = await issueToken(db(), id, 'magic');
-    const res = await getManual(`/auth/magic/callback?token=${token}`);
-    expect(res.status).toBe(302);
-    const cookie = sessionCookie(res);
-    expect(cookie).toBeTruthy();
-    expect((await get('/auth/me', cookie!)).status).toBe(200);
-
-    // Replaying the same token fails and bounces to the login page.
-    const replay = await getManual(`/auth/magic/callback?token=${token}`);
-    expect(replay.headers.get('location')).toContain('error=magic_failed');
-  });
-
-  it('rejects a missing/invalid token', async () => {
-    const res = await getManual('/auth/magic/callback?token=not-a-real-token');
-    expect(res.headers.get('location')).toContain('error=magic_failed');
+    expect((await post('/auth/magic-link', { email })).status).not.toBe(200);
+    const res = await getManual('/auth/magic/callback?token=anything');
+    expect(sessionCookie(res)).toBeNull();
   });
 });
 
@@ -526,13 +507,6 @@ describe('how each sign-in happened', () => {
     const { email, password } = await register();
     const cookie = sessionCookie(await post('/auth/login', { email, password }));
     expect(await signInMethods(cookie!)).toEqual(['password']);
-  });
-
-  it('records a magic-link sign-in as link', async () => {
-    const { id } = await register();
-    const token = await issueToken(db(), id, 'magic');
-    const cookie = sessionCookie(await getManual(`/auth/magic/callback?token=${token}`));
-    expect(await signInMethods(cookie!)).toEqual(['link']);
   });
 
   it('leaves the method empty on events that are not sign-ins', async () => {

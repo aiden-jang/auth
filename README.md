@@ -21,7 +21,6 @@ Those three constraints drove most of the decisions below.
 - **Email + password** with PBKDF2 hashing, email verification, and password reset.
 - **Google sign-in** (OIDC authorization-code flow), including linking Google to an existing
   password account and disconnecting it later.
-- **Passwordless magic links** as a third way in (single-use, 15-minute tokens).
 - **Account hub**: active-session list with per-device revoke and "sign out everywhere", plus
   self-serve account deletion.
 - **Abuse controls**: per-IP, per-action rate limiting and a Turnstile challenge on the sensitive
@@ -52,8 +51,8 @@ silently dropping the `Secure` flag on cookies in production, fixed the same way
 is `SameSite=Lax`, so it is not attached to cross-site POSTs at all: a forged cross-origin request to
 `/auth/delete-account` arrives with no session and just 401s. Because the API is deliberately
 cross-origin-callable (a credentialed CORS allowlist for app frontends), turning on a same-origin
-Origin guard would add nothing and could break that intended capability. The state-changing GETs
-(`/auth/google/callback`, `/auth/magic/callback`) are safe because they require unforgeable tokens.
+Origin guard would add nothing and could break that intended capability. The one state-changing GET
+(`/auth/google/callback`) is safe because it requires an unforgeable token.
 This was a reasoned "leave it off", not an oversight.
 
 **Account linking is written to be un-takeover-able.** Linking Google to an existing account only
@@ -62,7 +61,7 @@ account, and only lets Google vouch for an email when it matches the account's. 
 refuses if it would leave the account with no way to sign in, and a Google-only account can set a
 password first, so no one can lock themselves out.
 
-**No account enumeration, including timing.** `forgot-password` and `magic-link` always return the
+**No account enumeration, including timing.** `forgot-password` always returns the
 same 200 whether or not the email exists, and a login for a missing email still runs a dummy PBKDF2
 verify so it costs the same as a real one. (The one accepted leak: telling a Google-account holder to
 "use Google" reveals that account exists. It is rate-limited, and the usability win was judged worth
@@ -104,10 +103,10 @@ limiting binding would do the same job without the objects, and I'd use it if I 
 Tests run inside the **real Workers runtime** via `@cloudflare/vitest-pool-workers`, against an
 isolated in-memory D1 with the app's migrations applied per file, plus the live rate-limiter Durable
 Object. Coverage includes registration, login and sessions, verification and reset tokens, password
-change, Google-only accounts, magic links, session listing and revocation, and account deletion. The
+change, Google-only accounts, session listing and revocation, and account deletion. The
 suite is kept **hermetic** by neutralizing any secrets a local `.dev.vars` would otherwise leak into
-the test Worker (so Turnstile is treated as unconfigured and no real email is sent). 251 tests: 139 in the
-API, 109 in the web app, 3 in the client.
+the test Worker (so Turnstile is treated as unconfigured and no real email is sent). 217 tests: 143 in the
+API, 71 in the web app, 3 in the client.
 
 ## Repo layout
 

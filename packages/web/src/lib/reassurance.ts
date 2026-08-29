@@ -6,7 +6,6 @@
 export type WaitingOn =
   | 'password-login'
   | 'passkey'
-  | 'magic-link'
   | 'reset-link'
   | 'verify-email'
   | 'sessions'
@@ -24,7 +23,6 @@ const LINES: Record<WaitingOn, string> = {
   passkey: 'Your device is proving it is you. The secret half never leaves it.',
 
   // auth/verification.ts consumeToken deletes the row on use, and issueToken sets a short expiry.
-  'magic-link': 'Building a link that works once and then expires.',
   'reset-link': 'Building a link that works once and then expires.',
   'verify-email': 'Checking the link. It only works once, which is why it cannot be reused.',
 

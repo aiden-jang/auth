@@ -62,7 +62,7 @@ export type SecurityEventType =
   | 'passkey_removed';
 
 /** How someone signed in. Null on every event that is not a sign-in, and on older sign-ins. */
-export type SignInMethod = 'password' | 'google' | 'link' | 'passkey';
+export type SignInMethod = 'password' | 'google' | 'passkey';
 
 export interface SecurityEvent {
   id: string;
@@ -191,12 +191,6 @@ export const authApi = {
       returnTo: returnTo ?? undefined,
     }),
   logout: () => req<{ ok: boolean }>('/auth/logout', 'POST'),
-  magicLink: (email: string, returnTo?: string | null, turnstileToken?: string) =>
-    req<{ ok: boolean }>('/auth/magic-link', 'POST', {
-      email,
-      returnTo: returnTo ?? undefined,
-      turnstileToken,
-    }),
   forgot: (email: string, turnstileToken?: string, returnTo?: string | null) =>
     req<{ ok: boolean }>('/auth/forgot-password', 'POST', {
       email,

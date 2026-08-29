@@ -3,12 +3,11 @@ import type { DB } from '../db/client.js';
 import { authTokens } from '../db/schema.js';
 import { generateToken, hashToken } from './token.js';
 
-export type TokenPurpose = 'reset' | 'verify' | 'magic';
+export type TokenPurpose = 'reset' | 'verify';
 
 const TTL_MS: Record<TokenPurpose, number> = {
   reset: 60 * 60 * 1000, // 1 hour
   verify: 24 * 60 * 60 * 1000, // 24 hours
-  magic: 15 * 60 * 1000, // 15 minutes — short-lived sign-in link
 };
 
 /** Issue a one-time token, store its hash, return the raw token for the email link. */
