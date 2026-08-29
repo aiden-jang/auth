@@ -36,6 +36,13 @@ describe('the app registry', () => {
     }
   });
 
+  it('keeps every name lower case', () => {
+    // One capitalised name in a column of six drags the eye to it and makes it look promoted.
+    for (const app of APPS) {
+      expect(app.name, app.name).toBe(app.name.toLowerCase());
+    }
+  });
+
   it('keeps taglines short and lower-case, the way the launcher reads them', () => {
     // Only the opening letter: "draw it, an AI guesses" should keep its acronym.
     for (const app of APPS) {

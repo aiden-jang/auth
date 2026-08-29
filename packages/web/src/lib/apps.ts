@@ -5,7 +5,8 @@
 // `tagline` stays short (a few words) so the launcher rows read at a glance.
 
 export interface AppLink {
-  /** Display name, matching the app's own wordmark, casing included. */
+  /** Display name. Lower case, always: the launcher is a list of six of these and one capitalised
+   *  name pulls the eye down the column for no reason. apps.test.ts holds the line. */
   name: string;
   /** A few words on what it does, in the app's voice. */
   tagline: string;
@@ -68,8 +69,9 @@ export const APPS: AppLink[] = [
     accent: '#818cf8',
   },
   {
-    name: 'Everything Is Fine',
-    tagline: 'everything happening, on a globe',
+    name: 'everything is fine',
+    // Not "everything happening": that word is already in the name, and the row read as a stutter.
+    tagline: 'quakes, storms and aurora, live',
     url: 'https://everythingisfine.aidenjang.com',
     devUrl: 'http://localhost:31600',
     // Its palette is deliberately desaturated, so this is the star colour rather than an invented hue.
