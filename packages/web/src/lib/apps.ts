@@ -14,7 +14,9 @@ export interface AppLink {
   /** Local dev URL (the app's vite dev port), used when the account UI is
    *  itself being served from localhost. */
   devUrl: string;
-  /** Accent color (a small dot in the launcher + branded panel). */
+  /** Accent colour (a small dot in the launcher + branded panel). Take it from the app's own
+   *  icon so the dot matches what the app actually looks like; see apps.test.ts for the floor it
+   *  has to clear on this dark card. */
   accent: string;
 }
 
@@ -24,6 +26,8 @@ export const APPS: AppLink[] = [
     tagline: 'split bills, keep friends',
     url: 'https://owewell.aidenjang.com',
     devUrl: 'http://localhost:30001',
+    // Its icon tile is #1f6f4f, which only reaches 3.04 on this card. Same hue, lighter, so the
+    // dot still reads as owewell's green.
     accent: '#34d399',
   },
   {
@@ -31,14 +35,17 @@ export const APPS: AppLink[] = [
     tagline: 'say it with a garden',
     url: 'https://bloomnote.aidenjang.com',
     devUrl: 'http://localhost:32100',
-    accent: '#f472b6',
+    // The flower in its favicon.
+    accent: '#ff8fa3',
   },
   {
     name: 'wherever',
     tagline: 'everyone swipes, majority wins',
     url: 'https://wherever.aidenjang.com',
     devUrl: 'http://localhost:5173',
-    accent: '#fbbf24',
+    // The lime dot that ends the "W," in its icon. It was amber here, a colour its icon does not
+    // contain, which put it 7 degrees from mrrp and made the two dots read as one.
+    accent: '#d7ff3e',
   },
   {
     // The odd one out: mrrp has no accounts at all, so signing in changes nothing about it. It is
@@ -49,14 +56,16 @@ export const APPS: AppLink[] = [
     tagline: 'one of you is the cat',
     url: 'https://mrrp.aidenjang.com',
     devUrl: 'http://localhost:30005',
-    accent: '#e0a03f',
+    // The cat's fur, the colour its icon is mostly made of.
+    accent: '#e8963f',
   },
   {
     name: 'iguess',
     tagline: 'draw it, an AI guesses',
     url: 'https://iguess.aidenjang.com',
     devUrl: 'http://localhost:33100',
-    accent: '#38bdf8',
+    // The light end of its violet gradient. It was sky blue here, which iguess has never been.
+    accent: '#818cf8',
   },
   {
     name: 'Everything Is Fine',
