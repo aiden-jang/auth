@@ -25,7 +25,7 @@ export async function passkeysLikely(): Promise<boolean> {
 
 /** WebAuthn collapses cancel, no-match and timeout into one NotAllowedError so a site cannot probe
  *  which credentials exist, so we genuinely cannot tell them apart. */
-export function wasCancelled(err: unknown): boolean {
+function wasCancelled(err: unknown): boolean {
   return err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'AbortError');
 }
 
