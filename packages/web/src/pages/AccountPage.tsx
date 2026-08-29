@@ -14,7 +14,7 @@ import { APPS, appHref } from '../lib/apps';
 import { SecurityActivity } from '../components/SecurityActivity';
 import { PasskeyList } from '../components/PasskeyList';
 import { RecoveryRehearsal } from '../components/RecoveryRehearsal';
-import { securityCheckup, type SecurityAction } from '../lib/securityCheckup';
+import type { SecurityAction } from '../lib/securityCheckup';
 import { sessionHorizon } from '../lib/sessionHorizon';
 import { useStepUp } from '../components/StepUpPrompt';
 
@@ -416,7 +416,6 @@ export function AccountPage(): ReactNode {
   }
   if (!user) return null;
 
-  const checkup = securityCheckup(user, sessions);
 
   function runSecurityAction(action: SecurityAction): void {
     if (action === 'verify_email') {
@@ -632,84 +631,6 @@ export function AccountPage(): ReactNode {
 
       {!changingPw && (
         <>
-        <section aria-label="Security check-up" className="rounded-2xl border border-line bg-field p-4">
-          <div className="flex items-center gap-4">
-            <div
-              className="grid h-20 w-20 shrink-0 place-items-center rounded-full p-[5px]"
-              style={{
-                background:
-                  checkup.score === null
-                    ? 'var(--color-line)'
-                    : `conic-gradient(var(--color-pos) ${checkup.score}%, var(--color-line) 0)`,
-              }}
-              role="img"
-              aria-label={
-                checkup.score === null
-                  ? 'Security check-up is loading'
-                  : `${checkup.score}% of security checks complete`
-              }
-            >
-              <span className="grid h-full w-full place-items-center rounded-full bg-field text-center">
-                <span>
-                  <strong className="block text-lg font-semibold text-ink">
-                    {checkup.score === null ? '…' : `${checkup.score}%`}
-                  </strong>
-                  <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted">
-                    {checkup.label}
-                  </span>
-                </span>
-              </span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-semibold text-ink">Security check-up</h2>
-              <p className="mt-0.5 text-xs leading-relaxed text-muted">
-                Four checks, with no mystery points. Fixes lead straight to the right control.
-              </p>
-              {checkup.nextAction && (
-                <button
-                  type="button"
-                  onClick={() => runSecurityAction(checkup.nextAction!.action!)}
-                  disabled={
-                    checkup.nextAction.action === 'verify_email' && verificationStatus !== null
-                  }
-                  className="mt-2 text-xs font-semibold text-accent hover:underline disabled:cursor-default disabled:opacity-60"
-                >
-                  {checkup.nextAction.action === 'verify_email' && verificationStatus === 'sending'
-                    ? 'Sending verification email…'
-                    : checkup.nextAction.label}
-                  {checkup.nextAction.action !== 'verify_email' && ' →'}
-                </button>
-              )}
-            </div>
-          </div>
-          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-            {checkup.checks.map((check) => (
-              <li
-                key={check.id}
-                className="flex gap-2.5 rounded-xl border border-line bg-card/40 px-3 py-2.5"
-              >
-                <span
-                  aria-hidden
-                  className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${
-                    check.state === 'pass'
-                      ? 'bg-pos/15 text-pos'
-                      : check.state === 'action'
-                        ? 'bg-neg/15 text-neg'
-                        : 'bg-line text-muted'
-                  }`}
-                >
-                  {check.state === 'pass' ? '✓' : check.state === 'action' ? '!' : '·'}
-                </span>
-                <span className="min-w-0">
-                  <strong className="block text-xs font-semibold text-ink">{check.label}</strong>
-                  <span className="mt-0.5 block text-[11px] leading-snug text-muted">
-                    {check.detail}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
         <RecoveryRehearsal
           user={user}
           activeSessions={sessions?.length ?? 0}
