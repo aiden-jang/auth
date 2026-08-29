@@ -13,8 +13,6 @@ import { Skeleton } from '../components/Skeleton';
 import { APPS, appHref } from '../lib/apps';
 import { SecurityActivity } from '../components/SecurityActivity';
 import { PasskeyList } from '../components/PasskeyList';
-import { RecoveryRehearsal } from '../components/RecoveryRehearsal';
-import type { SecurityAction } from '../lib/securityCheckup';
 import { sessionHorizon } from '../lib/sessionHorizon';
 import { useStepUp } from '../components/StepUpPrompt';
 
@@ -417,20 +415,6 @@ export function AccountPage(): ReactNode {
   if (!user) return null;
 
 
-  function runSecurityAction(action: SecurityAction): void {
-    if (action === 'verify_email') {
-      void resendVerification();
-      return;
-    }
-    if (action === 'add_password') {
-      setPwDone(false);
-      setChangingPw(true);
-      return;
-    }
-    document
-      .getElementById('active-sessions')
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
 
   return (
     <AccountShell title="Your account" subtitle="One login for all of aidenjang's apps.">
@@ -625,19 +609,6 @@ export function AccountPage(): ReactNode {
             </p>
           )}
         </div>
-      )}
-
-      <hr className="my-6 border-line" />
-
-      {!changingPw && (
-        <>
-        <RecoveryRehearsal
-          user={user}
-          activeSessions={sessions?.length ?? 0}
-          onReviewSessions={() => runSecurityAction('review_sessions')}
-          onVerifyEmail={() => void resendVerification()}
-        />
-        </>
       )}
 
       <section aria-label="Security">
