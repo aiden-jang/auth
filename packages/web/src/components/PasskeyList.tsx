@@ -16,11 +16,9 @@ function whenish(iso: string | null): string {
 
 export function PasskeyList({
   guard,
-  onChanged,
 }: {
   /** Runs an action through the account page's step-up prompt, so a removal can ask for a password. */
   guard: (label: string, run: () => Promise<void>) => Promise<void>;
-  onChanged: () => void;
 }): ReactNode {
   const [passkeys, setPasskeys] = useState<Passkey[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -53,7 +51,6 @@ export function PasskeyList({
     }
     setMessage(`Added ${outcome.value.label}.`);
     await load();
-    onChanged();
   }
 
   async function remove(passkey: Passkey): Promise<void> {
@@ -63,7 +60,6 @@ export function PasskeyList({
       await guard('remove a passkey', async () => {
         await authApi.deletePasskey(passkey.id);
         await load();
-        onChanged();
       });
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Could not remove that one.');
