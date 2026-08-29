@@ -6,6 +6,7 @@ import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { EmailSuggestion } from '../components/EmailSuggestion';
 import { returnAppFor } from '../lib/returnTo';
 import { inboxFor } from '../lib/inbox';
+import { reassurance } from '../lib/reassurance';
 
 export function ForgotPasswordPage(): ReactNode {
   const [params] = useSearchParams();
@@ -135,6 +136,12 @@ export function ForgotPasswordPage(): ReactNode {
           <EmailSuggestion value={email} onAccept={setEmail} />
           <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />
           <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>{loading ? 'Sending...' : 'Send reset link'}</button>
+          {/* Says what is actually happening rather than filling the wait. See lib/reassurance.ts. */}
+          {loading && (
+            <p role="status" className="text-center text-xs text-muted">
+              {reassurance('reset-link')}
+            </p>
+          )}
           <p className="text-sm text-muted">
             <Link
               to={returnTo ? `/login?return_to=${encodeURIComponent(returnTo)}` : '/login'}

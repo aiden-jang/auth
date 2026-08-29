@@ -13,6 +13,7 @@ import { Skeleton } from '../components/Skeleton';
 import { APPS, appHref } from '../lib/apps';
 import { PasskeyList } from '../components/PasskeyList';
 import { sessionHorizon } from '../lib/sessionHorizon';
+import { reassurance } from '../lib/reassurance';
 import { useStepUp } from '../components/StepUpPrompt';
 
 function timeAgo(iso: string): string {
@@ -807,6 +808,12 @@ export function AccountPage(): ReactNode {
                 )}
               </div>
             </div>
+            {/* Says what is actually happening rather than filling the wait. See lib/reassurance.ts. */}
+            {(sessions === null || refreshingSessions) && (
+              <p role="status" className="mt-3 text-xs text-muted">
+                {reassurance('sessions')}
+              </p>
+            )}
             <ul className="mt-3 space-y-2">
               {sessions === null ? (
                 <>

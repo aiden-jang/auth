@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom';
 import { authApi, isReauthRequired, reauthCanUsePassword } from '../lib/api';
 import { PasswordInput } from './PasswordInput';
+import { reassurance } from '../lib/reassurance';
 
 /*
  * "Confirm it's you", for the two actions that change how you sign in.
@@ -179,6 +180,12 @@ function StepUpDialog({
                 {busy ? 'Checking...' : 'Confirm'}
               </button>
             </div>
+            {/* Says what is actually happening rather than filling the wait. See lib/reassurance.ts. */}
+            {busy && (
+              <p role="status" className="mt-2 text-center text-xs text-muted">
+                {reassurance('reauth')}
+              </p>
+            )}
           </form>
         ) : (
           <div className="mt-4 flex gap-2">

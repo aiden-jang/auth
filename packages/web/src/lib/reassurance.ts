@@ -9,7 +9,6 @@ export type WaitingOn =
   | 'reset-link'
   | 'verify-email'
   | 'sessions'
-  | 'activity'
   | 'signup'
   | 'reauth';
 
@@ -29,9 +28,6 @@ const LINES: Record<WaitingOn, string> = {
   // db/schema.ts sessions: a parsed device label and a coarse city, deliberately never an IP address
   // or a raw user agent.
   sessions: 'Reading your devices. We keep a rough city, never an IP address.',
-
-  // db/schema.ts securityEvents carries the same restriction, and the type list is an allowlist.
-  activity: 'Loading your history. It records what happened, not where you were.',
 
   // index.ts register: the account is created and the session issued in one go, nothing is queued.
   signup: 'Setting up your account. One login covers every app.',
