@@ -67,6 +67,9 @@ export const securityEvents = sqliteTable('security_events', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   type: text('type').notNull(),
+  // How they got in, on a 'signed_in' row: password, google, link or passkey. Null on every other
+  // event type, and on sign-ins recorded before this column existed.
+  method: text('method'),
   device: text('device'),
   location: text('location'),
   createdAt: integer('created_at', { mode: 'timestamp' })

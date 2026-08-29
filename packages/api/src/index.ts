@@ -45,7 +45,7 @@ import { googleAuthUrl, googleCallbackUrl, exchangeGoogleCode, upsertGoogleUser,
 import { consumeToken, issueToken } from './auth/verification.js';
 import { sendEmail } from './email.js';
 import { verifyTurnstile } from './turnstile.js';
-import { recordSecurityEvent } from './securityEvents.js';
+import { recordSecurityEvent, type SignInMethod } from './securityEvents.js';
 import { isFamiliarSignIn, signInAlertEmail } from './signInAlert.js';
 import { credentialAlertEmail, credentialAlertSubject, type CredentialChange } from './credentialAlert.js';
 import { isFresh, stampReauth, sudoUntil, SUDO_WINDOW_MS } from './auth/stepUp.js';
@@ -172,6 +172,7 @@ async function newSignInAlert(
   userId: string,
   meta: SessionMeta,
   accountUrl: string,
+  method: SignInMethod,
 ): Promise<RenderedEmail | null> {
   const recent = await db
     .select({
@@ -183,7 +184,7 @@ async function newSignInAlert(
     .where(and(eq(securityEvents.userId, userId), eq(securityEvents.type, 'signed_in')))
     .orderBy(desc(securityEvents.createdAt))
     .limit(20);
-  return isFamiliarSignIn(recent, meta) ? null : signInAlertEmail(meta, accountUrl);
+  return isFamiliarSignIn(recent, meta) ? null : signInAlertEmail(meta, accountUrl, method);
 }
 
 /*
@@ -328,9 +329,10 @@ app.post('/auth/login', async (c) => {
     user.id,
     meta,
     new URL('/account?security=review#active-sessions', c.env.APP_URL ?? new URL(c.req.url).origin).toString(),
+    'password',
   );
   const { token, expiresAt } = await createSession(db, user.id, meta);
-  await recordSecurityEvent(db, user.id, 'signed_in', meta);
+  await recordSecurityEvent(db, user.id, 'signed_in', meta, 'password');
   deliverSignInAlert(c, user.email, alert);
   setSessionCookie(c, token, expiresAt);
   return c.json({
@@ -444,9 +446,10 @@ app.get('/auth/google/callback', async (c) => {
       user.id,
       meta,
       new URL('/account?security=review#active-sessions', uiBase).toString(),
+      'google',
     );
     const { token, expiresAt } = await createSession(db, user.id, meta);
-    await recordSecurityEvent(db, user.id, 'signed_in', meta);
+    await recordSecurityEvent(db, user.id, 'signed_in', meta, 'google');
     deliverSignInAlert(c, user.email, alert);
     setSessionCookie(c, token, expiresAt);
     return c.redirect(safeAppRedirect(saved.r ?? '', uiBase));
@@ -574,9 +577,10 @@ app.get('/auth/magic/callback', async (c) => {
     userId,
     meta,
     new URL('/account?security=review#active-sessions', uiBase).toString(),
+    'link',
   );
   const { token: sessionToken, expiresAt } = await createSession(db, userId, meta);
-  await recordSecurityEvent(db, userId, 'signed_in', meta);
+  await recordSecurityEvent(db, userId, 'signed_in', meta, 'link');
   deliverSignInAlert(c, account.email, alert);
   setSessionCookie(c, sessionToken, expiresAt);
   return c.redirect(safeAppRedirect(c.req.query('return_to') ?? '', uiBase));
@@ -748,9 +752,10 @@ app.post('/auth/passkeys/login/verify', async (c) => {
     login.userId,
     meta,
     new URL('/account?security=review#active-sessions', uiBase).toString(),
+    'passkey',
   );
   const { token, expiresAt } = await createSession(db, login.userId, meta);
-  await recordSecurityEvent(db, login.userId, 'signed_in', meta);
+  await recordSecurityEvent(db, login.userId, 'signed_in', meta, 'passkey');
   deliverSignInAlert(c, login.email, alert);
   setSessionCookie(c, token, expiresAt);
 
@@ -977,6 +982,7 @@ app.get('/auth/export', async (c) => {
     db
       .select({
         type: securityEvents.type,
+        method: securityEvents.method,
         device: securityEvents.device,
         location: securityEvents.location,
         createdAt: securityEvents.createdAt,
@@ -1010,6 +1016,7 @@ app.get('/auth/export', async (c) => {
       })),
     securityActivity: eventRows.map((event) => ({
       type: event.type,
+      method: event.method,
       device: event.device,
       location: event.location,
       createdAt: event.createdAt.toISOString(),
