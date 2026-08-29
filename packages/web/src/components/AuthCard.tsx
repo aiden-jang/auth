@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { APPS, appHref } from '../lib/apps';
 import type { ReturnApp } from '../lib/returnTo';
 import { themeFor, themeStyle } from '../lib/theme';
+import { BrandMark } from './BrandMark';
 
 export const inputClass =
   'w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20';
@@ -10,21 +11,6 @@ export const buttonClass =
   'btn-gradient w-full cursor-pointer rounded-full px-5 py-3 font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
 
 export const labelClass = 'mb-1.5 block text-sm font-medium text-muted';
-
-function BrandMark(): ReactNode {
-  return (
-    <span
-      aria-hidden
-      className="inline-grid h-8 w-8 place-items-center rounded-[10px]"
-      style={{ background: 'linear-gradient(135deg, #a78bfa, #22d3ee)' }}
-    >
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M6 3.5h12v17l-2.2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 20.5v-17Z" fill="#09090f" fillOpacity="0.92" />
-        <path d="M9 8.5h6M9 12h6M9 15.5h3.5" stroke="#a78bfa" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
-    </span>
-  );
-}
 
 function Wordmark(): ReactNode {
   // Links home — accounts.aidenjang.com in prod, the local root in dev.
@@ -75,11 +61,14 @@ function BrandPanel(): ReactNode {
               <li key={app.name}>
                 {/* Opens in a new tab so exploring an app never abandons a sign-in in progress
                     (e.g. when the user was sent here with a return_to). */}
+                {/* Hovering tints the name in the app's own accent, the colour already sitting in
+                    its dot, rather than the house purple every row would otherwise share. */}
                 <a
                   href={appHref(app)}
                   target="_blank"
                   rel="noreferrer"
                   className="group flex items-baseline gap-3"
+                  style={{ '--app-accent': app.accent } as CSSProperties}
                 >
                   <span
                     aria-hidden
@@ -87,7 +76,7 @@ function BrandPanel(): ReactNode {
                     style={{ background: app.accent }}
                   />
                   <span>
-                    <span className="text-sm font-medium text-ink transition-colors group-hover:text-accent">
+                    <span className="text-sm font-medium text-ink transition-colors group-hover:[color:var(--app-accent)]">
                       {app.name}
                     </span>
                     <span className="ml-2 text-sm text-muted">{app.tagline}</span>

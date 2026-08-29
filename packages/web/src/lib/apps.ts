@@ -5,7 +5,7 @@
 // `tagline` stays short (a few words) so the launcher rows read at a glance.
 
 export interface AppLink {
-  /** Display name, matching the app's own lowercase wordmark. */
+  /** Display name, matching the app's own wordmark, casing included. */
   name: string;
   /** A few words on what it does, in the app's voice. */
   tagline: string;
@@ -57,6 +57,14 @@ export const APPS: AppLink[] = [
     url: 'https://iguess.aidenjang.com',
     devUrl: 'http://localhost:33100',
     accent: '#38bdf8',
+  },
+  {
+    name: 'Everything Is Fine',
+    tagline: 'everything happening, on a globe',
+    url: 'https://everythingisfine.aidenjang.com',
+    devUrl: 'http://localhost:31600',
+    // Its palette is deliberately desaturated, so this is the star colour rather than an invented hue.
+    accent: '#c8d2e2',
   },
 ];
 

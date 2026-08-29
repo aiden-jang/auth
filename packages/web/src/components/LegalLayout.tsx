@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { BrandMark } from './BrandMark';
 
 /**
  * Shared shell for the legal pages (/privacy, /terms). Wider than AuthCard since these are
@@ -18,16 +19,7 @@ export function LegalLayout({
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-5 py-10">
       <Link to="/account" className="mb-6 flex items-center gap-2 font-semibold tracking-tight">
-        <span
-          aria-hidden
-          className="inline-grid h-8 w-8 place-items-center rounded-[10px]"
-          style={{ background: 'linear-gradient(135deg, #a78bfa, #22d3ee)' }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path d="M6 3.5h12v17l-2.2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 20.5v-17Z" fill="#09090f" fillOpacity="0.92" />
-            <path d="M9 8.5h6M9 12h6M9 15.5h3.5" stroke="#a78bfa" strokeWidth="1.4" strokeLinecap="round" />
-          </svg>
-        </span>
+        <BrandMark />
         aidenjang
       </Link>
 
