@@ -937,29 +937,6 @@ app.post('/auth/disconnect-google', async (c) => {
 
 // The signed-in user's recent security activity. The allowlisted event type is recorded by this
 // service, while device and location remain intentionally coarse.
-app.get('/auth/security-events', async (c) => {
-  const cookie = getCookie(c, SESSION_COOKIE);
-  const db = createDb(c.env);
-  const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
-
-  const events = await db
-    .select({
-      id: securityEvents.id,
-      type: securityEvents.type,
-      device: securityEvents.device,
-      location: securityEvents.location,
-      createdAt: securityEvents.createdAt,
-    })
-    .from(securityEvents)
-    .where(eq(securityEvents.userId, me.id))
-    .orderBy(desc(securityEvents.createdAt))
-    .limit(12);
-
-  return c.json({
-    events: events.map((event) => ({ ...event, createdAt: event.createdAt.toISOString() })),
-  });
-});
 
 // A portable copy of the account data this identity service keeps. Credentials, provider ids,
 // session hashes, raw user agents and IP addresses are deliberately absent from both the query and

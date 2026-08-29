@@ -132,7 +132,7 @@ describe('caching', () => {
 
   it('applies it to every auth route, not just the one that broke', async () => {
     // Anything under /auth depends on who is asking, so none of it is cacheable.
-    for (const path of ['/auth/me', '/auth/sessions', '/auth/security-events']) {
+    for (const path of ['/auth/me', '/auth/sessions', '/auth/export']) {
       const cc = (await get(path)).headers.get('cache-control') ?? '';
       expect(cc, `${path}: ${cc || '(no header)'}`).toContain('no-store');
     }
@@ -360,8 +360,8 @@ describe('active sessions', () => {
 
     const refreshed = (await (await get('/auth/sessions', a.cookie)).json()) as { sessions: { id: string; device: string | null }[] };
     expect(refreshed.sessions.find((session) => session.id === aId)?.device).toBe('Personal MacBook');
-    const activity = (await (await get('/auth/security-events', a.cookie)).json()) as { events: { type: string }[] };
-    expect(activity.events.some((event) => event.type === 'device_renamed')).toBe(true);
+    const activity = (await (await get('/auth/export', a.cookie)).json()) as { securityActivity: { type: string }[] };
+    expect(activity.securityActivity.some((event) => event.type === 'device_renamed')).toBe(true);
 
     expect((await post('/auth/sessions/rename', { id: bId, label: 'Not mine' }, a.cookie)).status).toBe(404);
     const bRefreshed = (await (await get('/auth/sessions', b.cookie)).json()) as { sessions: { id: string; device: string | null }[] };
@@ -382,25 +382,25 @@ describe('active sessions', () => {
   });
 });
 
-describe('security activity', () => {
-  it('lists only the signed-in user’s recent account events', async () => {
+describe('the account event trail', () => {
+  it('keeps only the signed-in user’s recent account events', async () => {
     const a = await register();
     const b = await register();
     await post('/auth/login', { email: a.email, password: a.password });
 
-    const response = await get('/auth/security-events', a.cookie);
+    const response = await get('/auth/export', a.cookie);
     expect(response.status).toBe(200);
     const body = (await response.json()) as {
-      events: { type: string; device: string | null; createdAt: string }[];
+      securityActivity: { type: string; device: string | null; createdAt: string }[];
     };
-    expect(body.events.map((event) => event.type)).toEqual(
+    expect(body.securityActivity.map((event) => event.type)).toEqual(
       expect.arrayContaining(['account_created', 'signed_in']),
     );
-    expect(body.events).toHaveLength(2);
-    expect(body.events.every((event) => !Number.isNaN(Date.parse(event.createdAt)))).toBe(true);
+    expect(body.securityActivity).toHaveLength(2);
+    expect(body.securityActivity.every((event) => !Number.isNaN(Date.parse(event.createdAt)))).toBe(true);
 
-    const other = (await (await get('/auth/security-events', b.cookie)).json()) as { events: unknown[] };
-    expect(other.events).toHaveLength(1);
+    const other = (await (await get('/auth/export', b.cookie)).json()) as { securityActivity: unknown[] };
+    expect(other.securityActivity).toHaveLength(1);
   });
 
   it('records password changes and device sign-outs but ignores cross-account revoke attempts', async () => {
@@ -409,10 +409,10 @@ describe('security activity', () => {
     const bSessions = (await (await get('/auth/sessions', b.cookie)).json()) as { sessions: { id: string }[] };
 
     await post('/auth/sessions/revoke', { id: bSessions.sessions[0]!.id }, a.cookie);
-    const unchanged = (await (await get('/auth/security-events', a.cookie)).json()) as {
-      events: { type: string }[];
+    const unchanged = (await (await get('/auth/export', a.cookie)).json()) as {
+      securityActivity: { type: string }[];
     };
-    expect(unchanged.events.map((event) => event.type)).not.toContain('device_signed_out');
+    expect(unchanged.securityActivity.map((event) => event.type)).not.toContain('device_signed_out');
 
     const changed = await post(
       '/auth/change-password',
@@ -421,14 +421,14 @@ describe('security activity', () => {
     );
     const newCookie = sessionCookie(changed);
     expect(newCookie).toBeTruthy();
-    const activity = (await (await get('/auth/security-events', newCookie!)).json()) as {
-      events: { type: string }[];
+    const activity = (await (await get('/auth/export', newCookie!)).json()) as {
+      securityActivity: { type: string }[];
     };
-    expect(activity.events.map((event) => event.type)).toContain('password_changed');
+    expect(activity.securityActivity.map((event) => event.type)).toContain('password_changed');
   });
 
   it('requires authentication', async () => {
-    expect((await get('/auth/security-events')).status).toBe(401);
+    expect((await get('/auth/export')).status).toBe(401);
   });
 });
 
@@ -682,9 +682,9 @@ describe('session hygiene on credential changes', () => {
     // Unlinking rotates the cookie too, so read the log with the one it hands back.
     const final = sessionCookie(await post('/auth/disconnect-google', {}, rotated))!;
 
-    const res = await get('/auth/security-events', final);
-    const { events } = (await res.json()) as { events: { type: string }[] };
-    const types = events.map((e) => e.type);
+    const res = await get('/auth/export', final);
+    const { securityActivity } = (await res.json()) as { securityActivity: { type: string }[] };
+    const types = securityActivity.map((e) => e.type);
     expect(types).toContain('password_added');
     expect(types).toContain('google_disconnected');
   });
@@ -902,8 +902,8 @@ describe('passkeys', () => {
     expect((await post('/auth/passkeys/delete', { id: credId }, cookie)).status).toBe(200);
     expect(((await (await get('/auth/passkeys', cookie)).json()) as { passkeys: unknown[] }).passkeys).toHaveLength(0);
 
-    const events = (await (await get('/auth/security-events', cookie)).json()) as { events: { type: string }[] };
-    expect(events.events.map((e) => e.type)).toContain('passkey_removed');
+    const events = (await (await get('/auth/export', cookie)).json()) as { securityActivity: { type: string }[] };
+    expect(events.securityActivity.map((e) => e.type)).toContain('passkey_removed');
   });
 
   /*

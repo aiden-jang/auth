@@ -11,7 +11,6 @@ import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
 import { Skeleton } from '../components/Skeleton';
 import { APPS, appHref } from '../lib/apps';
-import { SecurityActivity } from '../components/SecurityActivity';
 import { PasskeyList } from '../components/PasskeyList';
 import { sessionHorizon } from '../lib/sessionHorizon';
 import { useStepUp } from '../components/StepUpPrompt';
@@ -76,7 +75,6 @@ export function AccountPage(): ReactNode {
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
   const [sessionNameDraft, setSessionNameDraft] = useState('');
   const [savingSessionName, setSavingSessionName] = useState(false);
-  const [securityRevision, setSecurityRevision] = useState(0);
   const [exportStatus, setExportStatus] = useState<'exporting' | 'downloaded' | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [showDelete, setShowDelete] = useState(false);
@@ -92,7 +90,6 @@ export function AccountPage(): ReactNode {
       await authApi.revokeSession(id);
       setSessions((s) => s?.filter((x) => x.id !== id) ?? null);
       setExpandedSessionId((current) => (current === id ? null : current));
-      setSecurityRevision((value) => value + 1);
     } catch {
       setSessionError('Couldn’t sign that device out. Try again.');
     } finally {
@@ -121,7 +118,6 @@ export function AccountPage(): ReactNode {
       );
       setRenamingSessionId(null);
       setSessionNameDraft('');
-      setSecurityRevision((value) => value + 1);
     } catch {
       setSessionError('Couldn’t rename that device. Try again.');
     } finally {
@@ -135,7 +131,6 @@ export function AccountPage(): ReactNode {
     try {
       await authApi.revokeOtherSessions();
       setSessions((s) => s?.filter((x) => x.current) ?? null);
-      setSecurityRevision((value) => value + 1);
       return true;
     } catch {
       setSessionError('Couldn’t sign the other devices out. Try again.');
@@ -264,7 +259,6 @@ export function AccountPage(): ReactNode {
       await stepUp.guard('unlink Google', async () => {
         await authApi.disconnectGoogle();
         setUser({ ...user, hasGoogle: false });
-        setSecurityRevision((value) => value + 1);
       });
     } catch (err) {
       setGoogleMsg(err instanceof Error ? err.message : 'Could not disconnect Google.');
@@ -305,7 +299,6 @@ export function AccountPage(): ReactNode {
       resetPwForm();
       setPwDone(true);
       if (securityReviewStatus === 'secured') dismissSecurityReview();
-      setSecurityRevision((value) => value + 1);
     } catch (err) {
       setPwError(
         err instanceof Error
@@ -990,12 +983,7 @@ export function AccountPage(): ReactNode {
             )}
           </section>
           <hr className="my-6 border-line" />
-          <PasskeyList
-            guard={stepUp.guard}
-            onChanged={() => setSecurityRevision((value) => value + 1)}
-          />
-          <hr className="my-6 border-line" />
-          <SecurityActivity refreshKey={securityRevision} />
+          <PasskeyList guard={stepUp.guard} />
           <hr className="my-6 border-line" />
           <section
             aria-labelledby="your-data-heading"

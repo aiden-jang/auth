@@ -219,7 +219,6 @@ export const authApi = {
     req<{ ok: boolean }>('/auth/passkeys/rename', 'POST', { id, label }),
   deletePasskey: (id: string) => req<{ ok: boolean }>('/auth/passkeys/delete', 'POST', { id }),
   listSessions: () => req<{ sessions: SessionInfo[] }>('/auth/sessions', 'GET'),
-  listSecurityEvents: () => req<{ events: SecurityEvent[] }>('/auth/security-events', 'GET'),
   exportAccount: () => req<AccountExport>('/auth/export', 'GET'),
   renameSession: (id: string, label: string) =>
     req<{ session: Pick<SessionInfo, 'id' | 'device'> }>('/auth/sessions/rename', 'POST', { id, label }),
