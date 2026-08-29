@@ -1,13 +1,8 @@
 import type { ReactNode } from 'react';
 
 /*
- * The same key the browser tab shows (public/favicon.svg). Header and tab have to agree: this used
- * to draw a receipt, which is owewell's glyph, so the tab and the page advertised two different
- * products. Kept as a stroked ring rather than two stacked circles so the bit the key looks through
- * is genuinely transparent and picks up the tile gradient, exactly like the favicon does.
- *
- * The gradient is the aurora from index.css, the one behind every auth screen, not decoration
- * invented for the mark.
+ * Keep in step with public/favicon.svg: same mark, and nothing fails if the two drift apart.
+ * The bow is a stroked ring so its hole is really transparent and the tile shows through.
  */
 export function BrandMark(): ReactNode {
   return (

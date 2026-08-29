@@ -17,7 +17,6 @@ export type SecurityEventType =
   | 'passkey_added'
   | 'passkey_removed';
 
-/** The ways into an account. Recorded so an alert can say which one was used. */
 export type SignInMethod = 'password' | 'google' | 'passkey';
 
 export async function recordSecurityEvent(

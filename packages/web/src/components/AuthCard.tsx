@@ -61,8 +61,6 @@ function BrandPanel(): ReactNode {
               <li key={app.name}>
                 {/* Opens in a new tab so exploring an app never abandons a sign-in in progress
                     (e.g. when the user was sent here with a return_to). */}
-                {/* Hovering tints the name in the app's own accent, the colour already sitting in
-                    its dot, rather than the house purple every row would otherwise share. */}
                 <a
                   href={appHref(app)}
                   target="_blank"

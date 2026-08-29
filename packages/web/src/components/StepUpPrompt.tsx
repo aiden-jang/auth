@@ -180,7 +180,6 @@ function StepUpDialog({
                 {busy ? 'Checking...' : 'Confirm'}
               </button>
             </div>
-            {/* Says what is actually happening rather than filling the wait. See lib/reassurance.ts. */}
             {busy && (
               <p role="status" className="mt-2 text-center text-xs text-muted">
                 {reassurance('reauth')}

@@ -48,7 +48,6 @@ export function PasskeySignIn({ returnTo }: { returnTo?: string | null }): React
         <span aria-hidden>⚿</span>
         {busy ? 'Waiting for your device...' : 'Sign in with a passkey'}
       </button>
-      {/* While waiting, the pitch gives way to what is happening. See lib/reassurance.ts. */}
       <p role={busy ? 'status' : undefined} className="mt-2 text-center text-xs text-muted">
         {busy ? reassurance('passkey') : 'No password to type or remember. Your device confirms it is you.'}
       </p>

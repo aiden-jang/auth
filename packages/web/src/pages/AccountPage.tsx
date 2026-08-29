@@ -808,7 +808,6 @@ export function AccountPage(): ReactNode {
                 )}
               </div>
             </div>
-            {/* Says what is actually happening rather than filling the wait. See lib/reassurance.ts. */}
             {(sessions === null || refreshingSessions) && (
               <p role="status" className="mt-3 text-xs text-muted">
                 {reassurance('sessions')}

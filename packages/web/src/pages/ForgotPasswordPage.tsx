@@ -136,7 +136,6 @@ export function ForgotPasswordPage(): ReactNode {
           <EmailSuggestion value={email} onAccept={setEmail} />
           <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />
           <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>{loading ? 'Sending...' : 'Send reset link'}</button>
-          {/* Says what is actually happening rather than filling the wait. See lib/reassurance.ts. */}
           {loading && (
             <p role="status" className="text-center text-xs text-muted">
               {reassurance('reset-link')}
