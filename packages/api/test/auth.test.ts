@@ -511,6 +511,40 @@ describe('magic-link sign-in', () => {
   });
 });
 
+describe('how each sign-in happened', () => {
+  /** The signed_in rows from someone's export, newest first. */
+  async function signInMethods(cookie: string): Promise<(string | null)[]> {
+    const body = (await (await get('/auth/export', cookie)).json()) as {
+      securityActivity: { type: string; method: string | null }[];
+    };
+    return body.securityActivity
+      .filter((event) => event.type === 'signed_in')
+      .map((event) => event.method);
+  }
+
+  it('records a password sign-in as password', async () => {
+    const { email, password } = await register();
+    const cookie = sessionCookie(await post('/auth/login', { email, password }));
+    expect(await signInMethods(cookie!)).toEqual(['password']);
+  });
+
+  it('records a magic-link sign-in as link', async () => {
+    const { id } = await register();
+    const token = await issueToken(db(), id, 'magic');
+    const cookie = sessionCookie(await getManual(`/auth/magic/callback?token=${token}`));
+    expect(await signInMethods(cookie!)).toEqual(['link']);
+  });
+
+  it('leaves the method empty on events that are not sign-ins', async () => {
+    const { cookie } = await register();
+    const body = (await (await get('/auth/export', cookie)).json()) as {
+      securityActivity: { type: string; method: string | null }[];
+    };
+    const created = body.securityActivity.find((event) => event.type === 'account_created');
+    expect(created?.method).toBeNull();
+  });
+});
+
 describe('delete account', () => {
   it('deletes with the correct password and blocks login afterward', async () => {
     const { email, password, cookie } = await register();

@@ -26,11 +26,29 @@ describe('new-device sign-in alerts', () => {
     const { html } = signInAlertEmail(
       { device: '<script>alert(1)</script>', location: 'A&B' },
       'https://accounts.example/account?x=1&y=2',
+      'password',
       new Date(now),
     );
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
     expect(html).toContain('A&amp;B');
     expect(html).toContain('x=1&amp;y=2');
+  });
+
+  const meta = { device: 'Chrome on macOS', location: 'Boston, US' };
+
+  it.each([
+    ['password', 'Password'],
+    ['google', 'Google'],
+    ['link', 'Emailed sign-in link'],
+    ['passkey', 'Passkey'],
+  ] as const)('names the %s method in the alert', (method, label) => {
+    const { text } = signInAlertEmail(meta, 'https://accounts.example/account', method, new Date(now));
+    expect(text).toContain(`How: ${label}`);
+  });
+
+  it('leaves out the method when the sign-in predates recording it', () => {
+    const { text } = signInAlertEmail(meta, 'https://accounts.example/account', undefined, new Date(now));
+    expect(text).not.toContain('How:');
   });
 });

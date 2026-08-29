@@ -17,16 +17,21 @@ export type SecurityEventType =
   | 'passkey_added'
   | 'passkey_removed';
 
+/** The four ways into an account. Recorded so an alert can say which one was used. */
+export type SignInMethod = 'password' | 'google' | 'link' | 'passkey';
+
 export async function recordSecurityEvent(
   db: DB,
   userId: string,
   type: SecurityEventType,
   meta?: SessionMeta,
+  method?: SignInMethod,
 ): Promise<void> {
   await db.insert(securityEvents).values({
     id: crypto.randomUUID(),
     userId,
     type,
+    method: method ?? null,
     device: meta?.device ?? null,
     location: meta?.location ?? null,
   });
