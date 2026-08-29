@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { passkeysLikely, signInWithPasskey } from '../lib/passkeys';
 import { safeReturnTo } from '../lib/returnTo';
+import { reassurance } from '../lib/reassurance';
 
 /*
  * Cancelling shows no error. WebAuthn reports cancel, no-matching-key and timeout identically so a site
@@ -47,8 +48,9 @@ export function PasskeySignIn({ returnTo }: { returnTo?: string | null }): React
         <span aria-hidden>⚿</span>
         {busy ? 'Waiting for your device...' : 'Sign in with a passkey'}
       </button>
-      <p className="mt-2 text-center text-xs text-muted">
-        No password to type or remember. Your device confirms it is you.
+      {/* While waiting, the pitch gives way to what is happening. See lib/reassurance.ts. */}
+      <p role={busy ? 'status' : undefined} className="mt-2 text-center text-xs text-muted">
+        {busy ? reassurance('passkey') : 'No password to type or remember. Your device confirms it is you.'}
       </p>
       {error && (
         <p role="alert" className="mt-2 text-center text-xs text-neg">

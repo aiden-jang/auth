@@ -1,3 +1,6 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { ALL_REASSURANCE, reassurance } from '../src/lib/reassurance';
 import { partOfDay, welcome, welcomeLine } from '../src/lib/welcome';
@@ -15,6 +18,24 @@ describe('reassurance copy', () => {
       expect(reassurance(key)).toBe(line);
       expect(line.length).toBeGreaterThan(20);
       expect(line.trim()).toMatch(/\.$/);
+    }
+  });
+
+  it('renders every line somewhere in the app', () => {
+    // A line nobody can reach is unverifiable copy: it cannot drift visibly, so it rots quietly.
+    const src = fileURLToPath(new URL('../src', import.meta.url));
+    const walk = (dir: string): string[] =>
+      readdirSync(dir).flatMap((name) => {
+        const full = join(dir, name);
+        if (statSync(full).isDirectory()) return walk(full);
+        return /\.tsx?$/.test(name) && !name.includes('.test.') ? [full] : [];
+      });
+    const code = walk(src)
+      .filter((file) => !file.endsWith(join('lib', 'reassurance.ts')))
+      .map((file) => readFileSync(file, 'utf8'))
+      .join('\n');
+    for (const [key] of ALL_REASSURANCE) {
+      expect(code, `reassurance('${key}') is never rendered`).toContain(`reassurance('${key}')`);
     }
   });
 
@@ -51,7 +72,6 @@ describe('reassurance copy', () => {
 describe('the welcome line', () => {
   const account = (over: Partial<RecentAccount> = {}): RecentAccount => ({
     email: 'aidenwsj@gmail.com',
-    method: 'password',
     lastUsedAt: '2026-08-01T10:00:00.000Z',
     ...over,
   });

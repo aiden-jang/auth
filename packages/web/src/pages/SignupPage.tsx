@@ -8,6 +8,7 @@ import { PasswordStrength } from '../components/PasswordStrength';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { GoogleSignIn } from '../components/GoogleSignIn';
 import { EmailSuggestion } from '../components/EmailSuggestion';
+import { reassurance } from '../lib/reassurance';
 
 export function SignupPage(): ReactNode {
   const [params] = useSearchParams();
@@ -207,6 +208,12 @@ export function SignupPage(): ReactNode {
         <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>
           {loading ? 'Creating...' : 'Create account'}
         </button>
+        {/* Says what is actually happening rather than filling the wait. See lib/reassurance.ts. */}
+        {loading && (
+          <p role="status" className="text-center text-xs text-muted">
+            {reassurance('signup')}
+          </p>
+        )}
       </form>
 
       <p className="mt-5 text-center text-sm text-muted">
