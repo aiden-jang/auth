@@ -37,7 +37,7 @@ export const APPS: AppLink[] = [
   },
   {
     name: 'wherever',
-    tagline: 'everyone swipes, majority wins',
+    tagline: 'decide where to eat now',
     url: 'https://wherever.aidenjang.com',
     devUrl: 'http://localhost:5173',
     // The lime dot on its "W," icon. Keep it clear of mrrp's orange, or the two dots read as one.
@@ -49,7 +49,7 @@ export const APPS: AppLink[] = [
     // A hub that silently omits an app is more confusing than one that includes an app which
     // happens not to need you signed in.
     name: 'mrrp',
-    tagline: 'one of you is the cat',
+    tagline: "she's the cat, you look after her",
     url: 'https://mrrp.aidenjang.com',
     devUrl: 'http://localhost:30005',
     accent: '#e8963f',
