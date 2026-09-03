@@ -18,8 +18,9 @@ import { globSync, readFileSync } from 'node:fs';
  * 865 -> 870 for the passkey offer: three functions and an autofill path, trimmed twice first.
  * 870 -> 858 after trimming http/context.ts, which had been repeating credentialAlert.ts.
  * 858 -> 820 after index.ts and harden.ts, the last two files that were more prose than code.
+ * 820 -> 784 after a pass over every remaining file with more than a third comments.
  */
-const SRC_BUDGET = 820;
+const SRC_BUDGET = 784;
 const DUP_MIN_CHARS = 45;
 
 /**

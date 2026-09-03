@@ -8,11 +8,10 @@ export interface AuthUser {
 const ME_PATH = '/auth/me';
 
 /**
- * Validate the caller's session by forwarding their cookie to the shared auth service.
- * Use inside an app's Worker: pass the incoming Request and the auth service base URL
- * (e.g. "https://accounts.aidenjang.com"). Returns the user, or null if unauthenticated.
+ * The user this request's cookie proves, or null. Call it in an app's Worker with the incoming
+ * Request and the auth service's base URL.
  *
- * Prefer `resolveSession` in new code: this cannot tell "signed out" from "Accounts is down".
+ * Prefer `resolveSession`: this cannot tell "signed out" from "Accounts is down".
  */
 export async function getSessionUser(
   request: Request,
@@ -33,16 +32,11 @@ export type SessionOutcome =
   | { state: 'unavailable' };
 
 /**
- * Resolve the caller's session, keeping "signed out" and "we could not ask" apart.
+ * Resolve the caller's session, keeping "signed out" and "could not ask" apart. An outage read as
+ * a sign-out offers to sign in someone who already is, and to import guest data over synced data.
  *
- * `getSessionUser` collapses both into null, and an outage that reads as a sign-out does real
- * damage: apps offer to sign in someone who already is, and offer to import guest data over
- * data that is already synced. /auth/me has 500d in production more than once, so this is the
- * failure to design for, not a hypothetical one.
- *
- * Only a reachable service that actually refuses the cookie counts as signed out. Anything
- * else -- unreachable, 5xx, a rate limit, a wrong base URL, a body that will not parse -- is
- * unavailable, because none of them are evidence about this person.
+ * Only a reachable service refusing the cookie is signed out. Unreachable, 5xx, a rate limit, a
+ * wrong base URL or an unparseable body are all `unavailable` -- none is evidence about the person.
  */
 export async function resolveSession(
   request: Request,
@@ -102,9 +96,8 @@ export interface FooterLink {
 }
 
 /**
- * The shared site-footer link model: the author credit plus the legal pages, which live once
- * on the account app (privacy/terms are derived from `authBaseUrl` so dev points local).
- * Content only — each app renders these in its own theme so the footer matches the app.
+ * The author credit plus the legal pages, which live once on the account app. Content only: each
+ * app renders these in its own theme.
  */
 export function siteFooterLinks(authBaseUrl: string): FooterLink[] {
   return [

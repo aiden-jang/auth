@@ -1,8 +1,4 @@
-// Single source of truth for the apps that live under aidenjang. The
-// account hub renders this list as a launcher, so adding a new app is one
-// entry here — no page edits needed.
-//
-// `tagline` stays short (a few words) so the launcher rows read at a glance.
+// The launcher list. Adding an app is one entry here, no page edits.
 
 export interface AppLink {
   /** Display name, always lower case. apps.test.ts holds the line. */
@@ -11,8 +7,7 @@ export interface AppLink {
   tagline: string;
   /** Production URL (custom domain). */
   url: string;
-  /** Local dev URL (the app's vite dev port), used when the account UI is
-   *  itself being served from localhost. */
+  /** Used instead of `url` when the account UI is itself on localhost. */
   devUrl: string;
   /** Accent colour: the launcher dot, and the panel tint after ?return_to. Take it from the app's
    *  own icon; theme.test.ts enforces the contrast floor. */
@@ -44,10 +39,8 @@ export const APPS: AppLink[] = [
     accent: '#d7ff3e',
   },
   {
-    // The odd one out: mrrp has no accounts at all, so signing in changes nothing about it. It is
-    // listed anyway because the launcher answers "what lives here", not "what reads your session".
-    // A hub that silently omits an app is more confusing than one that includes an app which
-    // happens not to need you signed in.
+    // Listed although it has no accounts: the launcher answers "what lives here", not "what reads
+    // your session". Silently omitting an app is the more confusing of the two.
     name: 'mrrp',
     tagline: "she's the cat, you look after her",
     url: 'https://mrrp.aidenjang.com',
@@ -78,11 +71,7 @@ function isLocalHost(): boolean {
   return h === 'localhost' || h === '127.0.0.1';
 }
 
-/**
- * URL to open for an app. When the account page is itself running locally we
- * link to the app's local dev server, so clicking through keeps you in your
- * local environment instead of jumping to production.
- */
+/** Locally, link to the app's dev server so clicking through does not jump to production. */
 export function appHref(app: AppLink): string {
   return isLocalHost() ? app.devUrl : app.url;
 }
