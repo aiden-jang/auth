@@ -11,7 +11,7 @@ beforeEach(() => {
 afterEach(() => fetchMock.assertNoPendingInterceptors());
 
 /** Intercept siteverify, capturing the form Cloudflare would have received. */
-function expectSiteverify(reply: unknown, status = 200): { body: () => string } {
+function expectSiteverify(reply: object, status = 200): { body: () => string } {
   let captured = '';
   fetchMock
     .get(SITEVERIFY)

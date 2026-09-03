@@ -38,7 +38,7 @@ function sessionCookie(res: Response): string | null {
   const cookies = res.headers.getSetCookie();
   for (const c of cookies) {
     const m = /(?:^|;\s*)(platform_session=([^;]*))/.exec(c);
-    if (m && m[2]) return m[1];
+    if (m?.[1] && m[2]) return m[1];
   }
   return null;
 }
@@ -75,9 +75,9 @@ describe('registration', () => {
     expect(body.user.emailVerified).toBe(false);
 
     const row = await db().select().from(users).where(eq(users.email, email)).get();
-    expect(row).toBeTruthy();
-    expect(row!.passwordHash).not.toContain('password123'); // never stored in the clear
-    expect(row!.passwordHash.startsWith('pbkdf2$')).toBe(true);
+    expect(row?.passwordHash).toBeTruthy();
+    expect(row?.passwordHash).not.toContain('password123'); // never stored in the clear
+    expect(row?.passwordHash?.startsWith('pbkdf2$')).toBe(true);
   });
 
   it('rejects a duplicate email with 409', async () => {
