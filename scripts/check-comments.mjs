@@ -14,8 +14,10 @@ import { globSync, readFileSync } from 'node:fs';
  * to accommodate an explanation you are rewriting rather than a module you are adding, trim the
  * explanation instead. It was set at 910 once and had crept to 907 within a day, entirely on
  * paragraphs restating what the file below already showed.
+ *
+ * 865 -> 870 for the passkey offer: three functions and an autofill path, trimmed twice first.
  */
-const SRC_BUDGET = 865;
+const SRC_BUDGET = 870;
 const DUP_MIN_CHARS = 45;
 
 /**
