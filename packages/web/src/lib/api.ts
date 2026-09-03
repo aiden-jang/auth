@@ -46,28 +46,19 @@ export interface SessionInfo {
   expiresAt: string;
 }
 
-type SecurityEventType =
-  | 'account_created'
-  | 'signed_in'
-  | 'email_verified'
-  | 'password_added'
-  | 'password_changed'
-  | 'password_reset'
-  | 'google_connected'
-  | 'google_disconnected'
-  | 'device_renamed'
-  | 'device_signed_out'
-  | 'other_devices_signed_out'
-  | 'passkey_added'
-  | 'passkey_removed';
-
-/** Null on anything that is not a sign-in, and on sign-ins recorded before it was tracked. */
-type SignInMethod = 'password' | 'google' | 'passkey';
-
+/*
+ * Deliberately not an enumeration of the event names.
+ *
+ * The server owns that vocabulary, and this trail is only ever passed through into the account
+ * data download -- nothing here switches on a value. Listing them again in this file would be a
+ * second copy that nothing keeps in step with securityEvents.ts, and the first symptom of a new
+ * event type would be a type that quietly disagrees with the wire.
+ */
 interface SecurityEvent {
   id: string;
-  type: SecurityEventType;
-  method: SignInMethod | null;
+  type: string;
+  /** Null on anything that is not a sign-in, and on sign-ins recorded before it was tracked. */
+  method: string | null;
   device: string | null;
   location: string | null;
   createdAt: string;
