@@ -19,7 +19,7 @@ const LINE = '#e6e3ef';
 const CANVAS = '#f5f4f8';
 const ACCENT = '#5b4bd6';
 
-export interface EmailAction {
+interface EmailAction {
   label: string;
   url: string;
 }

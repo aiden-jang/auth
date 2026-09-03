@@ -46,7 +46,7 @@ export interface SessionInfo {
   expiresAt: string;
 }
 
-export type SecurityEventType =
+type SecurityEventType =
   | 'account_created'
   | 'signed_in'
   | 'email_verified'
@@ -62,9 +62,9 @@ export type SecurityEventType =
   | 'passkey_removed';
 
 /** Null on anything that is not a sign-in, and on sign-ins recorded before it was tracked. */
-export type SignInMethod = 'password' | 'google' | 'passkey';
+type SignInMethod = 'password' | 'google' | 'passkey';
 
-export interface SecurityEvent {
+interface SecurityEvent {
   id: string;
   type: SecurityEventType;
   method: SignInMethod | null;

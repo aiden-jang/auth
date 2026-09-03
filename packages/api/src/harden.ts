@@ -35,7 +35,7 @@ export const DEFAULT_CSP = [
 ].join('; ');
 
 /** Disable device APIs no app uses by default. wherever overrides to allow geolocation. */
-export const DEFAULT_PERMISSIONS_POLICY =
+const DEFAULT_PERMISSIONS_POLICY =
   'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()';
 
 export interface SecurityHeaderOptions {

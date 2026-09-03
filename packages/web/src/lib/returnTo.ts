@@ -41,8 +41,3 @@ export function returnAppFor(raw: string | null): ReturnApp | null {
     return null;
   }
 }
-
-/** A human label for places that only need the name. */
-export function returnAppName(raw: string | null): string | null {
-  return returnAppFor(raw)?.name ?? null;
-}
