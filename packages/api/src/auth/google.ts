@@ -23,15 +23,11 @@ export interface AuthedUser {
 }
 
 /**
- * Resolve a post-login redirect target safely: allow only https aidenjang.com hosts, else fall
- * back to `${base}/account`. `base` is the UI origin (APP_URL). Blocks open-redirect via
- * `return_to`, which is a phishing vector worth caring about because the victim really did just
- * sign in to the real site and carries that trust to wherever they land.
+ * Only https aidenjang.com hosts, else `${base}/account`. An open redirect here is a real phishing
+ * vector: the victim did just sign in to the real site, and carries that trust wherever they land.
  *
- * Loopback is allowed only when the account app is itself on loopback, which is true in dev (the
- * worker and Vite sit on two localhost ports) and never in production. Keying that off `base`
- * rather than the target is what stops production being talked into pointing somebody at a
- * service on their own machine.
+ * Loopback passes only when `base` is itself loopback -- true in dev, never in production. Keying
+ * that off `base` rather than the target is what stops production pointing at somebody's machine.
  */
 export function safeAppRedirect(returnTo: string, base: string): string {
   const baseUrl = new URL(base);
@@ -149,14 +145,11 @@ export async function exchangeGoogleCode(
 }
 
 /**
- * Find or create the account for a Google identity, or null if Google will not vouch for the
- * address. Match by google_id first, then link to an existing account with the same email, else
- * create a new passwordless account.
+ * Match on google_id, else link by email, else create. Null when Google will not vouch.
  *
- * Everything past the google_id match turns on an email address, so an unverified one buys
- * nothing and risks everything: matching one to an existing account hands that account to whoever
- * claimed the address, and opening a new one lets somebody squat an address they do not own. A
- * google_id that already matches is a binding established earlier and stands on its own.
+ * Everything past the google_id match turns on the address, so an unverified one is refused: it
+ * would hand an existing account to whoever claimed it, or let somebody squat one. A google_id
+ * that matches is a binding established earlier and stands on its own.
  */
 export async function upsertGoogleUser(
   db: DB,

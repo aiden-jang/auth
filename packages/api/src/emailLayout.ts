@@ -25,12 +25,8 @@ interface EmailAction {
 }
 
 /**
- * Why this email exists, which is not the same question as what it says.
- *
- * Required rather than defaulted: every one of these used to read "someone used this address to sign
- * in", including the one that fires when a password changes. A footer that answers "why am I getting
- * this" with the wrong reason is worse than no footer, because the reader is usually consulting it to
- * decide whether the message is a fake.
+ * Required, never defaulted. A footer answering "why am I getting this" with the wrong reason is
+ * worse than none: the reader is usually consulting it to decide whether the message is a fake.
  */
 export type EmailReason = 'sign-in' | 'sign-up' | 'password-reset' | 'alert';
 
@@ -45,12 +41,9 @@ export interface EmailContent {
   footnote?: string;
   facts?: { label: string; value: string }[];
   /**
-   * The app they were trying to reach, named in the footer's "why am I getting this".
-   *
-   * Sign-in happens on the accounts page, so the sender stays "aidenjang"; this is the other half,
-   * what the person was actually doing. Someone who clicked sign in on owewell recognises owewell.
-   * Omitted where there is nothing to point at, which falls back to the house name. Ignored for an
-   * `alert`, which is about the account itself and not about any one app.
+   * The app they were reaching, named in the footer. The sender stays "aidenjang", so this is the
+   * half they recognise. Falls back to the house name, and is ignored for an `alert`, which is
+   * about the account rather than any one app.
    */
   app?: string | null | undefined;
 }

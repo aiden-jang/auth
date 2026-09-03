@@ -91,13 +91,9 @@ function BrandPanel(): ReactNode {
 }
 
 /**
- * Single column, for the signed-in hub.
- *
- * The split shell exists to sell the platform while you sign in: brand on the left, task on the
- * right. Once you are signed in there is nothing left to sell, so the account page was spending
- * half a screen on an aurora panel holding a wordmark and a headline that repeated the subtitle
- * sitting a few inches to its right. Worse, that panel is `hidden md:flex`, so it was never a
- * candidate for the app launcher either — anything moved into it vanishes on a phone.
+ * Single column, for the signed-in hub. The split shell sells the platform while you sign in;
+ * afterwards there is nothing left to sell. Its brand panel is also `hidden md:flex`, so anything
+ * moved into it vanishes on a phone.
  */
 export function AccountShell({
   title,
@@ -134,12 +130,9 @@ export function AuthCard({
   children: ReactNode;
 }): ReactNode {
   /*
-   * The page wears the colour of the app it will return you to.
-   *
-   * Scoped to this element rather than written to the document root, so the theme cannot outlive the page
-   * that asked for it: signing in from bloomnote and landing on the account page should not leave the hub
-   * pink. `returnApp` is already whitelist-validated by returnAppFor, which is what makes it safe to take
-   * a colour from at all.
+   * Scoped to this element, not the document root, so the theme cannot outlive the page that asked
+   * for it -- signing in from bloomnote must not leave the hub pink. Safe to colour from at all
+   * only because returnAppFor has already whitelist-validated it.
    */
   const theme = themeFor(returnApp ?? null);
 

@@ -1,12 +1,9 @@
 /*
- * Which app somebody was trying to reach, for the footer line that explains why they got the email.
+ * Which app somebody was reaching, for the footer line explaining why they got the email.
  *
- * Resolved here from the URL's hostname, never taken as a name the client sent. The result is printed
- * in an email, and "you are getting this because someone used this address to sign in to your bank"
- * is the exact sentence a phisher would want to put there.
- *
- * Derived from the subdomain rather than matched against a list of apps, so a new app under the hub
- * reads correctly without a matching entry here to forget.
+ * From the hostname, never a name the client sent: this is printed in an email, and "someone used
+ * this address to sign in to your bank" is exactly what a phisher would want there. Taken from the
+ * subdomain rather than a list, so a new app reads correctly with no entry here to forget.
  */
 
 const ROOT = 'aidenjang.com';

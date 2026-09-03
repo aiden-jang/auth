@@ -5,15 +5,9 @@ import { PasswordInput } from './PasswordInput';
 import { reassurance } from '../lib/reassurance';
 
 /*
- * "Confirm it's you", for the two actions that change how you sign in.
- *
- * Deliberately not a wall in front of everything. It appears only when the server refuses, which
- * means the common path (change something right after signing in) never sees it at all, and when it
- * does appear there is a real reason rather than a ritual. Security theatre trains people to type
- * their password into whatever asks.
- *
- * The prompt is reactive rather than pre-emptive on purpose: the server owns the freshness rule, so
- * the UI never has to keep its own copy of the window in sync. Ask, get refused, ask the human, retry.
+ * Reactive, not pre-emptive: ask, get refused, ask the human, retry. The server owns the freshness
+ * rule, so the UI keeps no copy of the window to fall out of sync -- and the common path, changing
+ * something right after signing in, never sees this at all.
  */
 
 interface Pending {
@@ -97,13 +91,9 @@ function StepUpDialog({
   }
 
   /*
-   * Rendered into <body>, not where it sits in the tree.
-   *
-   * AccountShell wraps its content in an entrance animation whose fill-mode leaves a transform on
-   * the element forever, and a transformed ancestor becomes the containing block for
-   * `position: fixed`. Inline, this "full screen" backdrop measured 576x2071 starting 626px above
-   * the viewport: sized to the card, anchored to the card, and scrollable off-screen on a long page.
-   * A portal is the only fix that does not depend on auditing every ancestor of every dialog.
+   * Portalled into <body>. A transformed ancestor becomes the containing block for
+   * `position: fixed`, and AccountShell's entrance animation leaves one behind forever -- inline,
+   * this full-screen backdrop got sized and anchored to the card instead of the viewport.
    */
   return createPortal(
     <div
