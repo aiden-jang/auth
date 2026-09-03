@@ -26,6 +26,10 @@ jobs:
       - run: pnpm comments
       # Every route documented, every path in the docs real. API.md had fallen twenty routes behind.
       - run: pnpm docs
+      # The deploy applies migrations before it publishes, so a migration that cannot apply is a
+      # deploy that does not happen. Catches both a schema change with no migration and a migration
+      # committed without its snapshot.
+      - run: pnpm migrations
       # Generated drizzle snapshots and the lockfile are in .prettierignore; everything a person
       # writes is checked.
       - run: pnpm format:check
