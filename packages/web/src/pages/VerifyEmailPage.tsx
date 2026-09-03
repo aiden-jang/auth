@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { AuthCard } from '../components/AuthCard';
@@ -11,8 +11,19 @@ export function VerifyEmailPage(): ReactNode {
   // "Confirming your email..." at somebody whose link was truncated.
   const [status, setStatus] = useState<'pending' | 'ok' | 'error'>(token ? 'pending' : 'error');
 
+  /*
+   * A verification token is spent on first use, so this may only ever send it once.
+   *
+   * Without the guard the effect running twice -- StrictMode in development, a remount, a fast
+   * refresh -- sends it twice: the first call verifies the address and the second is refused
+   * because the token is now gone, and whichever settles last decides what the page says. The
+   * person is left reading "invalid or expired" about a link that just worked.
+   */
+  const spent = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!token) return;
+    if (!token || spent.current === token) return;
+    spent.current = token;
     authApi
       .verifyEmail(token)
       .then(() => setStatus('ok'))
