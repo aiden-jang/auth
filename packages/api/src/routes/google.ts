@@ -14,7 +14,13 @@ import {
   safeAppRedirect,
 } from '../auth/google.js';
 import { recordSecurityEvent } from '../securityEvents.js';
-import { deliverSignInAlert, newSignInAlert, sessionMeta, type Env2 } from '../http/context.js';
+import {
+  deliverSignInAlert,
+  newSignInAlert,
+  sessionMeta,
+  type Env2,
+  unauthenticated,
+} from '../http/context.js';
 
 const app = new Hono<Env2>();
 
@@ -31,7 +37,7 @@ app.get('/auth/google', async (c) => {
   if (link) {
     const cookie = getCookie(c, SESSION_COOKIE);
     const authed = cookie ? await validateSession(createDb(c.env), cookie) : null;
-    if (!authed) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+    if (!authed) return unauthenticated(c);
   }
   const state = crypto.randomUUID();
   const redirectUri = googleCallbackUrl(c.req.url);

@@ -19,8 +19,10 @@ import {
   MIN,
   needsStepUp,
   overLimit,
+  rateLimited,
   sessionMeta,
   turnstileOk,
+  unauthenticated,
   type Env2,
 } from '../http/context.js';
 
@@ -35,8 +37,7 @@ const forgotBody = z.object({
 // Always 200, whether or not the email exists (no account enumeration).
 
 app.post('/auth/forgot-password', async (c) => {
-  if (await overLimit(c, 'forgot', 5, 60 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  if (await overLimit(c, 'forgot', 5, 60 * MIN)) return rateLimited(c);
   const parsed = forgotBody.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError' }, 400);
   if (!(await turnstileOk(c, parsed.data.turnstileToken)))
@@ -70,8 +71,7 @@ app.post('/auth/forgot-password', async (c) => {
 });
 
 app.post('/auth/reset-password', async (c) => {
-  if (await overLimit(c, 'reset', 10, 5 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  if (await overLimit(c, 'reset', 10, 5 * MIN)) return rateLimited(c);
   const parsed = z
     .object({ token: z.string().min(1), newPassword: z.string().min(8).max(200) })
     .safeParse(await c.req.json().catch(() => null));
@@ -94,12 +94,11 @@ app.post('/auth/reset-password', async (c) => {
 });
 
 app.post('/auth/reauth', async (c) => {
-  if (await overLimit(c, 'reauth', 5, 5 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  if (await overLimit(c, 'reauth', 5, 5 * MIN)) return rateLimited(c);
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
   const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me || !cookie) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!me || !cookie) return unauthenticated(c);
 
   const parsed = z
     .object({ password: z.string().min(1).max(200) })
@@ -108,7 +107,7 @@ app.post('/auth/reauth', async (c) => {
     return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
 
   const row = await db.select().from(users).where(eq(users.id, me.id)).get();
-  if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!row) return unauthenticated(c);
   if (!row.passwordHash)
     return c.json(
       { error: 'NO_PASSWORD', message: 'This account has no password to confirm with.' },
@@ -122,12 +121,11 @@ app.post('/auth/reauth', async (c) => {
 });
 
 app.post('/auth/change-password', async (c) => {
-  if (await overLimit(c, 'change-password', 10, 5 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  if (await overLimit(c, 'change-password', 10, 5 * MIN)) return rateLimited(c);
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
   const sessionUser = cookie ? await validateSession(db, cookie) : null;
-  if (!sessionUser) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!sessionUser) return unauthenticated(c);
 
   const parsed = z
     .object({ currentPassword: z.string().min(1), newPassword: z.string().min(8).max(200) })
@@ -136,7 +134,7 @@ app.post('/auth/change-password', async (c) => {
     return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
 
   const row = await db.select().from(users).where(eq(users.id, sessionUser.id)).get();
-  if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!row) return unauthenticated(c);
   if (!row.passwordHash)
     return c.json(
       {
@@ -174,12 +172,11 @@ app.post('/auth/change-password', async (c) => {
  * See auth/stepUp.ts.
  */
 app.post('/auth/set-password', async (c) => {
-  if (await overLimit(c, 'set-password', 10, 5 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  if (await overLimit(c, 'set-password', 10, 5 * MIN)) return rateLimited(c);
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
   const sessionUser = cookie ? await validateSession(db, cookie) : null;
-  if (!sessionUser) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!sessionUser) return unauthenticated(c);
 
   const parsed = z
     .object({ newPassword: z.string().min(8).max(200) })
@@ -188,7 +185,7 @@ app.post('/auth/set-password', async (c) => {
     return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
 
   const row = await db.select().from(users).where(eq(users.id, sessionUser.id)).get();
-  if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!row) return unauthenticated(c);
   if (row.passwordHash)
     return c.json(
       {

@@ -1,9 +1,10 @@
 import type { Context } from 'hono';
 import { and, desc, eq } from 'drizzle-orm';
+import { getCookie, SESSION_COOKIE } from '../auth/cookie.js';
 import type { Env } from '../env.js';
 import type { DB } from '../db/client.js';
 import { securityEvents } from '../db/schema.js';
-import { type SessionMeta } from '../auth/session.js';
+import { validateSession, type SessionMeta, type SessionUser } from '../auth/session.js';
 import { isFresh, SUDO_WINDOW_MS } from '../auth/stepUp.js';
 import { deviceLabel } from '../device.js';
 import { sendEmail } from '../email.js';
@@ -31,6 +32,24 @@ export type Env2 = { Bindings: Env; Variables: { requestId: string } };
 /* Helpers take a context from any route, so the path parameter stays open. Pinning it to the default
    makes every `Context<Env2, "/auth/login">` a type error at the call site. */
 export type Ctx = Context<Env2>;
+
+/*
+ * The two refusals every route can give, written once.
+ *
+ * They were repeated as object literals in thirty-nine places. Apps switch on `error`, so a typo in
+ * one of them is not a compile error here and not a visible bug until some other app's error
+ * handling quietly stops matching.
+ */
+export const unauthenticated = (c: Ctx) => c.json({ error: 'UNAUTHENTICATED' }, 401);
+
+export const rateLimited = (c: Ctx) =>
+  c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+
+/** The user this request's cookie proves, or null for no cookie and for one that no longer resolves. */
+export async function signedIn(c: Ctx, db: DB): Promise<SessionUser | null> {
+  const cookie = getCookie(c, SESSION_COOKIE);
+  return cookie ? validateSession(db, cookie) : null;
+}
 
 const clientIp = (c: Ctx): string => c.req.header('cf-connecting-ip') ?? 'local';
 

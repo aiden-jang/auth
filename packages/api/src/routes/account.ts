@@ -9,16 +9,25 @@ import { validateSession } from '../auth/session.js';
 import { clearSessionCookie, getCookie, SESSION_COOKIE } from '../auth/cookie.js';
 import {} from '../auth/passkeys.js';
 import { sudoUntil } from '../auth/stepUp.js';
-import { MIN, needsStepUp, overLimit, publicUser, type Env2 } from '../http/context.js';
+import {
+  MIN,
+  needsStepUp,
+  overLimit,
+  publicUser,
+  signedIn,
+  type Env2,
+  rateLimited,
+  unauthenticated,
+} from '../http/context.js';
 
 const app = new Hono<Env2>();
 
 app.get('/auth/me', async (c) => {
   const token = getCookie(c, SESSION_COOKIE);
-  if (!token) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!token) return unauthenticated(c);
   const db = createDb(c.env);
   const user = await validateSession(db, token);
-  if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!user) return unauthenticated(c);
   // When the step-up window closes, so the account page can say "confirmed for another 8 minutes"
   // instead of springing a password prompt on someone mid-action. Null once it has lapsed.
   const until = await sudoUntil(db, token);
@@ -28,10 +37,9 @@ app.get('/auth/me', async (c) => {
 // Always 200, whether or not the email exists (no account enumeration).
 
 app.post('/auth/update-profile', async (c) => {
-  const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
-  const user = cookie ? await validateSession(db, cookie) : null;
-  if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const user = await signedIn(c, db);
+  if (!user) return unauthenticated(c);
   const parsed = z
     .object({ displayName: z.string().trim().min(1).max(80) })
     .safeParse(await c.req.json().catch(() => null));
@@ -48,10 +56,9 @@ app.post('/auth/update-profile', async (c) => {
 // everywhere else, same as a reset.
 
 app.get('/auth/export', async (c) => {
-  const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
-  const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const me = await signedIn(c, db);
+  if (!me) return unauthenticated(c);
 
   const account = await db
     .select({
@@ -66,7 +73,7 @@ app.get('/auth/export', async (c) => {
     .from(users)
     .where(eq(users.id, me.id))
     .get();
-  if (!account) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!account) return unauthenticated(c);
 
   const [sessionRows, eventRows] = await Promise.all([
     db
@@ -130,12 +137,11 @@ app.get('/auth/export', async (c) => {
 // The signed-in user's active sessions ("signed in on these devices"), newest activity first.
 
 app.post('/auth/delete-account', async (c) => {
-  if (await overLimit(c, 'delete-account', 5, 10 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  if (await overLimit(c, 'delete-account', 5, 10 * MIN)) return rateLimited(c);
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
   const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!me) return unauthenticated(c);
 
   const parsed = z
     .object({ password: z.string().optional(), confirm: z.string().optional() })
@@ -144,7 +150,7 @@ app.post('/auth/delete-account', async (c) => {
     return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
 
   const row = await db.select().from(users).where(eq(users.id, me.id)).get();
-  if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!row) return unauthenticated(c);
   if (row.passwordHash) {
     if (!parsed.data.password || !(await verifyPassword(row.passwordHash, parsed.data.password)))
       return c.json({ error: 'INVALID_CREDENTIALS', message: 'Wrong password.' }, 400);
