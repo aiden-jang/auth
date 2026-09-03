@@ -58,6 +58,9 @@ export default defineConfig({
        * instead of sending it -- which is also the only way this suite can read a token.
        */
       command:
+        // The SPA is built first because the worker serves ../web/dist, which is how
+        // production serves it and what e2e/production.spec.ts loads.
+        `pnpm --filter @aidenjang/auth-web build && ` +
         `pnpm --filter @aidenjang/auth-api db:migrate:local && ` +
         `pnpm --filter @aidenjang/auth-api exec wrangler dev ` +
         `--var APP_URL:http://localhost:34110 --var TURNSTILE_SECRET: --var RESEND_API_KEY: ` +
