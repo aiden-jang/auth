@@ -16,8 +16,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Every gate below must actually run: `pnpm docs` silently resolved to npm's own docs
-      # command and reported green while never executing.
+      # Every gate below must actually run. A script named `docs` was shadowed by npm's own docs
+      # command, reporting green while never executing — hence `check:docs` and `pnpm run`.
       - run: pnpm run gates
       - run: pnpm run typecheck
       - run: pnpm run lint
@@ -31,7 +31,7 @@ jobs:
       # AccountPage 1151, both passing every other gate the whole way up.
       - run: pnpm run size
       # Every route documented, every path in the docs real. API.md had fallen twenty routes behind.
-      - run: pnpm run docs
+      - run: pnpm run check:docs
       # The deploy applies migrations before it publishes, so a migration that cannot apply is a
       # deploy that does not happen. Catches both a schema change with no migration and a migration
       # committed without its snapshot.
