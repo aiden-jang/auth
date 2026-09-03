@@ -23,7 +23,7 @@ Ten gates. The deploy job is gated on them, so a red gate means nothing ships.
 | `format:check`       | generated drizzle snapshots are ignored; everything a person wrote is checked       |
 | `build` `test` `e2e` | the unit suites, then the browser journey against the built SPA                     |
 
-`comments`, `docs` and `migrations` are local scripts in `scripts/`. Each exists because it caught
+`comments`, `size`, `docs` and `migrations` are local scripts in `scripts/`. Each exists because it caught
 a real defect. Read the script before deciding a failure is spurious.
 
 ## Comments
@@ -37,6 +37,12 @@ writing the code:
 - After moving code, re-read every comment near the seam. A stranded one here claimed an
   enumeration defence on a route that has none.
 - Report the number `pnpm comments` prints rather than asserting the comments are fine.
+
+## Size
+
+A god-file accretes twenty lines at a time and no single diff looks wrong, so the ceiling is the
+gate rather than a review habit. `AccountPage.tsx` sits at 483 of 500 — the next feature there means
+extracting something first, which is the intent. Split rather than raising a ceiling.
 
 ## Tests
 
