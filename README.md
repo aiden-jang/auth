@@ -154,9 +154,10 @@ follows is the one a real person would click. `pnpm --filter @aidenjang/auth-web
   `web` SPA from one origin.
 - **`packages/client`**: `@aidenjang/auth-client`, **published to npm**. `loginUrl` / `logoutUrl`
   builders plus the `AuthUser` session shape. Apps depend on this as a versioned package, so the
-  session contract has exactly one source of truth. Resolve a session with `resolveSession`, which
-  separates `signed-out` from `unavailable`; `getSessionUser` returns null for both and is kept for
-  the apps already on it.
+  session contract has exactly one source of truth. Every app resolves a session with
+  `getSessionUser`, which returns null both for signed-out and for an unreachable auth service.
+  `resolveSession` separates the two and is what apps should move to, but it is unreleased: the
+  repo is on 0.2.0 and npm still has 0.1.0, so nothing can import it yet.
 - **`packages/config`**: the strict shared tsconfig base (`noUncheckedIndexedAccess`,
   `exactOptionalPropertyTypes`, `verbatimModuleSyntax`) and flat ESLint config.
 
@@ -186,8 +187,12 @@ It builds to `dist` (`tsc`) and publishes to npm; the app repos install it as a 
 changing the session contract, bump the version and:
 
 ```bash
-pnpm --filter @aidenjang/auth-client publish --access public
+pnpm --filter @aidenjang/auth-client publish --access public --otp=<code>
 ```
+
+The account is on npm 2FA in `auth-and-writes` mode, so a publish wants a one-time code. Without
+`--otp` it opens a browser instead, where npm asks for a passkey. Pass the code and it never does.
+A granular access token from npm's settings skips the prompt entirely and is what CI would need.
 
 ## Deploy
 

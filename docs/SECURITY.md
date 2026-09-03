@@ -7,9 +7,10 @@ What's in place across the platform, and the deliberate gaps.
 - Passwords hashed (never stored plaintext); registration gated by Cloudflare Turnstile.
 - Session is an httpOnly, `Secure`, `SameSite=Lax` cookie `platform_session` scoped to
   `.aidenjang.com`. Apps never read it in the browser — they validate server-side by forwarding
-  the cookie to the auth service's `/auth/me` (`resolveSession`).
+  the cookie to the auth service's `/auth/me` (`getSessionUser`).
 - An app must not read an outage as a sign-out. `/auth/me` failing means the session is unproven,
-  not absent: treat `unavailable` as "keep them as they were", never as signed out.
+  not absent. `getSessionUser` cannot tell the two apart, which is what `resolveSession` in the
+  client is for -- unreleased as of 0.2.0, so today every app still reads an outage as signed out.
 - Per-IP rate limiting on auth actions (login/register/verify) via a Durable Object.
 
 ## Step-up re-authentication
