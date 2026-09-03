@@ -64,9 +64,12 @@ export function Turnstile({
 }): ReactNode {
   const ref = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
-  // Keep the latest callback without re-running the render effect on every parent render.
+  // Keep the latest callback without re-running the render effect on every parent render. Written
+  // in an effect, not during render: a render can be thrown away, and this ref outlives it.
   const cb = useRef(onToken);
-  cb.current = onToken;
+  useEffect(() => {
+    cb.current = onToken;
+  });
 
   useEffect(() => {
     if (!SITE_KEY) return;

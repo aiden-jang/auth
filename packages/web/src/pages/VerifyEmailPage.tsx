@@ -7,13 +7,12 @@ import { reassurance } from '../lib/reassurance';
 export function VerifyEmailPage(): ReactNode {
   const [params] = useSearchParams();
   const token = params.get('token');
-  const [status, setStatus] = useState<'pending' | 'ok' | 'error'>('pending');
+  // A link with no token is already an error, so say so on the first render rather than flashing
+  // "Confirming your email..." at somebody whose link was truncated.
+  const [status, setStatus] = useState<'pending' | 'ok' | 'error'>(token ? 'pending' : 'error');
 
   useEffect(() => {
-    if (!token) {
-      setStatus('error');
-      return;
-    }
+    if (!token) return;
     authApi
       .verifyEmail(token)
       .then(() => setStatus('ok'))
