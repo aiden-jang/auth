@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
@@ -12,5 +13,9 @@ export default defineConfig({
       '/auth': { target: 'http://localhost:34100', changeOrigin: true },
       '/health': { target: 'http://localhost:34100', changeOrigin: true },
     },
+  },
+  test: {
+    // Everything except e2e/, which is Playwright's: calling its test() from vitest throws.
+    include: ['{src,test}/**/*.test.{ts,tsx}'],
   },
 });

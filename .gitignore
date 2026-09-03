@@ -11,6 +11,8 @@ build/
 .env
 .env.*
 !.env.example
+# Holds no secret: it switches Turnstile off for the browser suite, and CI needs it to do that.
+!.env.e2e
 # Wrangler local secrets (never commit — these hold API keys for `wrangler dev`)
 .dev.vars
 .dev.vars.*
@@ -33,3 +35,7 @@ packages/server/prisma/*.db
 
 # Wrangler local state (miniflare D1/DO/KV)
 .wrangler/
+
+# Playwright run artifacts
+test-results/
+playwright-report/
