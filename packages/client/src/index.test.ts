@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
   getSessionUser,
+  resolveSession,
   loginUrl,
   logoutUrl,
   signupUrl,
@@ -148,5 +149,85 @@ describe('resolving the session', () => {
     const { calls } = stubFetch(() => Response.json({ user: ME }));
     await getSessionUser(request('platform_session=tok'), 'https://accounts.aidenjang.com/api/v2');
     expect(calls[0]?.url).toBe('https://accounts.aidenjang.com/auth/me');
+  });
+});
+
+describe('resolving the session with an outage kept separate', () => {
+  test('vouches for a user the account service confirms', async () => {
+    stubFetch(() => Response.json({ user: ME, sudoUntil: null }));
+    expect(await resolveSession(request('platform_session=tok'), ACCOUNTS)).toEqual({
+      state: 'signed-in',
+      user: ME,
+    });
+  });
+
+  test('asks /auth/me with the cookie forwarded, exactly once', async () => {
+    const { calls } = stubFetch(() => Response.json({ user: ME }));
+    await resolveSession(request('platform_session=tok'), ACCOUNTS);
+    expect(calls).toEqual([
+      { url: 'https://accounts.aidenjang.com/auth/me', cookie: 'platform_session=tok' },
+    ]);
+  });
+
+  test('answers a cookieless request as signed out without calling out', async () => {
+    const { calls } = stubFetch(() => Response.json({ user: ME }));
+    expect(await resolveSession(request(), ACCOUNTS)).toEqual({ state: 'signed-out' });
+    expect(calls).toEqual([]);
+  });
+
+  // A service that answered is evidence. Only its refusal means signed out.
+  test.each([401, 403])('treats a %i as a real sign-out', async (status) => {
+    stubFetch(() => Response.json({ error: 'UNAUTHENTICATED' }, { status }));
+    expect(await resolveSession(request('platform_session=stale'), ACCOUNTS)).toEqual({
+      state: 'signed-out',
+    });
+  });
+
+  test('treats a 200 carrying no user as a real sign-out', async () => {
+    stubFetch(() => Response.json({ sudoUntil: null }));
+    expect(await resolveSession(request('platform_session=tok'), ACCOUNTS)).toEqual({
+      state: 'signed-out',
+    });
+  });
+
+  /*
+   * 500 and 503 are the shapes the real incidents took. 429 is a rate limit the caller tripped,
+   * and 404 is a misconfigured base URL: none of the four say anything about this person.
+   */
+  test.each([429, 404, 500, 502, 503])('cannot vouch either way on a %i', async (status) => {
+    stubFetch(() => Response.json({ error: 'boom' }, { status }));
+    expect(await resolveSession(request('platform_session=tok'), ACCOUNTS)).toEqual({
+      state: 'unavailable',
+    });
+  });
+
+  test('reports an unreachable service as unavailable rather than throwing', async () => {
+    vi.stubGlobal('fetch', async () => {
+      throw new TypeError('network error');
+    });
+    expect(await resolveSession(request('platform_session=tok'), ACCOUNTS)).toEqual({
+      state: 'unavailable',
+    });
+  });
+
+  /* An edge interstitial answers 200 with HTML. Parsing that must not throw into the app. */
+  test('reports a 200 that is not JSON as unavailable', async () => {
+    stubFetch(() => new Response('<html>error</html>', { status: 200 }));
+    expect(await resolveSession(request('platform_session=tok'), ACCOUNTS)).toEqual({
+      state: 'unavailable',
+    });
+  });
+
+  /*
+   * The reason this function exists. Both incidents in stepUp.ts looked like this on the wire,
+   * and getSessionUser reports them as a sign-out for every app on the platform.
+   */
+  test('parts ways with getSessionUser on the failure that caused this', async () => {
+    stubFetch(() => Response.json({ error: 'boom' }, { status: 500 }));
+    expect(await getSessionUser(request('platform_session=tok'), ACCOUNTS)).toBeNull();
+    stubFetch(() => Response.json({ error: 'boom' }, { status: 500 }));
+    expect(await resolveSession(request('platform_session=tok'), ACCOUNTS)).toEqual({
+      state: 'unavailable',
+    });
   });
 });

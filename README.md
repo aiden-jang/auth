@@ -149,7 +149,9 @@ API, 82 in the web app, 3 in the client.
   `web` SPA from one origin.
 - **`packages/client`**: `@aidenjang/auth-client`, **published to npm**. `loginUrl` / `logoutUrl`
   builders plus the `AuthUser` session shape. Apps depend on this as a versioned package, so the
-  session contract has exactly one source of truth.
+  session contract has exactly one source of truth. Resolve a session with `resolveSession`, which
+  separates `signed-out` from `unavailable`; `getSessionUser` returns null for both and is kept for
+  the apps already on it.
 - **`packages/config`**: the strict shared tsconfig base (`noUncheckedIndexedAccess`,
   `exactOptionalPropertyTypes`, `verbatimModuleSyntax`) and flat ESLint config.
 
