@@ -36,12 +36,19 @@ export function decodeRecentAccounts(raw: string | null): RecentAccount[] {
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item): item is RecentAccount => {
-      if (!item || typeof item !== 'object') return false;
-      const value = item as Partial<RecentAccount>;
-      return typeof value.email === 'string' && validEmail(value.email) &&
-        typeof value.lastUsedAt === 'string' && !Number.isNaN(new Date(value.lastUsedAt).getTime());
-    }).map(({ email, lastUsedAt }) => ({ email, lastUsedAt })).slice(0, MAX_RECENT_ACCOUNTS);
+    return parsed
+      .filter((item): item is RecentAccount => {
+        if (!item || typeof item !== 'object') return false;
+        const value = item as Partial<RecentAccount>;
+        return (
+          typeof value.email === 'string' &&
+          validEmail(value.email) &&
+          typeof value.lastUsedAt === 'string' &&
+          !Number.isNaN(new Date(value.lastUsedAt).getTime())
+        );
+      })
+      .map(({ email, lastUsedAt }) => ({ email, lastUsedAt }))
+      .slice(0, MAX_RECENT_ACCOUNTS);
   } catch {
     return [];
   }
@@ -53,9 +60,7 @@ export function readRecentAccounts(): RecentAccount[] {
     const accounts = decodeRecentAccounts(window.localStorage.getItem(RECENT_ACCOUNTS_KEY));
     if (accounts.length > 0) return accounts;
     const legacy = window.localStorage.getItem(RECENT_EMAIL_KEY)?.trim().toLowerCase() ?? '';
-    return validEmail(legacy)
-      ? [{ email: legacy, lastUsedAt: new Date(0).toISOString() }]
-      : [];
+    return validEmail(legacy) ? [{ email: legacy, lastUsedAt: new Date(0).toISOString() }] : [];
   } catch {
     return [];
   }
@@ -65,8 +70,11 @@ export function rememberRecentAccount(email: string): void {
   try {
     const normalized = email.trim().toLowerCase();
     if (!validEmail(normalized)) return;
-    const accounts = readRecentAccounts().filter(account => account.email !== normalized);
-    const next = [{ email: normalized, lastUsedAt: new Date().toISOString() }, ...accounts].slice(0, MAX_RECENT_ACCOUNTS);
+    const accounts = readRecentAccounts().filter((account) => account.email !== normalized);
+    const next = [{ email: normalized, lastUsedAt: new Date().toISOString() }, ...accounts].slice(
+      0,
+      MAX_RECENT_ACCOUNTS,
+    );
     window.localStorage.setItem(RECENT_ACCOUNTS_KEY, JSON.stringify(next));
     window.localStorage.removeItem(RECENT_EMAIL_KEY);
   } catch {
@@ -76,7 +84,9 @@ export function rememberRecentAccount(email: string): void {
 
 export function forgetRecentAccount(email: string): void {
   try {
-    const next = readRecentAccounts().filter(account => account.email !== email.trim().toLowerCase());
+    const next = readRecentAccounts().filter(
+      (account) => account.email !== email.trim().toLowerCase(),
+    );
     window.localStorage.setItem(RECENT_ACCOUNTS_KEY, JSON.stringify(next));
     window.localStorage.removeItem(RECENT_EMAIL_KEY);
   } catch {

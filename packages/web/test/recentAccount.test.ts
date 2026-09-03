@@ -35,7 +35,7 @@ describe('maskEmail', () => {
     rememberRecentAccount('two@example.com');
     rememberRecentAccount('three@example.com');
     rememberRecentAccount('four@example.com');
-    expect(readRecentAccounts().map(account => account.email)).toEqual([
+    expect(readRecentAccounts().map((account) => account.email)).toEqual([
       'four@example.com',
       'three@example.com',
       'two@example.com',
@@ -43,18 +43,25 @@ describe('maskEmail', () => {
   });
 
   it('keeps accounts saved before the email link went away, dropping the stale method', () => {
-    const saved = '[{"email":"old@example.com","method":"email-link","lastUsedAt":"2026-08-11T12:00:00Z"}]';
+    const saved =
+      '[{"email":"old@example.com","method":"email-link","lastUsedAt":"2026-08-11T12:00:00Z"}]';
     expect(decodeRecentAccounts(saved)).toEqual([
       { email: 'old@example.com', lastUsedAt: '2026-08-11T12:00:00Z' },
     ]);
   });
 
   it('rejects malformed stored account profiles', () => {
-    expect(decodeRecentAccounts('[{"email":"nope","method":"password","lastUsedAt":"today"}]')).toEqual([]);
+    expect(
+      decodeRecentAccounts('[{"email":"nope","method":"password","lastUsedAt":"today"}]'),
+    ).toEqual([]);
   });
 
   it('turns recent timestamps into human labels', () => {
-    expect(recentAccountTimeLabel('2026-08-11T12:00:00Z', new Date('2026-08-11T20:00:00Z'))).toBe('used today');
-    expect(recentAccountTimeLabel('2026-08-10T12:00:00Z', new Date('2026-08-11T20:00:00Z'))).toBe('used yesterday');
+    expect(recentAccountTimeLabel('2026-08-11T12:00:00Z', new Date('2026-08-11T20:00:00Z'))).toBe(
+      'used today',
+    );
+    expect(recentAccountTimeLabel('2026-08-10T12:00:00Z', new Date('2026-08-11T20:00:00Z'))).toBe(
+      'used yesterday',
+    );
   });
 });

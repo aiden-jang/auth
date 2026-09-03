@@ -57,31 +57,31 @@ function BrandPanel(): ReactNode {
           one login for everything I build.
         </h2>
         <ul className="mt-8 space-y-3.5">
-            {APPS.map((app) => (
-              <li key={app.name}>
-                {/* Opens in a new tab so exploring an app never abandons a sign-in in progress
+          {APPS.map((app) => (
+            <li key={app.name}>
+              {/* Opens in a new tab so exploring an app never abandons a sign-in in progress
                     (e.g. when the user was sent here with a return_to). */}
-                <a
-                  href={appHref(app)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group flex items-baseline gap-3"
-                  style={{ '--app-accent': app.accent } as CSSProperties}
-                >
-                  <span
-                    aria-hidden
-                    className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full"
-                    style={{ background: app.accent }}
-                  />
-                  <span>
-                    <span className="text-sm font-medium text-ink transition-colors group-hover:[color:var(--app-accent)]">
-                      {app.name}
-                    </span>
-                    <span className="ml-2 text-sm text-muted">{app.tagline}</span>
+              <a
+                href={appHref(app)}
+                target="_blank"
+                rel="noreferrer"
+                className="group flex items-baseline gap-3"
+                style={{ '--app-accent': app.accent } as CSSProperties}
+              >
+                <span
+                  aria-hidden
+                  className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: app.accent }}
+                />
+                <span>
+                  <span className="text-sm font-medium text-ink transition-colors group-hover:[color:var(--app-accent)]">
+                    {app.name}
                   </span>
-                </a>
-              </li>
-            ))}
+                  <span className="ml-2 text-sm text-muted">{app.tagline}</span>
+                </span>
+              </a>
+            </li>
+          ))}
         </ul>
       </div>
 
@@ -156,7 +156,11 @@ export function AuthCard({
           {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
           {returnApp && (
             <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent">
-              <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: returnApp.accent }} />
+              <span
+                aria-hidden
+                className="h-2 w-2 rounded-full"
+                style={{ background: returnApp.accent }}
+              />
               You&apos;ll go back to {returnApp.name} after this.
             </p>
           )}

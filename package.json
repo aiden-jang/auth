@@ -11,12 +11,14 @@
   "packageManager": "pnpm@9.12.0",
   "scripts": {
     "build": "pnpm -r build",
-    "deploy": "pnpm --filter @aidenjang/auth-api run deploy",
+    "deploy": "pnpm verify && pnpm deploy:only",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "pnpm -r test"
+    "test": "pnpm -r test",
+    "verify": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm build && pnpm -r test",
+    "deploy:only": "pnpm --filter @aidenjang/auth-api run deploy"
   },
   "devDependencies": {
     "@aidenjang/config": "workspace:*",

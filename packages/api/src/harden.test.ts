@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  applySecurityHeaders,
-  DEFAULT_CSP,
-  enforceSameOrigin,
-  securityHeaders,
-} from './harden.js';
+import { applySecurityHeaders, DEFAULT_CSP, enforceSameOrigin, securityHeaders } from './harden.js';
 
 describe('securityHeaders', () => {
   it('sets the core headers with the default CSP', () => {
@@ -17,7 +12,10 @@ describe('securityHeaders', () => {
   });
 
   it('honors CSP and Permissions-Policy overrides', () => {
-    const h = securityHeaders({ csp: "default-src 'none'", permissionsPolicy: 'geolocation=(self)' });
+    const h = securityHeaders({
+      csp: "default-src 'none'",
+      permissionsPolicy: 'geolocation=(self)',
+    });
     expect(h['Content-Security-Policy']).toBe("default-src 'none'");
     expect(h['Permissions-Policy']).toBe('geolocation=(self)');
   });

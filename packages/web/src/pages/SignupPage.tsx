@@ -26,7 +26,8 @@ export function SignupPage(): ReactNode {
   const [loading, setLoading] = useState(false);
   const [resetSignal, setResetSignal] = useState(0);
 
-  const withReturn = (p: string) => (returnTo ? `${p}?return_to=${encodeURIComponent(returnTo)}` : p);
+  const withReturn = (p: string) =>
+    returnTo ? `${p}?return_to=${encodeURIComponent(returnTo)}` : p;
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
@@ -60,7 +61,11 @@ export function SignupPage(): ReactNode {
   return (
     <AuthCard
       title="Create your account"
-      subtitle={returnApp ? 'Create your account, then head straight back.' : "One account for all of aidenjang's apps."}
+      subtitle={
+        returnApp
+          ? 'Create your account, then head straight back.'
+          : "One account for all of aidenjang's apps."
+      }
       returnApp={returnApp}
     >
       <GoogleSignIn returnTo={returnTo} />
@@ -185,13 +190,14 @@ export function SignupPage(): ReactNode {
             required
             minLength={8}
           />
-          {confirmPassword && (
-            password !== confirmPassword ? (
+          {confirmPassword &&
+            (password !== confirmPassword ? (
               <p className="mt-1 text-xs text-neg">Passwords do not match.</p>
             ) : (
-              <p className="mt-1 text-xs text-pos" role="status">Passwords match.</p>
-            )
-          )}
+              <p className="mt-1 text-xs text-pos" role="status">
+                Passwords match.
+              </p>
+            ))}
         </div>
 
         {error && (

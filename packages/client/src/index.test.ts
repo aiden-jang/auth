@@ -9,7 +9,9 @@ describe('auth-client URLs', () => {
   });
 
   test('signupUrl points at /signup with return_to (distinct from login)', () => {
-    expect(signupUrl('https://accounts.aidenjang.com', 'https://owewell.aidenjang.com/groups')).toBe(
+    expect(
+      signupUrl('https://accounts.aidenjang.com', 'https://owewell.aidenjang.com/groups'),
+    ).toBe(
       'https://accounts.aidenjang.com/signup?return_to=https%3A%2F%2Fowewell.aidenjang.com%2Fgroups',
     );
   });

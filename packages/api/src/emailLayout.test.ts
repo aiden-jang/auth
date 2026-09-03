@@ -44,7 +44,9 @@ describe('why am I getting this', () => {
 
     expect(reasonFor('sign-in')).toContain('used this address to sign in to owewell.');
     expect(reasonFor('sign-up')).toContain('used to make an account on owewell.');
-    expect(reasonFor('password-reset')).toContain('reset the password for this address on owewell.');
+    expect(reasonFor('password-reset')).toContain(
+      'reset the password for this address on owewell.',
+    );
     expect(reasonFor('alert')).toContain('as a security notice for the account on this address.');
   });
 
@@ -124,7 +126,12 @@ describe('the action', () => {
   });
 
   it('leaves the button out entirely when there is nothing to do', () => {
-    const { html } = renderEmail({ reason: 'sign-in', preheader: 'p', heading: 'h', paragraphs: ['body'] });
+    const { html } = renderEmail({
+      reason: 'sign-in',
+      preheader: 'p',
+      heading: 'h',
+      paragraphs: ['body'],
+    });
     expect(html).not.toContain('bgcolor=');
     expect(html).not.toContain('If the button does not work');
   });
@@ -169,7 +176,7 @@ describe('the plain-text part', () => {
       reason: 'sign-in',
       preheader: 'p',
       heading: 'h',
-      paragraphs: [escapeHtml('Ben & Jerry\'s <device>')],
+      paragraphs: [escapeHtml("Ben & Jerry's <device>")],
     });
     expect(text).toContain("Ben & Jerry's <device>");
     expect(text).not.toContain('&amp;');

@@ -44,7 +44,12 @@ function sessionCookie(res: Response): string | null {
 }
 
 /** Register a fresh user; returns its id, credentials, and session cookie. */
-async function register(): Promise<{ id: string; email: string; password: string; cookie: string }> {
+async function register(): Promise<{
+  id: string;
+  email: string;
+  password: string;
+  cookie: string;
+}> {
   const email = freshEmail();
   const password = 'correct horse battery';
   const res = await post('/auth/register', { email, password, displayName: 'Test User' });
@@ -58,7 +63,11 @@ async function register(): Promise<{ id: string; email: string; password: string
 describe('registration', () => {
   it('creates an account, sets a session cookie, and hashes the password', async () => {
     const email = freshEmail();
-    const res = await post('/auth/register', { email, password: 'password123', displayName: 'Ada' });
+    const res = await post('/auth/register', {
+      email,
+      password: 'password123',
+      displayName: 'Ada',
+    });
     expect(res.status).toBe(201);
     expect(sessionCookie(res)).toBeTruthy();
     const body = (await res.json()) as { user: { email: string; emailVerified: boolean } };
@@ -73,13 +82,28 @@ describe('registration', () => {
 
   it('rejects a duplicate email with 409', async () => {
     const { email } = await register();
-    const res = await post('/auth/register', { email, password: 'password123', displayName: 'Dupe' });
+    const res = await post('/auth/register', {
+      email,
+      password: 'password123',
+      displayName: 'Dupe',
+    });
     expect(res.status).toBe(409);
   });
 
   it('rejects a weak password and a bad email with 400', async () => {
-    expect((await post('/auth/register', { email: freshEmail(), password: 'short', displayName: 'X' })).status).toBe(400);
-    expect((await post('/auth/register', { email: 'not-an-email', password: 'password123', displayName: 'X' })).status).toBe(400);
+    expect(
+      (await post('/auth/register', { email: freshEmail(), password: 'short', displayName: 'X' }))
+        .status,
+    ).toBe(400);
+    expect(
+      (
+        await post('/auth/register', {
+          email: 'not-an-email',
+          password: 'password123',
+          displayName: 'X',
+        })
+      ).status,
+    ).toBe(400);
   });
 });
 
@@ -144,10 +168,14 @@ describe('profile', () => {
     const { cookie } = await register();
     const ok = await post('/auth/update-profile', { displayName: 'Renamed' }, cookie);
     expect(ok.status).toBe(200);
-    expect(((await ok.json()) as { user: { displayName: string } }).user.displayName).toBe('Renamed');
+    expect(((await ok.json()) as { user: { displayName: string } }).user.displayName).toBe(
+      'Renamed',
+    );
 
     const me = await get('/auth/me', cookie);
-    expect(((await me.json()) as { user: { displayName: string } }).user.displayName).toBe('Renamed');
+    expect(((await me.json()) as { user: { displayName: string } }).user.displayName).toBe(
+      'Renamed',
+    );
 
     expect((await post('/auth/update-profile', { displayName: 'Nope' })).status).toBe(401);
   });
@@ -161,7 +189,9 @@ describe('email verification tokens', () => {
     const res = await post('/auth/verify-email', { token });
     expect(res.status).toBe(200);
     const me = await get('/auth/me', cookie);
-    expect(((await me.json()) as { user: { emailVerified: boolean } }).user.emailVerified).toBe(true);
+    expect(((await me.json()) as { user: { emailVerified: boolean } }).user.emailVerified).toBe(
+      true,
+    );
 
     // Same token can't be replayed.
     expect((await post('/auth/verify-email', { token })).status).toBe(400);
@@ -184,19 +214,25 @@ describe('password reset tokens', () => {
     expect((await get('/auth/me', cookie)).status).toBe(401);
 
     // Token is single-use.
-    expect((await post('/auth/reset-password', { token, newPassword: 'another-one' })).status).toBe(400);
+    expect((await post('/auth/reset-password', { token, newPassword: 'another-one' })).status).toBe(
+      400,
+    );
   });
 
   it('rejects an expired token', async () => {
     const { id } = await register();
     const raw = crypto.randomUUID();
-    await db().insert(authTokens).values({
-      id: await hashToken(raw),
-      userId: id,
-      purpose: 'reset',
-      expiresAt: new Date(Date.now() - 1000), // already expired
-    });
-    expect((await post('/auth/reset-password', { token: raw, newPassword: 'whatever-password' })).status).toBe(400);
+    await db()
+      .insert(authTokens)
+      .values({
+        id: await hashToken(raw),
+        userId: id,
+        purpose: 'reset',
+        expiresAt: new Date(Date.now() - 1000), // already expired
+      });
+    expect(
+      (await post('/auth/reset-password', { token: raw, newPassword: 'whatever-password' })).status,
+    ).toBe(400);
     // Expired token is consumed (deleted) on the attempt.
     const still = await db()
       .select()
@@ -239,7 +275,10 @@ describe('change password (logged in)', () => {
   });
 
   it('requires authentication', async () => {
-    const res = await post('/auth/change-password', { currentPassword: 'x', newPassword: 'a-fresh-password' });
+    const res = await post('/auth/change-password', {
+      currentPassword: 'x',
+      newPassword: 'a-fresh-password',
+    });
     expect(res.status).toBe(401);
   });
 });
@@ -273,14 +312,16 @@ describe('abuse controls', () => {
 async function registerGoogle(): Promise<{ id: string; email: string; cookie: string }> {
   const id = crypto.randomUUID();
   const email = freshEmail();
-  await db().insert(users).values({
-    id,
-    email,
-    passwordHash: null,
-    googleId: `g-${id}`,
-    displayName: 'Google User',
-    emailVerified: true,
-  });
+  await db()
+    .insert(users)
+    .values({
+      id,
+      email,
+      passwordHash: null,
+      googleId: `g-${id}`,
+      displayName: 'Google User',
+      emailVerified: true,
+    });
   const { token } = await createSession(db(), id);
   return { id, email, cookie: `platform_session=${token}` };
 }
@@ -293,8 +334,12 @@ async function getManual(path: string): Promise<Response> {
 describe('set password (passwordless account)', () => {
   it('lets a Google-only account add a password, then log in with it', async () => {
     const g = await registerGoogle();
-    expect((await post('/auth/set-password', { newPassword: 'a-brand-new-password' }, g.cookie)).status).toBe(200);
-    expect((await post('/auth/login', { email: g.email, password: 'a-brand-new-password' })).status).toBe(200);
+    expect(
+      (await post('/auth/set-password', { newPassword: 'a-brand-new-password' }, g.cookie)).status,
+    ).toBe(200);
+    expect(
+      (await post('/auth/login', { email: g.email, password: 'a-brand-new-password' })).status,
+    ).toBe(200);
   });
 
   it('refuses when the account already has a password', async () => {
@@ -305,7 +350,9 @@ describe('set password (passwordless account)', () => {
   });
 
   it('requires authentication', async () => {
-    expect((await post('/auth/set-password', { newPassword: 'a-brand-new-password' })).status).toBe(401);
+    expect((await post('/auth/set-password', { newPassword: 'a-brand-new-password' })).status).toBe(
+      401,
+    );
   });
 });
 
@@ -329,7 +376,9 @@ describe('active sessions', () => {
     };
     expect(list.sessions.length).toBe(2);
     expect(list.sessions.filter((s) => s.current).length).toBe(1);
-    expect(list.sessions.every((session) => new Date(session.expiresAt).getTime() > Date.now())).toBe(true);
+    expect(
+      list.sessions.every((session) => new Date(session.expiresAt).getTime() > Date.now()),
+    ).toBe(true);
 
     expect((await post('/auth/sessions/revoke-others', {}, cookie)).status).toBe(200);
     expect((await get('/auth/me', cookie)).status).toBe(200); // current kept
@@ -339,7 +388,9 @@ describe('active sessions', () => {
   it('revokes only the caller-owned session (no cross-user revoke)', async () => {
     const a = await register();
     const b = await register();
-    const bList = (await (await get('/auth/sessions', b.cookie)).json()) as { sessions: { id: string }[] };
+    const bList = (await (await get('/auth/sessions', b.cookie)).json()) as {
+      sessions: { id: string }[];
+    };
     const bId = bList.sessions[0]!.id;
     // A tries to revoke B's session — scoped to A's own rows, so B stays signed in.
     expect((await post('/auth/sessions/revoke', { id: bId }, a.cookie)).status).toBe(200);
@@ -349,31 +400,57 @@ describe('active sessions', () => {
   it('renames only a caller-owned session and records the activity', async () => {
     const a = await register();
     const b = await register();
-    const aList = (await (await get('/auth/sessions', a.cookie)).json()) as { sessions: { id: string }[] };
-    const bList = (await (await get('/auth/sessions', b.cookie)).json()) as { sessions: { id: string; device: string | null }[] };
+    const aList = (await (await get('/auth/sessions', a.cookie)).json()) as {
+      sessions: { id: string }[];
+    };
+    const bList = (await (await get('/auth/sessions', b.cookie)).json()) as {
+      sessions: { id: string; device: string | null }[];
+    };
     const aId = aList.sessions[0]!.id;
     const bId = bList.sessions[0]!.id;
 
-    const renamed = await post('/auth/sessions/rename', { id: aId, label: '  Personal MacBook  ' }, a.cookie);
+    const renamed = await post(
+      '/auth/sessions/rename',
+      { id: aId, label: '  Personal MacBook  ' },
+      a.cookie,
+    );
     expect(renamed.status).toBe(200);
-    expect(((await renamed.json()) as { session: { device: string } }).session.device).toBe('Personal MacBook');
+    expect(((await renamed.json()) as { session: { device: string } }).session.device).toBe(
+      'Personal MacBook',
+    );
 
-    const refreshed = (await (await get('/auth/sessions', a.cookie)).json()) as { sessions: { id: string; device: string | null }[] };
-    expect(refreshed.sessions.find((session) => session.id === aId)?.device).toBe('Personal MacBook');
-    const activity = (await (await get('/auth/export', a.cookie)).json()) as { securityActivity: { type: string }[] };
+    const refreshed = (await (await get('/auth/sessions', a.cookie)).json()) as {
+      sessions: { id: string; device: string | null }[];
+    };
+    expect(refreshed.sessions.find((session) => session.id === aId)?.device).toBe(
+      'Personal MacBook',
+    );
+    const activity = (await (await get('/auth/export', a.cookie)).json()) as {
+      securityActivity: { type: string }[];
+    };
     expect(activity.securityActivity.some((event) => event.type === 'device_renamed')).toBe(true);
 
-    expect((await post('/auth/sessions/rename', { id: bId, label: 'Not mine' }, a.cookie)).status).toBe(404);
-    const bRefreshed = (await (await get('/auth/sessions', b.cookie)).json()) as { sessions: { id: string; device: string | null }[] };
-    expect(bRefreshed.sessions.find((session) => session.id === bId)?.device).toBe(bList.sessions[0]!.device);
+    expect(
+      (await post('/auth/sessions/rename', { id: bId, label: 'Not mine' }, a.cookie)).status,
+    ).toBe(404);
+    const bRefreshed = (await (await get('/auth/sessions', b.cookie)).json()) as {
+      sessions: { id: string; device: string | null }[];
+    };
+    expect(bRefreshed.sessions.find((session) => session.id === bId)?.device).toBe(
+      bList.sessions[0]!.device,
+    );
   });
 
   it('validates session names and requires authentication', async () => {
     const a = await register();
-    const list = (await (await get('/auth/sessions', a.cookie)).json()) as { sessions: { id: string }[] };
+    const list = (await (await get('/auth/sessions', a.cookie)).json()) as {
+      sessions: { id: string }[];
+    };
     const id = list.sessions[0]!.id;
     expect((await post('/auth/sessions/rename', { id, label: '   ' }, a.cookie)).status).toBe(400);
-    expect((await post('/auth/sessions/rename', { id, label: 'x'.repeat(41) }, a.cookie)).status).toBe(400);
+    expect(
+      (await post('/auth/sessions/rename', { id, label: 'x'.repeat(41) }, a.cookie)).status,
+    ).toBe(400);
     expect((await post('/auth/sessions/rename', { id, label: 'My device' })).status).toBe(401);
   });
 
@@ -397,22 +474,30 @@ describe('the account event trail', () => {
       expect.arrayContaining(['account_created', 'signed_in']),
     );
     expect(body.securityActivity).toHaveLength(2);
-    expect(body.securityActivity.every((event) => !Number.isNaN(Date.parse(event.createdAt)))).toBe(true);
+    expect(body.securityActivity.every((event) => !Number.isNaN(Date.parse(event.createdAt)))).toBe(
+      true,
+    );
 
-    const other = (await (await get('/auth/export', b.cookie)).json()) as { securityActivity: unknown[] };
+    const other = (await (await get('/auth/export', b.cookie)).json()) as {
+      securityActivity: unknown[];
+    };
     expect(other.securityActivity).toHaveLength(1);
   });
 
   it('records password changes and device sign-outs but ignores cross-account revoke attempts', async () => {
     const a = await register();
     const b = await register();
-    const bSessions = (await (await get('/auth/sessions', b.cookie)).json()) as { sessions: { id: string }[] };
+    const bSessions = (await (await get('/auth/sessions', b.cookie)).json()) as {
+      sessions: { id: string }[];
+    };
 
     await post('/auth/sessions/revoke', { id: bSessions.sessions[0]!.id }, a.cookie);
     const unchanged = (await (await get('/auth/export', a.cookie)).json()) as {
       securityActivity: { type: string }[];
     };
-    expect(unchanged.securityActivity.map((event) => event.type)).not.toContain('device_signed_out');
+    expect(unchanged.securityActivity.map((event) => event.type)).not.toContain(
+      'device_signed_out',
+    );
 
     const changed = await post(
       '/auth/change-password',
@@ -471,7 +556,11 @@ describe('disconnect Google', () => {
 
   it('unlinks once a password exists', async () => {
     const g = await registerGoogle();
-    const added = await post('/auth/set-password', { newPassword: 'safe-enough-password' }, g.cookie);
+    const added = await post(
+      '/auth/set-password',
+      { newPassword: 'safe-enough-password' },
+      g.cookie,
+    );
     expect(added.status).toBe(200);
     // set-password signs every other session out and re-issues this one, so the original cookie is
     // deliberately dead by now. Carry the replacement.
@@ -521,7 +610,9 @@ describe('how each sign-in happened', () => {
 describe('delete account', () => {
   it('deletes with the correct password and blocks login afterward', async () => {
     const { email, password, cookie } = await register();
-    expect((await post('/auth/delete-account', { password: 'wrong-password' }, cookie)).status).toBe(400);
+    expect(
+      (await post('/auth/delete-account', { password: 'wrong-password' }, cookie)).status,
+    ).toBe(400);
     expect((await post('/auth/delete-account', { password }, cookie)).status).toBe(200);
     expect((await get('/auth/me', cookie)).status).toBe(401);
     expect((await post('/auth/login', { email, password })).status).toBe(401);
@@ -529,7 +620,9 @@ describe('delete account', () => {
 
   it('deletes a Google-only account when the typed email confirms', async () => {
     const g = await registerGoogle();
-    expect((await post('/auth/delete-account', { confirm: 'nope@wrong.dev' }, g.cookie)).status).toBe(400);
+    expect(
+      (await post('/auth/delete-account', { confirm: 'nope@wrong.dev' }, g.cookie)).status,
+    ).toBe(400);
     expect((await post('/auth/delete-account', { confirm: g.email }, g.cookie)).status).toBe(200);
     expect((await get('/auth/me', g.cookie)).status).toBe(401);
   });
@@ -579,7 +672,11 @@ describe('step-up re-authentication', () => {
 
   it('blocks unlinking Google on an old session, and says a password will do', async () => {
     const g = await registerGoogle();
-    const added = await post('/auth/set-password', { newPassword: 'a-real-password-now' }, g.cookie);
+    const added = await post(
+      '/auth/set-password',
+      { newPassword: 'a-real-password-now' },
+      g.cookie,
+    );
     const rotated = sessionCookie(added)!;
     await makeStale(rotated);
 
@@ -592,7 +689,11 @@ describe('step-up re-authentication', () => {
 
   it('lets a password re-open the window, and then the action goes through', async () => {
     const g = await registerGoogle();
-    const added = await post('/auth/set-password', { newPassword: 'a-real-password-now' }, g.cookie);
+    const added = await post(
+      '/auth/set-password',
+      { newPassword: 'a-real-password-now' },
+      g.cookie,
+    );
     const rotated = sessionCookie(added)!;
     await makeStale(rotated);
     expect((await post('/auth/disconnect-google', {}, rotated)).status).toBe(403);
@@ -659,7 +760,11 @@ describe('session hygiene on credential changes', () => {
     const otherCookie = `platform_session=${other}`;
     expect((await get('/auth/me', otherCookie)).status).toBe(200);
 
-    const added = await post('/auth/set-password', { newPassword: 'a-real-password-now' }, g.cookie);
+    const added = await post(
+      '/auth/set-password',
+      { newPassword: 'a-real-password-now' },
+      g.cookie,
+    );
     expect(added.status).toBe(200);
 
     // The other device is gone, and the device that made the change is still signed in.
@@ -728,7 +833,11 @@ describe('surviving a schema that is behind the code', () => {
 
   it('asks for a password rather than letting a sensitive action through', async () => {
     const g = await registerGoogle();
-    const added = await post('/auth/set-password', { newPassword: 'a-real-password-now' }, g.cookie);
+    const added = await post(
+      '/auth/set-password',
+      { newPassword: 'a-real-password-now' },
+      g.cookie,
+    );
     const rotated = sessionCookie(added)!;
     await env.DB.prepare('ALTER TABLE sessions DROP COLUMN reauth_at').run();
     try {
@@ -754,14 +863,16 @@ describe('passkeys', () => {
   /** A credential row without a real authenticator, for the management paths. */
   async function seedPasskey(userId: string, label = 'Test key'): Promise<string> {
     const id = `cred-${crypto.randomUUID()}`;
-    await db().insert(credentials).values({
-      id,
-      userId,
-      publicKey: Buffer.from('not-a-real-key').toString('base64'),
-      counter: 0,
-      backedUp: true,
-      label,
-    });
+    await db()
+      .insert(credentials)
+      .values({
+        id,
+        userId,
+        publicKey: Buffer.from('not-a-real-key').toString('base64'),
+        counter: 0,
+        backedUp: true,
+        label,
+      });
     return id;
   }
 
@@ -776,7 +887,11 @@ describe('passkeys', () => {
     expect(res.status).toBe(200);
 
     const { options } = (await res.json()) as {
-      options: { challenge: string; rp: { id: string }; authenticatorSelection: { residentKey: string } };
+      options: {
+        challenge: string;
+        rp: { id: string };
+        authenticatorSelection: { residentKey: string };
+      };
     };
     expect(options.challenge).toBeTruthy();
     // Discoverable, or "sign in" could not work without typing an email first.
@@ -798,10 +913,18 @@ describe('passkeys', () => {
       .split(';')[0]!;
 
     const body = { response: { id: 'nope', rawId: 'nope', type: 'public-key', response: {} } };
-    const first = await post('/auth/passkeys/register/verify', body, `${cookie}; ${challengeCookie}`);
+    const first = await post(
+      '/auth/passkeys/register/verify',
+      body,
+      `${cookie}; ${challengeCookie}`,
+    );
     expect(first.status).toBe(400);
 
-    const second = await post('/auth/passkeys/register/verify', body, `${cookie}; ${challengeCookie}`);
+    const second = await post(
+      '/auth/passkeys/register/verify',
+      body,
+      `${cookie}; ${challengeCookie}`,
+    );
     expect(((await second.json()) as { error: string }).error).toBe('NO_CHALLENGE');
   });
 
@@ -846,7 +969,14 @@ describe('passkeys', () => {
       .split(';')[0]!;
     const res = await post(
       '/auth/passkeys/login/verify',
-      { response: { id: 'never-registered', rawId: 'never-registered', type: 'public-key', response: {} } },
+      {
+        response: {
+          id: 'never-registered',
+          rawId: 'never-registered',
+          type: 'public-key',
+          response: {},
+        },
+      },
       challengeCookie,
     );
     expect(((await res.json()) as { error: string }).error).toBe('UNKNOWN_CREDENTIAL');
@@ -864,7 +994,14 @@ describe('passkeys', () => {
 
     const res = await post(
       '/auth/passkeys/login/verify',
-      { response: { id: credId, rawId: credId, type: 'public-key', response: { signature: 'AAAA' } } },
+      {
+        response: {
+          id: credId,
+          rawId: credId,
+          type: 'public-key',
+          response: { signature: 'AAAA' },
+        },
+      },
       challengeCookie,
     );
     expect(res.status).toBe(400);
@@ -888,7 +1025,9 @@ describe('passkeys', () => {
     const theirs = await register();
     const victim = await seedPasskey(theirs.id, 'Their phone');
 
-    expect((await post('/auth/passkeys/rename', { id: victim, label: 'Mine now' }, mine.cookie)).status).toBe(404);
+    expect(
+      (await post('/auth/passkeys/rename', { id: victim, label: 'Mine now' }, mine.cookie)).status,
+    ).toBe(404);
     expect((await post('/auth/passkeys/delete', { id: victim }, mine.cookie)).status).toBe(404);
 
     const still = await get('/auth/passkeys', theirs.cookie);
@@ -898,8 +1037,12 @@ describe('passkeys', () => {
   it('renames your own', async () => {
     const { id, cookie } = await register();
     const credId = await seedPasskey(id, 'Old name');
-    expect((await post('/auth/passkeys/rename', { id: credId, label: 'MacBook' }, cookie)).status).toBe(200);
-    const { passkeys } = (await (await get('/auth/passkeys', cookie)).json()) as { passkeys: { label: string }[] };
+    expect(
+      (await post('/auth/passkeys/rename', { id: credId, label: 'MacBook' }, cookie)).status,
+    ).toBe(200);
+    const { passkeys } = (await (await get('/auth/passkeys', cookie)).json()) as {
+      passkeys: { label: string }[];
+    };
     expect(passkeys[0]?.label).toBe('MacBook');
   });
 
@@ -907,9 +1050,13 @@ describe('passkeys', () => {
     const { id, cookie } = await register();
     const credId = await seedPasskey(id);
     expect((await post('/auth/passkeys/delete', { id: credId }, cookie)).status).toBe(200);
-    expect(((await (await get('/auth/passkeys', cookie)).json()) as { passkeys: unknown[] }).passkeys).toHaveLength(0);
+    expect(
+      ((await (await get('/auth/passkeys', cookie)).json()) as { passkeys: unknown[] }).passkeys,
+    ).toHaveLength(0);
 
-    const events = (await (await get('/auth/export', cookie)).json()) as { securityActivity: { type: string }[] };
+    const events = (await (await get('/auth/export', cookie)).json()) as {
+      securityActivity: { type: string }[];
+    };
     expect(events.securityActivity.map((e) => e.type)).toContain('passkey_removed');
   });
 
@@ -930,6 +1077,8 @@ describe('passkeys', () => {
     expect(res.status).toBe(403);
     expect(((await res.json()) as { error: string }).error).toBe('REAUTH_REQUIRED');
     // And it is still there.
-    expect(((await (await get('/auth/passkeys', cookie)).json()) as { passkeys: unknown[] }).passkeys).toHaveLength(1);
+    expect(
+      ((await (await get('/auth/passkeys', cookie)).json()) as { passkeys: unknown[] }).passkeys,
+    ).toHaveLength(1);
   });
 });

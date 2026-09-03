@@ -33,7 +33,9 @@ function loadScript(): Promise<void> {
   if (window.turnstile) return Promise.resolve();
   const existing = document.querySelector<HTMLScriptElement>(`script[src="${SCRIPT_SRC}"]`);
   if (existing) {
-    return new Promise((resolve) => existing.addEventListener('load', () => resolve(), { once: true }));
+    return new Promise((resolve) =>
+      existing.addEventListener('load', () => resolve(), { once: true }),
+    );
   }
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');

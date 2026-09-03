@@ -38,7 +38,10 @@ export function ResetPasswordPage(): ReactNode {
         <p className="text-sm text-muted">
           This reset link is missing its token. Request a new one from the login page.
         </p>
-        <Link to="/forgot-password" className="mt-4 inline-block font-medium text-accent hover:underline">
+        <Link
+          to="/forgot-password"
+          className="mt-4 inline-block font-medium text-accent hover:underline"
+        >
           Request a new link
         </Link>
       </AuthCard>
@@ -96,13 +99,14 @@ export function ResetPasswordPage(): ReactNode {
               required
               minLength={8}
             />
-            {confirmPassword && (
-              password !== confirmPassword ? (
+            {confirmPassword &&
+              (password !== confirmPassword ? (
                 <p className="mt-1 text-xs text-neg">Passwords do not match.</p>
               ) : (
-                <p className="mt-1 text-xs text-pos" role="status">Passwords match.</p>
-              )
-            )}
+                <p className="mt-1 text-xs text-pos" role="status">
+                  Passwords match.
+                </p>
+              ))}
           </div>
 
           {error && (

@@ -41,13 +41,23 @@ import {
   startLogin,
   startRegistration,
 } from './auth/passkeys.js';
-import { googleAuthUrl, googleCallbackUrl, exchangeGoogleCode, upsertGoogleUser, safeAppRedirect } from './auth/google.js';
+import {
+  googleAuthUrl,
+  googleCallbackUrl,
+  exchangeGoogleCode,
+  upsertGoogleUser,
+  safeAppRedirect,
+} from './auth/google.js';
 import { consumeToken, issueToken } from './auth/verification.js';
 import { sendEmail } from './email.js';
 import { verifyTurnstile } from './turnstile.js';
 import { recordSecurityEvent, type SignInMethod } from './securityEvents.js';
 import { isFamiliarSignIn, signInAlertEmail } from './signInAlert.js';
-import { credentialAlertEmail, credentialAlertSubject, type CredentialChange } from './credentialAlert.js';
+import {
+  credentialAlertEmail,
+  credentialAlertSubject,
+  type CredentialChange,
+} from './credentialAlert.js';
 import { isFresh, stampReauth, sudoUntil, SUDO_WINDOW_MS } from './auth/stepUp.js';
 
 export { RateLimiter } from './rateLimiter.js';
@@ -121,7 +131,12 @@ app.get('/health', (c) => c.json({ status: 'ok', service: 'auth' }));
 const clientIp = (c: Ctx): string => c.req.header('cf-connecting-ip') ?? 'local';
 
 /** True when this IP has exceeded `limit` hits for `action` in the window. */
-async function overLimit(c: Ctx, action: string, limit: number, windowMs: number): Promise<boolean> {
+async function overLimit(
+  c: Ctx,
+  action: string,
+  limit: number,
+  windowMs: number,
+): Promise<boolean> {
   const ns = c.env.RATE_LIMITER;
   const stub = ns.get(ns.idFromName(`${action}:${clientIp(c)}`));
   return !(await stub.hit(limit, windowMs));
@@ -192,8 +207,16 @@ async function newSignInAlert(
  * block someone changing a password, least of all when they are changing it in a hurry because they
  * think somebody else has it.
  */
-function deliverCredentialAlert(c: Ctx, email: string, kind: CredentialChange, meta: SessionMeta): void {
-  const accountUrl = new URL('/account#security', c.env.APP_URL ?? new URL(c.req.url).origin).toString();
+function deliverCredentialAlert(
+  c: Ctx,
+  email: string,
+  kind: CredentialChange,
+  meta: SessionMeta,
+): void {
+  const accountUrl = new URL(
+    '/account#security',
+    c.env.APP_URL ?? new URL(c.req.url).origin,
+  ).toString();
   c.executionCtx.waitUntil(
     sendEmail(c.env, {
       to: email,
@@ -233,9 +256,11 @@ async function needsStepUp(
 function deliverSignInAlert(c: Ctx, email: string, alert: RenderedEmail | null): void {
   if (!alert) return;
   c.executionCtx.waitUntil(
-    sendEmail(c.env, { to: email, subject: 'New sign-in to your aidenjang account', ...alert }).catch(
-      (error) => console.error('[sign-in alert] delivery failed:', error),
-    ),
+    sendEmail(c.env, {
+      to: email,
+      subject: 'New sign-in to your aidenjang account',
+      ...alert,
+    }).catch((error) => console.error('[sign-in alert] delivery failed:', error)),
   );
 }
 
@@ -251,7 +276,8 @@ app.post('/auth/register', async (c) => {
   if (await overLimit(c, 'register', 10, 60 * MIN))
     return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
   const parsed = registerBody.safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  if (!parsed.success)
+    return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
   if (!(await turnstileOk(c, parsed.data.turnstileToken)))
     return c.json({ error: 'TURNSTILE_FAILED', message: 'Please complete the challenge.' }, 400);
 
@@ -259,11 +285,18 @@ app.post('/auth/register', async (c) => {
   const email = parsed.data.email.trim().toLowerCase();
   const displayName = parsed.data.displayName.trim();
 
-  const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).get();
-  if (existing) return c.json({ error: 'EMAIL_TAKEN', message: 'That email is already registered.' }, 409);
+  const existing = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .get();
+  if (existing)
+    return c.json({ error: 'EMAIL_TAKEN', message: 'That email is already registered.' }, 409);
 
   const id = crypto.randomUUID();
-  await db.insert(users).values({ id, email, passwordHash: await hashPassword(parsed.data.password), displayName });
+  await db
+    .insert(users)
+    .values({ id, email, passwordHash: await hashPassword(parsed.data.password), displayName });
   const meta = sessionMeta(c);
   const { token, expiresAt } = await createSession(db, id, meta);
   await recordSecurityEvent(db, id, 'account_created', meta);
@@ -281,7 +314,8 @@ app.post('/auth/register', async (c) => {
         'Your aidenjang account is made. One tap confirms this is your address, and then it works everywhere I build.',
       ],
       action: { label: 'Confirm my email', url: link(c.env, '/verify-email', verifyToken) },
-      footnote: 'This link lasts 24 hours. If you did not create an account, ignore this and nothing happens.',
+      footnote:
+        'This link lasts 24 hours. If you did not create an account, ignore this and nothing happens.',
       app: returnAppName(parsed.data.returnTo),
     }),
   });
@@ -302,7 +336,8 @@ app.post('/auth/login', async (c) => {
   if (await overLimit(c, 'login', 10, 5 * MIN))
     return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
   const parsed = loginBody.safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  if (!parsed.success)
+    return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
   if (!(await turnstileOk(c, parsed.data.turnstileToken)))
     return c.json({ error: 'TURNSTILE_FAILED', message: 'Please complete the challenge.' }, 400);
 
@@ -316,7 +351,10 @@ app.post('/auth/login', async (c) => {
   if (!user.passwordHash) {
     // Passwordless (Google) account: no password to check.
     return c.json(
-      { error: 'USE_GOOGLE', message: 'This account uses Google sign-in. Use "Continue with Google".' },
+      {
+        error: 'USE_GOOGLE',
+        message: 'This account uses Google sign-in. Use "Continue with Google".',
+      },
       400,
     );
   }
@@ -328,7 +366,10 @@ app.post('/auth/login', async (c) => {
     db,
     user.id,
     meta,
-    new URL('/account?security=review#active-sessions', c.env.APP_URL ?? new URL(c.req.url).origin).toString(),
+    new URL(
+      '/account?security=review#active-sessions',
+      c.env.APP_URL ?? new URL(c.req.url).origin,
+    ).toString(),
     'password',
   );
   const { token, expiresAt } = await createSession(db, user.id, meta);
@@ -336,7 +377,11 @@ app.post('/auth/login', async (c) => {
   deliverSignInAlert(c, user.email, alert);
   setSessionCookie(c, token, expiresAt);
   return c.json({
-    user: publicUser({ ...user, hasPassword: user.passwordHash != null, hasGoogle: user.googleId != null }),
+    user: publicUser({
+      ...user,
+      hasPassword: user.passwordHash != null,
+      hasGoogle: user.googleId != null,
+    }),
   });
 });
 
@@ -360,14 +405,19 @@ app.get('/auth/google', async (c) => {
   const state = crypto.randomUUID();
   const redirectUri = googleCallbackUrl(c.req.url);
   // Short-lived CSRF nonce + return target; SameSite=Lax so it survives the top-level redirect back.
-  setCookie(c, GOOGLE_STATE_COOKIE, JSON.stringify({ s: state, r: c.req.query('return_to') ?? '', link }), {
-    httpOnly: true,
-    secure: isSecureRequest(c),
-    sameSite: 'Lax',
-    path: '/auth/google',
-    maxAge: 600,
-    ...(c.env.COOKIE_DOMAIN ? { domain: c.env.COOKIE_DOMAIN } : {}),
-  });
+  setCookie(
+    c,
+    GOOGLE_STATE_COOKIE,
+    JSON.stringify({ s: state, r: c.req.query('return_to') ?? '', link }),
+    {
+      httpOnly: true,
+      secure: isSecureRequest(c),
+      sameSite: 'Lax',
+      path: '/auth/google',
+      maxAge: 600,
+      ...(c.env.COOKIE_DOMAIN ? { domain: c.env.COOKIE_DOMAIN } : {}),
+    },
+  );
   return c.redirect(googleAuthUrl(clientId, redirectUri, state));
 });
 
@@ -424,14 +474,20 @@ app.get('/auth/google/callback', async (c) => {
       const cookie = getCookie(c, SESSION_COOKIE);
       const current = cookie ? await validateSession(db, cookie) : null;
       if (!current) return fail('link_unauthenticated');
-      const taken = await db.select({ id: users.id }).from(users).where(eq(users.googleId, identity.sub)).get();
+      const taken = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.googleId, identity.sub))
+        .get();
       if (taken && taken.id !== current.id) return fail('google_already_linked');
       await db
         .update(users)
         .set({
           googleId: identity.sub,
           // Only let Google vouch for the email if it's the same address on this account.
-          ...(identity.emailVerified && identity.email === current.email ? { emailVerified: true } : {}),
+          ...(identity.emailVerified && identity.email === current.email
+            ? { emailVerified: true }
+            : {}),
           updatedAt: new Date(),
         })
         .where(eq(users.id, current.id));
@@ -504,18 +560,19 @@ app.post('/auth/forgot-password', async (c) => {
       to: email,
       subject: 'Reset your aidenjang password',
       ...renderEmail({
-      reason: 'password-reset',
-      preheader: 'Choose a new password for your aidenjang account.',
-      heading: 'Reset your password',
-      paragraphs: [
-        'Somebody asked to reset the password on your aidenjang account.',
-        'If that was not you, you can ignore this. Your password does not change until somebody opens this link and sets a new one.',
-      ],
-      action: { label: 'Choose a new password', url: link(c.env, '/reset-password', token) },
-      // Named as a thing not to forward, because a reset link is a password until it is used.
-      footnote: 'This link lasts one hour and works once. Anybody who has it can set your password, so do not forward it.',
-      app: returnAppName(parsed.data.returnTo),
-    }),
+        reason: 'password-reset',
+        preheader: 'Choose a new password for your aidenjang account.',
+        heading: 'Reset your password',
+        paragraphs: [
+          'Somebody asked to reset the password on your aidenjang account.',
+          'If that was not you, you can ignore this. Your password does not change until somebody opens this link and sets a new one.',
+        ],
+        action: { label: 'Choose a new password', url: link(c.env, '/reset-password', token) },
+        // Named as a thing not to forward, because a reset link is a password until it is used.
+        footnote:
+          'This link lasts one hour and works once. Anybody who has it can set your password, so do not forward it.',
+        app: returnAppName(parsed.data.returnTo),
+      }),
     });
   }
   return c.json({ ok: true });
@@ -527,10 +584,15 @@ app.post('/auth/reset-password', async (c) => {
   const parsed = z
     .object({ token: z.string().min(1), newPassword: z.string().min(8).max(200) })
     .safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  if (!parsed.success)
+    return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
   const db = createDb(c.env);
   const userId = await consumeToken(db, parsed.data.token, 'reset');
-  if (!userId) return c.json({ error: 'INVALID_TOKEN', message: 'That reset link is invalid or expired.' }, 400);
+  if (!userId)
+    return c.json(
+      { error: 'INVALID_TOKEN', message: 'That reset link is invalid or expired.' },
+      400,
+    );
   await db
     .update(users)
     .set({ passwordHash: await hashPassword(parsed.data.newPassword), updatedAt: new Date() })
@@ -541,12 +603,21 @@ app.post('/auth/reset-password', async (c) => {
 });
 
 app.post('/auth/verify-email', async (c) => {
-  const parsed = z.object({ token: z.string().min(1) }).safeParse(await c.req.json().catch(() => null));
+  const parsed = z
+    .object({ token: z.string().min(1) })
+    .safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError' }, 400);
   const db = createDb(c.env);
   const userId = await consumeToken(db, parsed.data.token, 'verify');
-  if (!userId) return c.json({ error: 'INVALID_TOKEN', message: 'That verification link is invalid or expired.' }, 400);
-  await db.update(users).set({ emailVerified: true, updatedAt: new Date() }).where(eq(users.id, userId));
+  if (!userId)
+    return c.json(
+      { error: 'INVALID_TOKEN', message: 'That verification link is invalid or expired.' },
+      400,
+    );
+  await db
+    .update(users)
+    .set({ emailVerified: true, updatedAt: new Date() })
+    .where(eq(users.id, userId));
   await recordSecurityEvent(db, userId, 'email_verified', sessionMeta(c));
   return c.json({ ok: true });
 });
@@ -584,7 +655,8 @@ app.post('/auth/update-profile', async (c) => {
   const parsed = z
     .object({ displayName: z.string().trim().min(1).max(80) })
     .safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  if (!parsed.success)
+    return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
   const displayName = parsed.data.displayName.trim();
   await db.update(users).set({ displayName, updatedAt: new Date() }).where(eq(users.id, user.id));
   return c.json({ user: publicUser({ ...user, displayName }) });
@@ -643,7 +715,10 @@ app.post('/auth/passkeys/register/verify', async (c) => {
   const me = cookie ? await validateSession(db, cookie) : null;
   if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
 
-  const body = (await c.req.json().catch(() => null)) as { response?: unknown; label?: unknown } | null;
+  const body = (await c.req.json().catch(() => null)) as {
+    response?: unknown;
+    label?: unknown;
+  } | null;
   if (!body?.response) return c.json({ error: 'ValidationError' }, 400);
 
   const meta = sessionMeta(c);
@@ -677,7 +752,12 @@ app.post('/auth/passkeys/login/verify', async (c) => {
   const body = (await c.req.json().catch(() => null)) as { response?: unknown } | null;
   if (!body?.response) return c.json({ error: 'ValidationError' }, 400);
 
-  const login = await finishLogin(db, rp(c), body.response as never, getCookie(c, CHALLENGE_COOKIE));
+  const login = await finishLogin(
+    db,
+    rp(c),
+    body.response as never,
+    getCookie(c, CHALLENGE_COOKIE),
+  );
   clearChallengeCookie(c, CHALLENGE_COOKIE);
 
   const meta = sessionMeta(c);
@@ -720,7 +800,9 @@ app.post('/auth/passkeys/delete', async (c) => {
   const db = createDb(c.env);
   const me = cookie ? await validateSession(db, cookie) : null;
   if (!me || !cookie) return c.json({ error: 'UNAUTHENTICATED' }, 401);
-  const parsed = z.object({ id: z.string().min(1) }).safeParse(await c.req.json().catch(() => null));
+  const parsed = z
+    .object({ id: z.string().min(1) })
+    .safeParse(await c.req.json().catch(() => null));
   if (!parsed.success) return c.json({ error: 'ValidationError' }, 400);
 
   const stale = await needsStepUp(c, db, cookie, me.hasPassword);
@@ -744,7 +826,8 @@ app.post('/auth/reauth', async (c) => {
   const parsed = z
     .object({ password: z.string().min(1).max(200) })
     .safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  if (!parsed.success)
+    return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
 
   const row = await db.select().from(users).where(eq(users.id, me.id)).get();
   if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
@@ -771,17 +854,24 @@ app.post('/auth/change-password', async (c) => {
   const parsed = z
     .object({ currentPassword: z.string().min(1), newPassword: z.string().min(8).max(200) })
     .safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  if (!parsed.success)
+    return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
 
   const row = await db.select().from(users).where(eq(users.id, sessionUser.id)).get();
   if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
   if (!row.passwordHash)
     return c.json(
-      { error: 'NO_PASSWORD', message: 'This account signs in with Google; there is no password to change.' },
+      {
+        error: 'NO_PASSWORD',
+        message: 'This account signs in with Google; there is no password to change.',
+      },
       400,
     );
   if (!(await verifyPassword(row.passwordHash, parsed.data.currentPassword)))
-    return c.json({ error: 'INVALID_CREDENTIALS', message: 'Your current password is wrong.' }, 400);
+    return c.json(
+      { error: 'INVALID_CREDENTIALS', message: 'Your current password is wrong.' },
+      400,
+    );
 
   await db
     .update(users)
@@ -816,13 +906,17 @@ app.post('/auth/set-password', async (c) => {
   const parsed = z
     .object({ newPassword: z.string().min(8).max(200) })
     .safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  if (!parsed.success)
+    return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
 
   const row = await db.select().from(users).where(eq(users.id, sessionUser.id)).get();
   if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
   if (row.passwordHash)
     return c.json(
-      { error: 'PASSWORD_EXISTS', message: 'This account already has a password. Use change password instead.' },
+      {
+        error: 'PASSWORD_EXISTS',
+        message: 'This account already has a password. Use change password instead.',
+      },
       400,
     );
   const stale = await needsStepUp(c, db, cookie!, false);
@@ -935,8 +1029,10 @@ app.get('/auth/export', async (c) => {
       email: account.email,
       displayName: account.displayName,
       emailVerified: account.emailVerified,
-      signInMethods: [account.passwordHash ? 'password' : null, account.googleId ? 'google' : null]
-        .filter((method): method is 'password' | 'google' => method !== null),
+      signInMethods: [
+        account.passwordHash ? 'password' : null,
+        account.googleId ? 'google' : null,
+      ].filter((method): method is 'password' | 'google' => method !== null),
       createdAt: account.createdAt.toISOString(),
       updatedAt: account.updatedAt.toISOString(),
     },
@@ -1008,7 +1104,8 @@ app.post('/auth/sessions/rename', async (c) => {
   const parsed = z
     .object({ id: z.string().min(1), label: z.string().trim().min(1).max(40) })
     .safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  if (!parsed.success)
+    return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
 
   const renamed = await db
     .update(sessions)
@@ -1029,8 +1126,11 @@ app.post('/auth/sessions/revoke', async (c) => {
   const db = createDb(c.env);
   const me = cookie ? await validateSession(db, cookie) : null;
   if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
-  const parsed = z.object({ id: z.string().min(1) }).safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  const parsed = z
+    .object({ id: z.string().min(1) })
+    .safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success)
+    return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
   const revoked = await db
     .delete(sessions)
     .where(and(eq(sessions.id, parsed.data.id), eq(sessions.userId, me.id)))
@@ -1057,7 +1157,8 @@ app.post('/auth/sessions/revoke-others', async (c) => {
     .delete(sessions)
     .where(and(eq(sessions.userId, me.id), ne(sessions.id, currentId)))
     .returning({ id: sessions.id });
-  if (revoked.length > 0) await recordSecurityEvent(db, me.id, 'other_devices_signed_out', sessionMeta(c));
+  if (revoked.length > 0)
+    await recordSecurityEvent(db, me.id, 'other_devices_signed_out', sessionMeta(c));
   return c.json({ ok: true });
 });
 
@@ -1081,7 +1182,8 @@ app.post('/auth/delete-account', async (c) => {
   const parsed = z
     .object({ password: z.string().optional(), confirm: z.string().optional() })
     .safeParse(await c.req.json().catch(() => null));
-  if (!parsed.success) return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
+  if (!parsed.success)
+    return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
 
   const row = await db.select().from(users).where(eq(users.id, me.id)).get();
   if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
@@ -1089,7 +1191,10 @@ app.post('/auth/delete-account', async (c) => {
     if (!parsed.data.password || !(await verifyPassword(row.passwordHash, parsed.data.password)))
       return c.json({ error: 'INVALID_CREDENTIALS', message: 'Wrong password.' }, 400);
   } else if ((parsed.data.confirm ?? '').trim().toLowerCase() !== row.email.toLowerCase()) {
-    return c.json({ error: 'CONFIRM_MISMATCH', message: 'Type your email address to confirm.' }, 400);
+    return c.json(
+      { error: 'CONFIRM_MISMATCH', message: 'Type your email address to confirm.' },
+      400,
+    );
   }
 
   await db.delete(users).where(eq(users.id, row.id)); // sessions + tokens cascade

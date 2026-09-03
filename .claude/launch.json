@@ -4,21 +4,13 @@
     {
       "name": "auth-api",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": [
-        "--filter",
-        "@aidenjang/auth-api",
-        "dev"
-      ],
+      "runtimeArgs": ["--filter", "@aidenjang/auth-api", "dev"],
       "port": 34100
     },
     {
       "name": "auth-web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": [
-        "--filter",
-        "@aidenjang/auth-web",
-        "dev"
-      ],
+      "runtimeArgs": ["--filter", "@aidenjang/auth-web", "dev"],
       "port": 34110
     }
   ]

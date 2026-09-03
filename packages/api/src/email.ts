@@ -17,7 +17,9 @@ export async function sendEmail(env: Env, msg: Message): Promise<void> {
   const subject = isLocal ? `[dev] ${msg.subject}` : msg.subject;
 
   if (!env.RESEND_API_KEY) {
-    console.log(`[email:dev] to=${msg.to} subject=${JSON.stringify(subject)}\n${msg.text ?? msg.html}`);
+    console.log(
+      `[email:dev] to=${msg.to} subject=${JSON.stringify(subject)}\n${msg.text ?? msg.html}`,
+    );
     return;
   }
   const res = await fetch('https://api.resend.com/emails', {

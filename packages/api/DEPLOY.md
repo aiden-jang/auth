@@ -27,10 +27,12 @@ pnpm run deploy             # builds web, then wrangler deploy
 ```bash
 echo "<value>" | pnpm exec wrangler secret put <NAME>
 ```
+
 Currently set: `COOKIE_DOMAIN=.aidenjang.com`, `CORS_ORIGINS` (owewell + bloomnote origins),
 `APP_URL=https://accounts.aidenjang.com`, `EMAIL_FROM`. Secrets don't affect local dev.
 
 **Not yet set (optional):**
+
 - `RESEND_API_KEY` — until set, verification/reset emails are logged, not sent. To deliver, set
   it and add SPF/DKIM/DMARC for `aidenjang.com`.
 - `TURNSTILE_SECRET` (server) **+** `VITE_TURNSTILE_SITE_KEY` (web build) — the CAPTCHA needs
@@ -38,9 +40,9 @@ Currently set: `COOKIE_DOMAIN=.aidenjang.com`, `CORS_ORIGINS` (owewell + bloomno
   - build the web with the site key: `VITE_TURNSTILE_SITE_KEY=<site-key> pnpm --filter @aidenjang/auth-web build`
     (the deploy script runs the build, so export it in the deploy shell), and
   - set the secret: `echo "<secret>" | pnpm exec wrangler secret put TURNSTILE_SECRET`.
-  With neither set, Turnstile is skipped everywhere (widget hidden, backend check bypassed). Do
-  **not** set only the secret — the backend would then reject every signup/login/forgot for a
-  missing token, since the widget wouldn't render.
+    With neither set, Turnstile is skipped everywhere (widget hidden, backend check bypassed). Do
+    **not** set only the secret — the backend would then reject every signup/login/forgot for a
+    missing token, since the widget wouldn't render.
 - `GOOGLE_CLIENT_ID` **+** `GOOGLE_CLIENT_SECRET` (server) **+** `VITE_GOOGLE_ENABLED=true` (web
   build) — "Continue with Google" needs all three, set together. In the Google Cloud console create
   an OAuth **Web application** client and register the redirect URI
@@ -50,8 +52,8 @@ Currently set: `COOKIE_DOMAIN=.aidenjang.com`, `CORS_ORIGINS` (owewell + bloomno
     (the deploy script runs the build, so export it in the deploy shell), and
   - set the secrets: `echo "<id>" | pnpm exec wrangler secret put GOOGLE_CLIENT_ID` and the same for
     `GOOGLE_CLIENT_SECRET`.
-  With none set, Google sign-in is hidden and `/auth/google*` returns 404. To let anyone (not just
-  test users) sign in, publish the OAuth consent screen to production.
+    With none set, Google sign-in is hidden and `/auth/google*` returns 404. To let anyone (not just
+    test users) sign in, publish the OAuth consent screen to production.
 
 ## One-time account setup (done — reference)
 
@@ -86,6 +88,7 @@ Currently set: `COOKIE_DOMAIN=.aidenjang.com`, `CORS_ORIGINS` (owewell + bloomno
 ```bash
 curl https://accounts.aidenjang.com/health     # {"status":"ok","service":"auth"}
 ```
+
 Then open `https://accounts.aidenjang.com/login`, sign up, confirm the `platform_session` cookie.
 
 ## Local dev (no Cloudflare needed)

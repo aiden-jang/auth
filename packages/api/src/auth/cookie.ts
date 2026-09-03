@@ -20,7 +20,11 @@ export function isSecureRequest<E extends { Bindings: Env }>(c: Ctx<E>): boolean
   return true;
 }
 
-export function setSessionCookie<E extends { Bindings: Env }>(c: Ctx<E>, token: string, expiresAt: Date): void {
+export function setSessionCookie<E extends { Bindings: Env }>(
+  c: Ctx<E>,
+  token: string,
+  expiresAt: Date,
+): void {
   setCookie(c, SESSION_COOKIE, token, {
     httpOnly: true,
     secure: isSecureRequest(c),
@@ -35,7 +39,12 @@ export function setSessionCookie<E extends { Bindings: Env }>(c: Ctx<E>, token: 
  * Strict, unlike the session cookie's Lax: a session must survive arriving from another site, a
  * ceremony never legitimately does. Takes cross-site completion off the table for free.
  */
-export function setChallengeCookie<E extends { Bindings: Env }>(c: Ctx<E>, name: string, id: string, ttlMs: number): void {
+export function setChallengeCookie<E extends { Bindings: Env }>(
+  c: Ctx<E>,
+  name: string,
+  id: string,
+  ttlMs: number,
+): void {
   setCookie(c, name, id, {
     httpOnly: true,
     secure: isSecureRequest(c),

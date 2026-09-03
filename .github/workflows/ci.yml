@@ -18,6 +18,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
+      # Generated drizzle snapshots and the lockfile are in .prettierignore; everything a person
+      # writes is checked. This was the one gate the other apps had and this one did not.
+      - run: pnpm format:check
       - run: pnpm build
       # Every suite (including owewell's) runs in-process: shared logic under Node, the API
       # against a real in-memory D1 via the Workers pool. No external database needed.
@@ -56,9 +59,9 @@ jobs:
           # Bake the "Continue with Google" button into the prod web build. Locally this comes from
           # web/.env.local (gitignored), which CI doesn't have. The server OAuth secrets
           # (GOOGLE_CLIENT_ID/SECRET) are set once on the Worker via `wrangler secret put`.
-          VITE_GOOGLE_ENABLED: "true"
+          VITE_GOOGLE_ENABLED: 'true'
           # Turnstile SITE key — PUBLIC (it ships in the client bundle). Must be baked into the prod
           # build or the widget never renders and, because the Worker has TURNSTILE_SECRET set, every
           # auth call 400s with TURNSTILE_FAILED (blocking login/signup/password-reset — and their
           # emails). The paired secret stays a `wrangler secret` on the Worker.
-          VITE_TURNSTILE_SITE_KEY: "0x4AAAAAADxBNTw4CP1ZhzK1"
+          VITE_TURNSTILE_SITE_KEY: '0x4AAAAAADxBNTw4CP1ZhzK1'

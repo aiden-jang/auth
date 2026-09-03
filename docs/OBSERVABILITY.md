@@ -17,7 +17,7 @@ head_sampling_rate = 1
   workers funnel through `app.onError` / `try/catch`, the ai-worker returns `vision_failed`, etc.
 - **Live tail** during an incident: `pnpm --filter <worker> exec wrangler tail` (or
   `wrangler tail <name>`).
-- **Browse + query** historically: Cloudflare dashboard → Workers & Pages → *the worker* → Logs
+- **Browse + query** historically: Cloudflare dashboard → Workers & Pages → _the worker_ → Logs
   (filter by status, exception, invocation). Retention is on the free tier.
 - Drop `head_sampling_rate` below `1` only if a worker gets high enough traffic to matter (none do).
 
@@ -31,8 +31,11 @@ their own sites). For CF-proxied hostnames it auto-injects the beacon; if a Work
 isn't auto-instrumented, paste the site's beacon into the app's `index.html`:
 
 ```html
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js"
-        data-cf-beacon='{"token":"<site-token-from-dashboard>"}'></script>
+<script
+  defer
+  src="https://static.cloudflareinsights.com/beacon.min.js"
+  data-cf-beacon='{"token":"<site-token-from-dashboard>"}'
+></script>
 ```
 
 ## 3. Uptime — external monitor on `/health`
@@ -40,8 +43,8 @@ isn't auto-instrumented, paste the site's beacon into the app's `index.html`:
 Every worker exposes `GET /health` returning `{ status/ok, service }`. Cloudflare Health Checks
 are a paid add-on, so point a **free external monitor** (e.g. UptimeRobot, 5-min interval) at:
 
-| App | Health URL |
-| --- | --- |
+| App  | Health URL                              |
+| ---- | --------------------------------------- |
 | auth | `https://accounts.aidenjang.com/health` |
 
 A green `/health` proves the worker is reachable and its runtime is up; it does not exercise D1/KV

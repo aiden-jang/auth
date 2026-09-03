@@ -41,10 +41,22 @@ describe('reassurance copy', () => {
   it('avoids the vocabulary that makes security copy meaningless', () => {
     // All true of any product, which is why none belongs here.
     const empty = [
-      /bank[- ]grade/i, /military[- ]grade/i, /industry[- ]standard/i, /state of the art/i,
-      /we take .* seriously/i, /rest assured/i, /peace of mind/i, /your safety is/i,
-      /world[- ]class/i, /cutting[- ]edge/i, /best[- ]in[- ]class/i, /enterprise[- ]grade/i,
-      /fully secure/i, /completely safe/i, /100% secure/i, /unhackable/i,
+      /bank[- ]grade/i,
+      /military[- ]grade/i,
+      /industry[- ]standard/i,
+      /state of the art/i,
+      /we take .* seriously/i,
+      /rest assured/i,
+      /peace of mind/i,
+      /your safety is/i,
+      /world[- ]class/i,
+      /cutting[- ]edge/i,
+      /best[- ]in[- ]class/i,
+      /enterprise[- ]grade/i,
+      /fully secure/i,
+      /completely safe/i,
+      /100% secure/i,
+      /unhackable/i,
     ];
     for (const [key, line] of ALL_REASSURANCE) {
       for (const pattern of empty) {

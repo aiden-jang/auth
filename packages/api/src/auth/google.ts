@@ -33,7 +33,12 @@ export function safeAppRedirect(returnTo: string, base: string): string {
     try {
       const u = new URL(returnTo, origin);
       const h = u.hostname;
-      if (h === 'aidenjang.com' || h.endsWith('.aidenjang.com') || h === 'localhost' || h === '127.0.0.1') {
+      if (
+        h === 'aidenjang.com' ||
+        h.endsWith('.aidenjang.com') ||
+        h === 'localhost' ||
+        h === '127.0.0.1'
+      ) {
         return u.toString();
       }
     } catch {
@@ -115,12 +120,20 @@ export async function exchangeGoogleCode(
   const sub = typeof claims?.sub === 'string' ? claims.sub : null;
   const email = typeof claims?.email === 'string' ? claims.email : null;
   if (!sub || !email) {
-    console.error('[google] id_token missing sub/email; claims keys:', Object.keys(claims ?? {}).join(','));
+    console.error(
+      '[google] id_token missing sub/email; claims keys:',
+      Object.keys(claims ?? {}).join(','),
+    );
     return null;
   }
   if (claims?.aud !== clientId) {
     // Usually a stray quote/whitespace in GOOGLE_CLIENT_ID (.dev.vars) — log both to compare.
-    console.error('[google] id_token aud mismatch. token aud:', String(claims?.aud), 'expected:', clientId);
+    console.error(
+      '[google] id_token aud mismatch. token aud:',
+      String(claims?.aud),
+      'expected:',
+      clientId,
+    );
     return null;
   }
   const name = typeof claims?.name === 'string' ? claims.name : email;
@@ -138,7 +151,12 @@ export async function exchangeGoogleCode(
  * new passwordless account.
  */
 export async function upsertGoogleUser(db: DB, identity: GoogleIdentity): Promise<AuthedUser> {
-  const toAuthed = (u: { id: string; email: string; displayName: string; emailVerified: boolean }): AuthedUser => ({
+  const toAuthed = (u: {
+    id: string;
+    email: string;
+    displayName: string;
+    emailVerified: boolean;
+  }): AuthedUser => ({
     id: u.id,
     email: u.email,
     displayName: u.displayName,
@@ -169,5 +187,10 @@ export async function upsertGoogleUser(db: DB, identity: GoogleIdentity): Promis
     displayName: identity.name,
     emailVerified: identity.emailVerified,
   });
-  return { id, email: identity.email, displayName: identity.name, emailVerified: identity.emailVerified };
+  return {
+    id,
+    email: identity.email,
+    displayName: identity.name,
+    emailVerified: identity.emailVerified,
+  };
 }

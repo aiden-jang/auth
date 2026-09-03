@@ -56,7 +56,7 @@ Origin guard would add nothing and could break that intended capability. The one
 This was a reasoned "leave it off", not an oversight.
 
 **Account linking is written to be un-takeover-able.** Linking Google to an existing account only
-happens by *verified* email, refuses if that Google identity is already attached to a different
+happens by _verified_ email, refuses if that Google identity is already attached to a different
 account, and only lets Google vouch for an email when it matches the account's. Disconnecting Google
 refuses if it would leave the account with no way to sign in, and a Google-only account can set a
 password first, so no one can lock themselves out.
@@ -71,13 +71,13 @@ it.)
 locations, a scored security check-up, a recovery rehearsal, and a security activity feed. Each one
 looked like security and gave you nothing to act on: the map redrew a list that already said
 "Chrome on macOS, Boston", and the score moved when you did things without ever naming what was at
-risk. Deleting them took 1,595 lines out against 503 added. The event *recording* stayed, because
+risk. Deleting them took 1,595 lines out against 503 added. The event _recording_ stayed, because
 two things still read it that nobody sees: the "was that you?" alert emails, and the data export.
 Collecting rows nobody can read would have been worse than either keeping or dropping the feature.
 
 **Magic-link sign-in was removed without usage data, but not without evidence.** Nobody could say
 how many people used it, because until recently every sign-in path recorded the same `signed_in`
-event with no method attached. What *could* be settled from the code was the thing that actually
+event with no method attached. What _could_ be settled from the code was the thing that actually
 mattered: whether removing it would lock anyone out. `passwordHash` is set to null in exactly one
 place, Google account creation, which sets `googleId` in the same insert; `googleId` is set to null
 in exactly one place, disconnect, which refuses unless a password exists. So every account

@@ -11,7 +11,12 @@ export function safeReturnTo(raw: string | null): string | null {
   try {
     const u = new URL(raw, window.location.origin);
     const h = u.hostname;
-    if (h === 'localhost' || h === '127.0.0.1' || h === 'aidenjang.com' || h.endsWith('.aidenjang.com')) {
+    if (
+      h === 'localhost' ||
+      h === '127.0.0.1' ||
+      h === 'aidenjang.com' ||
+      h.endsWith('.aidenjang.com')
+    ) {
       return u.toString();
     }
   } catch {

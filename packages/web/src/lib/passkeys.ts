@@ -16,7 +16,8 @@ export function passkeysSupported(): boolean {
 export async function passkeysLikely(): Promise<boolean> {
   if (!passkeysSupported()) return false;
   try {
-    const available = await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();
+    const available =
+      await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable?.();
     return available !== false;
   } catch {
     return false;
@@ -29,7 +30,10 @@ function wasCancelled(err: unknown): boolean {
   return err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'AbortError');
 }
 
-export type Outcome<T> = { kind: 'ok'; value: T } | { kind: 'cancelled' } | { kind: 'error'; message: string };
+export type Outcome<T> =
+  | { kind: 'ok'; value: T }
+  | { kind: 'cancelled' }
+  | { kind: 'error'; message: string };
 
 function toOutcome(err: unknown): Outcome<never> {
   if (wasCancelled(err)) return { kind: 'cancelled' };

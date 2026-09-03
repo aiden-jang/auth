@@ -39,7 +39,10 @@ export function welcome(recents: RecentAccount[], now = new Date()): Welcome {
   return {
     greeting,
     // "This device", not "you": the device is what we recognise, and we do not know who is holding it.
-    note: recents.length === 1 ? 'This device has been here before.' : 'You have signed in here before.',
+    note:
+      recents.length === 1
+        ? 'This device has been here before.'
+        : 'You have signed in here before.',
   };
 }
 

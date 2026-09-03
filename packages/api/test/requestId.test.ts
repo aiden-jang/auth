@@ -1,7 +1,12 @@
 import { SELF } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { Hono } from 'hono';
-import { errorContext, onUnhandledError, requestIdFrom, type WithRequestId } from '../src/requestId.js';
+import {
+  errorContext,
+  onUnhandledError,
+  requestIdFrom,
+  type WithRequestId,
+} from '../src/requestId.js';
 
 /* An id that is missing, or different from the one logged, is worse than none: it looks like it works. */
 
@@ -31,13 +36,19 @@ describe('what gets logged beside the error', () => {
   });
 
   it('leaves the query string out, because tokens live there', () => {
-    const context = errorContext(new Request(`${BASE}/auth/verify?token=super-secret-value`), 'ray-1');
+    const context = errorContext(
+      new Request(`${BASE}/auth/verify?token=super-secret-value`),
+      'ray-1',
+    );
     expect(JSON.stringify(context)).not.toContain('super-secret-value');
     expect(context.path).toBe('/auth/verify');
   });
 
   it('never grows a field that was not chosen deliberately', () => {
-    const context = errorContext(new Request(`${BASE}/x`, { headers: { cookie: 'platform_session=abc' } }), 'r');
+    const context = errorContext(
+      new Request(`${BASE}/x`, { headers: { cookie: 'platform_session=abc' } }),
+      'r',
+    );
     expect(Object.keys(context).sort()).toEqual(['method', 'path', 'requestId']);
   });
 });
@@ -56,7 +67,10 @@ describe('over the wire', () => {
   });
 
   it('gives every request a different id', async () => {
-    const [a, b] = await Promise.all([SELF.fetch(`${BASE}/auth/me`), SELF.fetch(`${BASE}/auth/me`)]);
+    const [a, b] = await Promise.all([
+      SELF.fetch(`${BASE}/auth/me`),
+      SELF.fetch(`${BASE}/auth/me`),
+    ]);
     expect(a.headers.get('x-request-id')).not.toBe(b.headers.get('x-request-id'));
   });
 
@@ -91,6 +105,8 @@ describe('over the wire', () => {
       body: JSON.stringify({ email: 'nobody@example.com', password: 'wrong-password-here' }),
     });
     const body = JSON.stringify(await res.json());
-    expect(body).not.toMatch(/no such|not found|unknown user|does not exist|column|sqlite|D1_|stack/i);
+    expect(body).not.toMatch(
+      /no such|not found|unknown user|does not exist|column|sqlite|D1_|stack/i,
+    );
   });
 });

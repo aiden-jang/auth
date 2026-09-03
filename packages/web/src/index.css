@@ -77,12 +77,22 @@ button:not(:disabled) {
   animation: aurora-b 18s ease-in-out infinite;
 }
 @keyframes aurora-a {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(40px, -24px) scale(1.15); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(40px, -24px) scale(1.15);
+  }
 }
 @keyframes aurora-b {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(-30px, 26px) scale(1.12); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-30px, 26px) scale(1.12);
+  }
 }
 
 /* Content enter — a subtle fade + rise on mount, used by the auth card. */
@@ -90,8 +100,14 @@ button:not(:disabled) {
   animation: enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 @keyframes enter {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Skeleton loading placeholder with a sweeping shimmer. */
@@ -109,7 +125,9 @@ button:not(:disabled) {
   animation: shimmer 1.5s infinite;
 }
 @keyframes shimmer {
-  100% { transform: translateX(100%); }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* Session map dots: they arrive rather than appear, and the current device keeps a slow ring so it is
@@ -120,8 +138,14 @@ button:not(:disabled) {
   transform-origin: center;
 }
 @keyframes dot-in {
-  from { opacity: 0; transform: scale(0.4); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 .session-dot-pulse {
   animation: dot-pulse 2.6s ease-out infinite;
@@ -129,19 +153,35 @@ button:not(:disabled) {
   transform-origin: center;
 }
 @keyframes dot-pulse {
-  0% { opacity: 0.55; transform: scale(1); }
-  70%, 100% { opacity: 0; transform: scale(2.6); }
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .aurora::before,
   .aurora::after,
-  .skeleton::after { animation: none; }
-  .animate-enter { animation: none; }
+  .skeleton::after {
+    animation: none;
+  }
+  .animate-enter {
+    animation: none;
+  }
   /* The dots stay, the movement goes: they are content, not decoration. The pulse ring becomes a plain
      outline so "this device" is still marked without anything moving. */
-  .session-dot { animation: none; }
-  .session-dot-pulse { animation: none; opacity: 0.5; }
+  .session-dot {
+    animation: none;
+  }
+  .session-dot-pulse {
+    animation: none;
+    opacity: 0.5;
+  }
 }
 
 /*

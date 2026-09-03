@@ -81,7 +81,13 @@ export function themeFor(app: ReturnApp | null): Theme {
   // One ink for both gradient stops: an accent clearing AA on a near-black card is already light, and
   // lightening it cannot flip the readable foreground. theme.test.ts checks both ends anyway.
   const buttonTo = mix(accent, PAPER, 0.3);
-  return { accent, accentInk: readableOn(accent), buttonFrom: accent, buttonTo, app: app?.name ?? null };
+  return {
+    accent,
+    accentInk: readableOn(accent),
+    buttonFrom: accent,
+    buttonTo,
+    app: app?.name ?? null,
+  };
 }
 
 /** Set these on a wrapper, never on documentElement: the root keeps the theme across a route change. */

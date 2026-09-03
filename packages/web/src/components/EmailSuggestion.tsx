@@ -25,7 +25,13 @@ function correctedEmail(value: string): string | null {
   return corrected ? `${local}@${corrected}` : null;
 }
 
-export function EmailSuggestion({ value, onAccept }: { value: string; onAccept: (value: string) => void }): ReactNode {
+export function EmailSuggestion({
+  value,
+  onAccept,
+}: {
+  value: string;
+  onAccept: (value: string) => void;
+}): ReactNode {
   const suggestion = correctedEmail(value);
   if (!suggestion) return null;
 

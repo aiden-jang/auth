@@ -15,14 +15,14 @@ What's in place across the platform, and the deliberate gaps.
 Every web-facing Worker sets a common set of headers via `@aidenjang/http` (`harden()` for the
 Hono Workers). See `packages/http/src/index.ts` for the exact values.
 
-| Header | Value / intent |
-| --- | --- |
-| `Content-Security-Policy` | `default-src 'self'` baseline; `script-src 'self'` (no inline scripts in prod bundles); `style-src 'unsafe-inline'` for React/Vite styles; images `data:`/`blob:`; Google Fonts allowed; `frame-ancestors 'none'`; `upgrade-insecure-requests` |
-| `Strict-Transport-Security` | 2 years, `includeSubDomains; preload` |
-| `X-Content-Type-Options` | `nosniff` |
-| `X-Frame-Options` | `DENY` (clickjacking; belt-and-suspenders with `frame-ancestors`) |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` |
-| `Permissions-Policy` | camera/mic/geolocation/payment/usb off by default (wherever overrides to allow geolocation) |
+| Header                      | Value / intent                                                                                                                                                                                                                                 |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Content-Security-Policy`   | `default-src 'self'` baseline; `script-src 'self'` (no inline scripts in prod bundles); `style-src 'unsafe-inline'` for React/Vite styles; images `data:`/`blob:`; Google Fonts allowed; `frame-ancestors 'none'`; `upgrade-insecure-requests` |
+| `Strict-Transport-Security` | 2 years, `includeSubDomains; preload`                                                                                                                                                                                                          |
+| `X-Content-Type-Options`    | `nosniff`                                                                                                                                                                                                                                      |
+| `X-Frame-Options`           | `DENY` (clickjacking; belt-and-suspenders with `frame-ancestors`)                                                                                                                                                                              |
+| `Referrer-Policy`           | `strict-origin-when-cross-origin`                                                                                                                                                                                                              |
+| `Permissions-Policy`        | camera/mic/geolocation/payment/usb off by default (wherever overrides to allow geolocation)                                                                                                                                                    |
 
 The CSP is intentionally conservative so the SPAs run unchanged; tighten per app after
 browser-verifying on deploy. Anything cross-origin a specific app needs goes through the `csp`

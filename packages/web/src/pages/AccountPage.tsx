@@ -68,7 +68,9 @@ export function AccountPage(): ReactNode {
   const [securityReview, setSecurityReview] = useState(
     () => new URLSearchParams(window.location.search).get('security') === 'review',
   );
-  const [securityReviewStatus, setSecurityReviewStatus] = useState<'securing' | 'secured' | null>(null);
+  const [securityReviewStatus, setSecurityReviewStatus] = useState<'securing' | 'secured' | null>(
+    null,
+  );
   const [refreshingSessions, setRefreshingSessions] = useState(false);
   const [sessionsRefreshed, setSessionsRefreshed] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
@@ -408,8 +410,6 @@ export function AccountPage(): ReactNode {
   }
   if (!user) return null;
 
-
-
   return (
     <AccountShell title="Your account" subtitle="One login for all of aidenjang's apps.">
       {stepUp.prompt}
@@ -420,16 +420,27 @@ export function AccountPage(): ReactNode {
         >
           {securityReviewStatus === 'secured' ? (
             <div className="flex items-start gap-3">
-              <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-pos/15 font-bold text-pos">✓</span>
+              <span
+                aria-hidden
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-pos/15 font-bold text-pos"
+              >
+                ✓
+              </span>
               <div className="min-w-0 flex-1">
-                <h2 id="sign-in-review-heading" className="text-sm font-semibold text-ink">Other devices are signed out</h2>
+                <h2 id="sign-in-review-heading" className="text-sm font-semibold text-ink">
+                  Other devices are signed out
+                </h2>
                 <p className="mt-1 text-xs leading-relaxed text-muted">
                   {user.hasPassword
                     ? 'Finish by changing your password below. This device will stay signed in.'
                     : 'This device stayed signed in. Your Google account remains your sign-in method.'}
                 </p>
                 {!user.hasPassword && (
-                  <button type="button" onClick={dismissSecurityReview} className="mt-2 text-xs font-semibold text-accent hover:underline">
+                  <button
+                    type="button"
+                    onClick={dismissSecurityReview}
+                    className="mt-2 text-xs font-semibold text-accent hover:underline"
+                  >
                     Done
                   </button>
                 )}
@@ -437,10 +448,15 @@ export function AccountPage(): ReactNode {
             </div>
           ) : (
             <>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">New sign-in review</p>
-              <h2 id="sign-in-review-heading" className="mt-1 text-base font-semibold text-ink">Was that sign-in you?</h2>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
+                New sign-in review
+              </p>
+              <h2 id="sign-in-review-heading" className="mt-1 text-base font-semibold text-ink">
+                Was that sign-in you?
+              </h2>
               <p className="mt-1 text-sm leading-relaxed text-muted">
-                If the device or location in the email looked wrong, lock every other session out now.
+                If the device or location in the email looked wrong, lock every other session out
+                now.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
