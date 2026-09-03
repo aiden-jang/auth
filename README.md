@@ -139,8 +139,13 @@ isolated in-memory D1 with the app's migrations applied per file, plus the live 
 Object. Coverage includes registration, login and sessions, verification and reset tokens, password
 change, Google-only accounts, session listing and revocation, and account deletion. The
 suite is kept **hermetic** by neutralizing any secrets a local `.dev.vars` would otherwise leak into
-the test Worker (so Turnstile is treated as unconfigured and no real email is sent). 228 tests: 143 in the
-API, 82 in the web app, 3 in the client.
+the test Worker (so Turnstile is treated as unconfigured and no real email is sent). 393 tests: 279 in the
+API, 82 in the web app, 32 in the client.
+
+Above them, a Playwright suite walks the journey none of them can see: register, follow the link
+from the verification email, sign out, sign back in. It reads the token out of the dev worker's own
+log, because the database stores only a hash and the raw token exists nowhere else — so the link it
+follows is the one a real person would click. `pnpm --filter @aidenjang/auth-web e2e`.
 
 ## Repo layout
 

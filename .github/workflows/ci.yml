@@ -25,9 +25,14 @@ jobs:
       # writes is checked. This was the one gate the other apps had and this one did not.
       - run: pnpm format:check
       - run: pnpm build
-      # Every suite (including owewell's) runs in-process: shared logic under Node, the API
-      # against a real in-memory D1 via the Workers pool. No external database needed.
+      # Every suite runs in-process: the SPA and the client under Node, the API against a real
+      # in-memory D1 via the Workers pool. No external database needed.
       - run: pnpm -r test
+      # The browser journey: register, follow the emailed link, sign out, sign back in. It starts
+      # its own worker and vite, so nothing here needs a deployed environment.
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: packages/web
+      - run: pnpm --filter @aidenjang/auth-web e2e
 
   # Auto-deploy to Cloudflare on merge to main, only after the checks above pass.
   # Requires a CLOUDFLARE_API_TOKEN repo secret with BOTH Workers Scripts:Edit and D1:Edit.
