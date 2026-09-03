@@ -1,5 +1,15 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { APP_ACCENTS, CANVAS, CARD, contrast, luminance, readableOn, themeFor, themeStyle, type Hex } from './theme';
+import {
+  APP_ACCENTS,
+  CANVAS,
+  CARD,
+  contrast,
+  luminance,
+  readableOn,
+  themeFor,
+  themeStyle,
+  type Hex,
+} from './theme';
 import { returnAppFor } from './returnTo';
 
 /*
@@ -8,7 +18,9 @@ import { returnAppFor } from './returnTo';
  */
 
 beforeAll(() => {
-  vi.stubGlobal('window', { location: { origin: 'https://accounts.aidenjang.com', hostname: 'accounts.aidenjang.com' } });
+  vi.stubGlobal('window', {
+    location: { origin: 'https://accounts.aidenjang.com', hostname: 'accounts.aidenjang.com' },
+  });
 });
 
 describe('the contrast maths', () => {
@@ -48,11 +60,14 @@ describe('every app in the launcher', () => {
   });
 
   // One label colour across two stops, so checking the accent alone misses the far end.
-  it.each(APP_ACCENTS)('gives $name a button label readable at both ends of the gradient', ({ accent }) => {
-    const theme = themeFor({ name: 'x', accent });
-    expect(contrast(theme.buttonFrom, theme.accentInk)).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(theme.buttonTo, theme.accentInk)).toBeGreaterThanOrEqual(4.5);
-  });
+  it.each(APP_ACCENTS)(
+    'gives $name a button label readable at both ends of the gradient',
+    ({ accent }) => {
+      const theme = themeFor({ name: 'x', accent });
+      expect(contrast(theme.buttonFrom, theme.accentInk)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(theme.buttonTo, theme.accentInk)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
 
   it.each(APP_ACCENTS)('keeps $name a gradient rather than two identical stops', ({ accent }) => {
     const theme = themeFor({ name: 'x', accent });
@@ -111,7 +126,9 @@ describe('choosing a theme', () => {
 
   it('gets even black to readable rather than giving up part-way', () => {
     // The loop is bounded, so the bound has to be enough for the worst input rather than nearly enough.
-    expect(contrast(themeFor({ name: 'void', accent: '#000000' }).accent, CARD)).toBeGreaterThanOrEqual(4.5);
+    expect(
+      contrast(themeFor({ name: 'void', accent: '#000000' }).accent, CARD),
+    ).toBeGreaterThanOrEqual(4.5);
   });
 
   it('survives a malformed accent instead of rendering an unstyled page', () => {

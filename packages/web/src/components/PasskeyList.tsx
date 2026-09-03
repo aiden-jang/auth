@@ -69,15 +69,18 @@ export function PasskeyList({
   }
 
   return (
-    <section aria-labelledby="passkeys-heading" className="rounded-2xl border border-line bg-card p-5">
+    <section
+      aria-labelledby="passkeys-heading"
+      className="rounded-2xl border border-line bg-card p-5"
+    >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
           <h2 id="passkeys-heading" className="font-semibold">
             Passkeys
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Your face, fingerprint or screen lock, instead of a password. Nothing we store can be used to
-            sign in as you.
+            Your face, fingerprint or screen lock, instead of a password. Nothing we store can be
+            used to sign in as you.
           </p>
         </div>
         <button
@@ -97,7 +100,8 @@ export function PasskeyList({
         </div>
       ) : passkeys.length === 0 ? (
         <p className="mt-4 rounded-xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
-          None yet. Adding one on the device you use most is the single biggest upgrade to this account.
+          None yet. Adding one on the device you use most is the single biggest upgrade to this
+          account.
         </p>
       ) : (
         <ul className="mt-4 space-y-2">

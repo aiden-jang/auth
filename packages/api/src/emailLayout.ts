@@ -103,8 +103,7 @@ function factsBlock(facts: { label: string; value: string }[]): string {
   );
 }
 
-const FONT =
-  `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif`;
+const FONT = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif`;
 
 export function renderEmail(content: EmailContent): RenderedEmail {
   // Built twice, escaped only for the HTML part: the text part must stay literal.

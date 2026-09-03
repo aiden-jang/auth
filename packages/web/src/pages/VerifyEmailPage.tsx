@@ -33,13 +33,17 @@ export function VerifyEmailPage(): ReactNode {
       {status === 'ok' && (
         <div className="space-y-4">
           <p className="text-sm text-pos">Your email is verified. Nothing else to do.</p>
-          <Link to="/account" className="font-medium text-accent hover:underline">Go to your account</Link>
+          <Link to="/account" className="font-medium text-accent hover:underline">
+            Go to your account
+          </Link>
         </div>
       )}
       {status === 'error' && (
         <div className="space-y-4">
           <p className="text-sm text-neg">That verification link is invalid or expired.</p>
-          <Link to="/account" className="font-medium text-accent hover:underline">Go to your account to resend it</Link>
+          <Link to="/account" className="font-medium text-accent hover:underline">
+            Go to your account to resend it
+          </Link>
         </div>
       )}
     </AuthCard>

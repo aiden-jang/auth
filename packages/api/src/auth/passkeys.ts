@@ -88,7 +88,10 @@ async function stashChallenge(db: DB, challenge: string, userId: string | null):
 }
 
 /** Deletes before verifying, not after success, so a failed response still burns its challenge. */
-async function takeChallenge(db: DB, id: string | undefined): Promise<{ challenge: string; userId: string | null }> {
+async function takeChallenge(
+  db: DB,
+  id: string | undefined,
+): Promise<{ challenge: string; userId: string | null }> {
   if (!id) throw new PasskeyError('NO_CHALLENGE', 'That sign-in attempt expired. Try again.');
   const row = await db.select().from(webauthnChallenges).where(eq(webauthnChallenges.id, id)).get();
   if (row) await db.delete(webauthnChallenges).where(eq(webauthnChallenges.id, id));
@@ -154,7 +157,8 @@ export async function finishRegistration(
 ): Promise<PasskeyView> {
   const { challenge, userId: challengeUser } = await takeChallenge(db, challengeId);
   // Or a challenge started for one account could be completed against another.
-  if (challengeUser !== userId) throw new PasskeyError('NO_CHALLENGE', 'That attempt was not yours.');
+  if (challengeUser !== userId)
+    throw new PasskeyError('NO_CHALLENGE', 'That attempt was not yours.');
 
   let verification;
   try {
@@ -173,8 +177,13 @@ export async function finishRegistration(
   }
 
   const { credential, credentialBackedUp } = verification.registrationInfo;
-  const already = await db.select().from(credentials).where(eq(credentials.id, credential.id)).get();
-  if (already) throw new PasskeyError('ALREADY_REGISTERED', 'That passkey is already on an account.');
+  const already = await db
+    .select()
+    .from(credentials)
+    .where(eq(credentials.id, credential.id))
+    .get();
+  if (already)
+    throw new PasskeyError('ALREADY_REGISTERED', 'That passkey is already on an account.');
 
   await db.insert(credentials).values({
     id: credential.id,
@@ -246,13 +255,17 @@ export async function finishLogin(
   } catch {
     throw new PasskeyError('VERIFICATION_FAILED', 'That passkey could not be verified.');
   }
-  if (!verification.verified) throw new PasskeyError('VERIFICATION_FAILED', 'That passkey could not be verified.');
+  if (!verification.verified)
+    throw new PasskeyError('VERIFICATION_FAILED', 'That passkey could not be verified.');
 
   // Cloning check, and only when the stored counter is above zero: Apple's authenticators always
   // report zero, so treating that as a regression locks out most real passkeys.
   const next = verification.authenticationInfo.newCounter;
   if (row.counter > 0 && next <= row.counter) {
-    throw new PasskeyError('COUNTER_REGRESSED', 'That passkey looks like a copy. Use another way in.');
+    throw new PasskeyError(
+      'COUNTER_REGRESSED',
+      'That passkey looks like a copy. Use another way in.',
+    );
   }
 
   await db
@@ -260,12 +273,21 @@ export async function finishLogin(
     .set({ counter: next, lastUsedAt: new Date() })
     .where(eq(credentials.id, row.id));
 
-  const owner = await db.select({ email: users.email }).from(users).where(eq(users.id, row.userId)).get();
+  const owner = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.id, row.userId))
+    .get();
   if (!owner) throw new PasskeyError('UNKNOWN_CREDENTIAL', 'That passkey is not registered here.');
   return { userId: row.userId, email: owner.email, label: row.label };
 }
 
-export async function renamePasskey(db: DB, userId: string, id: string, label: string): Promise<void> {
+export async function renamePasskey(
+  db: DB,
+  userId: string,
+  id: string,
+  label: string,
+): Promise<void> {
   const clean = label.trim().slice(0, 40);
   if (!clean) throw new PasskeyError('NOT_FOUND', 'Give it a name.');
   const row = await db

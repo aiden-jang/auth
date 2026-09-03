@@ -13,7 +13,15 @@ export function BrandMark(): ReactNode {
     >
       <svg width="20" height="20" viewBox="0 0 512 512" fill="none" aria-hidden>
         <g transform="rotate(45 256 256)" fill="#09090f" fillOpacity="0.92">
-          <circle cx="256" cy="152" r="57" fill="none" stroke="#09090f" strokeOpacity="0.92" strokeWidth="46" />
+          <circle
+            cx="256"
+            cy="152"
+            r="57"
+            fill="none"
+            stroke="#09090f"
+            strokeOpacity="0.92"
+            strokeWidth="46"
+          />
           <rect x="240" y="210" width="32" height="200" rx="8" />
           <rect x="272" y="322" width="48" height="28" rx="6" />
           <rect x="272" y="368" width="34" height="26" rx="6" />

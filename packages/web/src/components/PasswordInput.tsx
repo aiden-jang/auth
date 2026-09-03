@@ -40,56 +40,58 @@ export function PasswordInput({
   return (
     <>
       <div className="relative">
-      <input
-        id={id}
-        name={name}
-        type={show ? 'text' : 'password'}
-        className={`${inputClass} pr-11`}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyUp={trackCaps}
-        onKeyDown={trackCaps}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        autoComplete={autoComplete}
-        placeholder={placeholder}
-        required={required}
-        autoFocus={autoFocus}
-        minLength={minLength}
-      />
-      <button
-        type="button"
-        onClick={() => setShow((s) => !s)}
-        aria-label={show ? 'Hide password' : 'Show password'}
-        aria-pressed={show}
-        className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center text-muted transition hover:text-ink"
-      >
-        {show ? (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.4 5.2A9.5 9.5 0 0112 5c5 0 9 4.5 9 7-.4 1-1.2 2.2-2.4 3.3M6.1 6.6C3.9 8 2.4 10 2 12c.7 1.9 3.5 6 10 6 1.2 0 2.3-.2 3.3-.5"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        ) : (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
-          </svg>
-        )}
-      </button>
+        <input
+          id={id}
+          name={name}
+          type={show ? 'text' : 'password'}
+          className={`${inputClass} pr-11`}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyUp={trackCaps}
+          onKeyDown={trackCaps}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          required={required}
+          autoFocus={autoFocus}
+          minLength={minLength}
+        />
+        <button
+          type="button"
+          onClick={() => setShow((s) => !s)}
+          aria-label={show ? 'Hide password' : 'Show password'}
+          aria-pressed={show}
+          className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center text-muted transition hover:text-ink"
+        >
+          {show ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.4 5.2A9.5 9.5 0 0112 5c5 0 9 4.5 9 7-.4 1-1.2 2.2-2.4 3.3M6.1 6.6C3.9 8 2.4 10 2 12c.7 1.9 3.5 6 10 6 1.2 0 2.3-.2 3.3-.5"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+          )}
+        </button>
       </div>
       {capsOn && focused && (
-        <p className="mt-1.5 text-xs font-medium text-accent" role="status">Caps Lock is on</p>
+        <p className="mt-1.5 text-xs font-medium text-accent" role="status">
+          Caps Lock is on
+        </p>
       )}
     </>
   );

@@ -66,13 +66,13 @@ value, so a database leak never hands out live sessions.
 Every app is a Cloudflare Worker (Hono for the HTTP ones), but each one reaches for the right
 primitive for its own problem:
 
-| App        | Realtime authority              | Durable storage            |
-| ---------- | ------------------------------- | -------------------------- |
-| auth       | Durable Object (rate limiter)   | D1 (session records)       |
-| iguess     | Durable Object per room (WS)    | none (ephemeral in memory) |
-| wherever   | Durable Object per session (WS) | D1 + Drizzle               |
-| owewell    | Durable Object (live group)     | D1 + Drizzle               |
-| bloomnote  | none                            | KV (garden store)          |
+| App       | Realtime authority              | Durable storage            |
+| --------- | ------------------------------- | -------------------------- |
+| auth      | Durable Object (rate limiter)   | D1 (session records)       |
+| iguess    | Durable Object per room (WS)    | none (ephemeral in memory) |
+| wherever  | Durable Object per session (WS) | D1 + Drizzle               |
+| owewell   | Durable Object (live group)     | D1 + Drizzle               |
+| bloomnote | none                            | KV (garden store)          |
 
 The pattern worth noting: **one Durable Object is the single writer for one live unit** (a game room,
 a voting session, a rate-limit key). That is what makes realtime correct without a lock or an

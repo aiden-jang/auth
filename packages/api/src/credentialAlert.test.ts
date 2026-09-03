@@ -7,8 +7,18 @@ const META = { device: 'iPhone', location: 'Jersey City, US' };
 describe('credential change alerts', () => {
   it('names the specific change rather than saying something changed', async () => {
     const added = credentialAlertEmail('password_added', META, 'https://a.test/account', AT).html;
-    const changed = credentialAlertEmail('password_changed', META, 'https://a.test/account', AT).html;
-    const unlinked = credentialAlertEmail('google_disconnected', META, 'https://a.test/account', AT).html;
+    const changed = credentialAlertEmail(
+      'password_changed',
+      META,
+      'https://a.test/account',
+      AT,
+    ).html;
+    const unlinked = credentialAlertEmail(
+      'google_disconnected',
+      META,
+      'https://a.test/account',
+      AT,
+    ).html;
 
     // "Something changed" is useless in an inbox: the whole job of this mail is letting the owner
     // decide in one read whether it was them, and that needs the actual verb.
@@ -19,16 +29,21 @@ describe('credential change alerts', () => {
   });
 
   it('tells you what to do, differently per change', async () => {
-    expect(credentialAlertEmail('password_added', META, 'https://a.test/account', AT).html).toContain(
-      'change that password immediately',
-    );
-    expect(credentialAlertEmail('google_disconnected', META, 'https://a.test/account', AT).html).toContain(
-      'link Google again',
-    );
+    expect(
+      credentialAlertEmail('password_added', META, 'https://a.test/account', AT).html,
+    ).toContain('change that password immediately');
+    expect(
+      credentialAlertEmail('google_disconnected', META, 'https://a.test/account', AT).html,
+    ).toContain('link Google again');
   });
 
   it('carries the device, place and time so it can be recognised', async () => {
-    const { html, text } = credentialAlertEmail('password_changed', META, 'https://a.test/account', AT);
+    const { html, text } = credentialAlertEmail(
+      'password_changed',
+      META,
+      'https://a.test/account',
+      AT,
+    );
     for (const part of [html, text]) {
       expect(part).toContain('iPhone');
       expect(part).toContain('Jersey City, US');
@@ -67,7 +82,12 @@ describe('credential change alerts', () => {
   });
 
   it('escapes the account link too', async () => {
-    const html = credentialAlertEmail('password_changed', META, 'https://a.test/"><script>x</script>', AT).html;
+    const html = credentialAlertEmail(
+      'password_changed',
+      META,
+      'https://a.test/"><script>x</script>',
+      AT,
+    ).html;
     expect(html).not.toContain('<script>');
   });
 

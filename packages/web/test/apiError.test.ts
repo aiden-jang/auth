@@ -13,11 +13,12 @@ afterEach(() => {
 });
 
 function stub(status: number, body: unknown): void {
-  globalThis.fetch = vi.fn(async () =>
-    new Response(JSON.stringify(body), {
-      status,
-      headers: { 'content-type': 'application/json' },
-    }),
+  globalThis.fetch = vi.fn(
+    async () =>
+      new Response(JSON.stringify(body), {
+        status,
+        headers: { 'content-type': 'application/json' },
+      }),
   ) as unknown as typeof fetch;
 }
 
@@ -37,7 +38,11 @@ describe('api errors', () => {
   });
 
   it('reports when the account has no password to confirm with', async () => {
-    stub(403, { error: 'REAUTH_REQUIRED', message: 'Sign in with Google again.', canUsePassword: false });
+    stub(403, {
+      error: 'REAUTH_REQUIRED',
+      message: 'Sign in with Google again.',
+      canUsePassword: false,
+    });
     const err = await authApi.disconnectGoogle().catch((e: unknown) => e);
     expect(isReauthRequired(err)).toBe(true);
     // The difference between offering a password box and offering an emailed link.
@@ -52,14 +57,19 @@ describe('api errors', () => {
   });
 
   it('does not mistake other refusals for a re-auth prompt', async () => {
-    stub(400, { error: 'CANNOT_UNLINK', message: 'Set a password first so you are not locked out.' });
+    stub(400, {
+      error: 'CANNOT_UNLINK',
+      message: 'Set a password first so you are not locked out.',
+    });
     const err = await authApi.disconnectGoogle().catch((e: unknown) => e);
     expect(isReauthRequired(err)).toBe(false);
     expect(reauthCanUsePassword(err)).toBe(false);
   });
 
   it('keeps the status on the error but out of the sentence', async () => {
-    globalThis.fetch = vi.fn(async () => new Response('gateway exploded', { status: 502 })) as unknown as typeof fetch;
+    globalThis.fetch = vi.fn(
+      async () => new Response('gateway exploded', { status: 502 }),
+    ) as unknown as typeof fetch;
     const err = await authApi.disconnectGoogle().catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiError);
     // The code is for branching; the message is for a person.
@@ -98,7 +108,10 @@ describe('failures with nothing human in them', () => {
     }) as unknown as typeof fetch;
     // node has a `navigator` without `onLine`, so define it rather than spying on a missing getter.
     const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
-    Object.defineProperty(globalThis, 'navigator', { value: { onLine: false }, configurable: true });
+    Object.defineProperty(globalThis, 'navigator', {
+      value: { onLine: false },
+      configurable: true,
+    });
 
     const err = await authApi.me().catch((e: unknown) => e);
     expect((err as Error).message).toMatch(/offline/i);
@@ -123,7 +136,9 @@ describe('failures with nothing human in them', () => {
 
   it('never shows a bare status code', async () => {
     for (const status of [500, 502, 503, 504, 429, 408, 403, 404, 418]) {
-      globalThis.fetch = vi.fn(async () => new Response('<html>gateway</html>', { status })) as unknown as typeof fetch;
+      globalThis.fetch = vi.fn(
+        async () => new Response('<html>gateway</html>', { status }),
+      ) as unknown as typeof fetch;
       const err = await authApi.me().catch((e: unknown) => e);
       const message = (err as Error).message;
       expect(message).not.toMatch(/\d{3}/);
@@ -133,14 +148,18 @@ describe('failures with nothing human in them', () => {
   });
 
   it('blames the right side for a server fault', async () => {
-    globalThis.fetch = vi.fn(async () => new Response('boom', { status: 500 })) as unknown as typeof fetch;
+    globalThis.fetch = vi.fn(
+      async () => new Response('boom', { status: 500 }),
+    ) as unknown as typeof fetch;
     const err = await authApi.me().catch((e: unknown) => e);
     // "Try again" alone invites somebody to assume they mistyped their own password.
     expect((err as Error).message).toMatch(/our end/i);
   });
 
   it('tells somebody being rate limited to wait rather than to retry', async () => {
-    globalThis.fetch = vi.fn(async () => new Response('slow down', { status: 429 })) as unknown as typeof fetch;
+    globalThis.fetch = vi.fn(
+      async () => new Response('slow down', { status: 429 }),
+    ) as unknown as typeof fetch;
     const err = await authApi.me().catch((e: unknown) => e);
     expect((err as Error).message).toMatch(/minute/i);
   });
@@ -154,7 +173,8 @@ describe('failures with nothing human in them', () => {
 
   it('does not choke on a malformed JSON error body', async () => {
     globalThis.fetch = vi.fn(
-      async () => new Response('{not json', { status: 500, headers: { 'content-type': 'application/json' } }),
+      async () =>
+        new Response('{not json', { status: 500, headers: { 'content-type': 'application/json' } }),
     ) as unknown as typeof fetch;
     const err = await authApi.me().catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiError);

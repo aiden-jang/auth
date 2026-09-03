@@ -46,7 +46,7 @@ apps trust, so owewell, bloomnote, and friends don't each reinvent accounts.
 
 **One cookie on the parent domain, not per-app accounts.** The session cookie is scoped to
 `.aidenjang.com`, so a login on any subdomain signs you into all of them — real single sign-on
-without OAuth ceremony between my own apps. The apps share *identity* while keeping their own data
+without OAuth ceremony between my own apps. The apps share _identity_ while keeping their own data
 in their own D1/KV; auth owns only users and sessions.
 
 **Apps validate server-side; the session never touches app JavaScript.** The cookie is httpOnly,

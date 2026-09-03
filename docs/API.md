@@ -10,8 +10,8 @@ below for the integration pattern.
 
 ## Base URLs
 
-| Service | Production | Local |
-| --- | --- | --- |
+| Service                               | Production                       | Local                    |
+| ------------------------------------- | -------------------------------- | ------------------------ |
 | Auth (`/auth/*`, `/health`, login UI) | `https://accounts.aidenjang.com` | `http://localhost:34100` |
 
 ## Auth model
@@ -32,17 +32,17 @@ below for the integration pattern.
 
 ## Auth service — `packages/api`
 
-| Method | Path | Auth | Body / notes |
-| --- | --- | --- | --- |
-| GET | `/health` | public | Liveness: `{ status, service }` |
-| POST | `/auth/register` | public | `{ email, password, displayName }` → sets session, returns `{ user }` |
-| POST | `/auth/login` | public | `{ email, password }` → sets session, returns `{ user }` |
-| POST | `/auth/logout` | session | Clears the session |
-| GET | `/auth/me` | public | `{ user }` for the current session, or `401` if signed out |
-| POST | `/auth/forgot-password` | public | `{ email }` → always `200` (no account enumeration) |
-| POST | `/auth/reset-password` | public | `{ token, newPassword }` |
-| POST | `/auth/verify-email` | public | `{ token }` → marks the address verified |
-| POST | `/auth/resend-verification` | session | Re-sends the verification email |
+| Method | Path                        | Auth    | Body / notes                                                          |
+| ------ | --------------------------- | ------- | --------------------------------------------------------------------- |
+| GET    | `/health`                   | public  | Liveness: `{ status, service }`                                       |
+| POST   | `/auth/register`            | public  | `{ email, password, displayName }` → sets session, returns `{ user }` |
+| POST   | `/auth/login`               | public  | `{ email, password }` → sets session, returns `{ user }`              |
+| POST   | `/auth/logout`              | session | Clears the session                                                    |
+| GET    | `/auth/me`                  | public  | `{ user }` for the current session, or `401` if signed out            |
+| POST   | `/auth/forgot-password`     | public  | `{ email }` → always `200` (no account enumeration)                   |
+| POST   | `/auth/reset-password`      | public  | `{ token, newPassword }`                                              |
+| POST   | `/auth/verify-email`        | public  | `{ token }` → marks the address verified                              |
+| POST   | `/auth/resend-verification` | session | Re-sends the verification email                                       |
 
 Register and login are rate-limited per IP (a `RateLimiter` Durable Object).
 

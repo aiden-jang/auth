@@ -24,7 +24,10 @@ export function ForgotPasswordPage(): ReactNode {
 
   useEffect(() => {
     if (resendIn <= 0) return;
-    const timer = window.setInterval(() => setResendIn((seconds) => Math.max(0, seconds - 1)), 1000);
+    const timer = window.setInterval(
+      () => setResendIn((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
     return () => window.clearInterval(timer);
   }, [resendIn > 0]);
 
@@ -65,7 +68,10 @@ export function ForgotPasswordPage(): ReactNode {
     >
       {sent ? (
         <div className="space-y-4">
-          <p className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-sm text-pos" role="status">
+          <p
+            className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-sm text-pos"
+            role="status"
+          >
             {resent ? 'A fresh reset link is on its way. ' : ''}
             If an account exists for <span className="font-medium">{email}</span>, check that inbox.
             The link expires in an hour.
@@ -117,7 +123,9 @@ export function ForgotPasswordPage(): ReactNode {
         </div>
       ) : (
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-3.5">
-          <label htmlFor="reset-email" className="sr-only">Email</label>
+          <label htmlFor="reset-email" className="sr-only">
+            Email
+          </label>
           <input
             id="reset-email"
             name="email"
@@ -135,7 +143,12 @@ export function ForgotPasswordPage(): ReactNode {
           />
           <EmailSuggestion value={email} onAccept={setEmail} />
           <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />
-          <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>{loading ? 'Sending...' : 'Send reset link'}</button>
+          <button
+            className={buttonClass}
+            disabled={loading || (turnstileEnabled && !turnstileToken)}
+          >
+            {loading ? 'Sending...' : 'Send reset link'}
+          </button>
           {loading && (
             <p role="status" className="text-center text-xs text-muted">
               {reassurance('reset-link')}

@@ -14,7 +14,11 @@ import { escapeHtml, readableTime, renderEmail, type RenderedEmail } from './ema
  * somebody else has it.
  */
 
-export type CredentialChange = 'password_added' | 'password_changed' | 'google_disconnected' | 'passkey_removed';
+export type CredentialChange =
+  | 'password_added'
+  | 'password_changed'
+  | 'google_disconnected'
+  | 'passkey_removed';
 
 interface Copy {
   subject: string;
@@ -37,13 +41,15 @@ const COPY: Record<CredentialChange, Copy> = {
   },
   google_disconnected: {
     subject: 'Google was unlinked from your account',
-    happened: 'unlinked Google from your aidenjang account, so it now signs in with a password only',
+    happened:
+      'unlinked Google from your aidenjang account, so it now signs in with a password only',
     ifNotYou: 'reset your password from the sign-in page, then link Google again.',
   },
   passkey_removed: {
     subject: 'A passkey was removed from your account',
     happened: 'removed a passkey from your aidenjang account',
-    ifNotYou: 'sign out every other device, then add a fresh passkey and remove any you do not recognise.',
+    ifNotYou:
+      'sign out every other device, then add a fresh passkey and remove any you do not recognise.',
   },
 };
 

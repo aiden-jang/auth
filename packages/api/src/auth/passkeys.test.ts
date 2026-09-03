@@ -23,7 +23,10 @@ describe('relying party', () => {
 
   it('prefers configuration over anything in the request', () => {
     // The attack this closes: an attacker-supplied host deciding which domain a credential is bound to.
-    const rp = relyingParty('https://accounts.aidenjang.com', 'https://evil.example/auth/passkeys/login/options');
+    const rp = relyingParty(
+      'https://accounts.aidenjang.com',
+      'https://evil.example/auth/passkeys/login/options',
+    );
     expect(rp.id).toBe('aidenjang.com');
     expect(rp.origin).not.toContain('evil');
   });
@@ -41,7 +44,10 @@ describe('relying party', () => {
   it('falls back to the request only when nothing is configured', () => {
     // Not ideal, and better than refusing to serve: a missing APP_URL is a deploy mistake, and this
     // still produces a working single-host setup rather than an outage.
-    const rp = relyingParty(undefined, 'https://accounts.aidenjang.com/auth/passkeys/login/options');
+    const rp = relyingParty(
+      undefined,
+      'https://accounts.aidenjang.com/auth/passkeys/login/options',
+    );
     expect(rp.id).toBe('aidenjang.com');
   });
 

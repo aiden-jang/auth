@@ -49,7 +49,9 @@ export function PasskeySignIn({ returnTo }: { returnTo?: string | null }): React
         {busy ? 'Waiting for your device...' : 'Sign in with a passkey'}
       </button>
       <p role={busy ? 'status' : undefined} className="mt-2 text-center text-xs text-muted">
-        {busy ? reassurance('passkey') : 'No password to type or remember. Your device confirms it is you.'}
+        {busy
+          ? reassurance('passkey')
+          : 'No password to type or remember. Your device confirms it is you.'}
       </p>
       {error && (
         <p role="alert" className="mt-2 text-center text-xs text-neg">

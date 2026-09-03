@@ -19,12 +19,16 @@ export function sessionHorizon(
   }
 
   const remaining = expires - now;
-  const percentRemaining = Math.max(0, Math.min(100, Math.round((remaining / (expires - created)) * 100)));
+  const percentRemaining = Math.max(
+    0,
+    Math.min(100, Math.round((remaining / (expires - created)) * 100)),
+  );
   if (remaining <= 0) return { label: 'Expired', percentRemaining, tone: 'expired' };
 
   const days = Math.ceil(remaining / DAY_MS);
   return {
-    label: days === 1 ? 'Expires today' : days === 2 ? 'Expires tomorrow' : `Expires in ${days} days`,
+    label:
+      days === 1 ? 'Expires today' : days === 2 ? 'Expires tomorrow' : `Expires in ${days} days`,
     percentRemaining,
     tone: days <= 3 ? 'soon' : 'calm',
   };

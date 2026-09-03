@@ -16,10 +16,11 @@ export function isFamiliarSignIn(
   meta: SessionMeta,
   now = Date.now(),
 ): boolean {
-  return recent.some((event) =>
-    event.device === (meta.device ?? null) &&
-    event.location === (meta.location ?? null) &&
-    now - event.createdAt.getTime() <= FAMILIAR_FOR_MS,
+  return recent.some(
+    (event) =>
+      event.device === (meta.device ?? null) &&
+      event.location === (meta.location ?? null) &&
+      now - event.createdAt.getTime() <= FAMILIAR_FOR_MS,
   );
 }
 

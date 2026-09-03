@@ -100,7 +100,12 @@ export class ApiError extends Error {
   readonly status: number;
   readonly details: Record<string, unknown>;
 
-  constructor(message: string, code: string, status: number, details: Record<string, unknown> = {}) {
+  constructor(
+    message: string,
+    code: string,
+    status: number,
+    details: Record<string, unknown> = {},
+  ) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
@@ -125,8 +130,10 @@ export function reauthCanUsePassword(err: unknown): boolean {
  */
 function describeStatus(status: number): string {
   if (status === 429) return 'Too many tries in a row. Give it a minute and go again.';
-  if (status === 408 || status === 504) return 'That took too long to answer. Try again in a moment.';
-  if (status === 502 || status === 503) return 'The sign-in service is briefly unavailable. Try again shortly.';
+  if (status === 408 || status === 504)
+    return 'That took too long to answer. Try again in a moment.';
+  if (status === 502 || status === 503)
+    return 'The sign-in service is briefly unavailable. Try again shortly.';
   if (status >= 500) return 'Something broke on our end, not yours. Try again in a moment.';
   if (status === 404) return 'That link or page is gone.';
   if (status === 403) return 'That is not allowed from here.';
@@ -207,19 +214,25 @@ export const authApi = {
     req<{ ok: boolean }>('/auth/set-password', 'POST', { newPassword }),
   disconnectGoogle: () => req<{ ok: boolean }>('/auth/disconnect-google', 'POST'),
   listPasskeys: () => req<{ passkeys: Passkey[] }>('/auth/passkeys', 'GET'),
-  passkeyRegisterOptions: () => req<{ options: unknown }>('/auth/passkeys/register/options', 'POST'),
+  passkeyRegisterOptions: () =>
+    req<{ options: unknown }>('/auth/passkeys/register/options', 'POST'),
   passkeyRegisterVerify: (response: unknown, label?: string) =>
     req<{ passkey: Passkey }>('/auth/passkeys/register/verify', 'POST', { response, label }),
   passkeyLoginOptions: () => req<{ options: unknown }>('/auth/passkeys/login/options', 'POST'),
   passkeyLoginVerify: (response: unknown) =>
-    req<{ user: AuthUser; usedPasskey: string }>('/auth/passkeys/login/verify', 'POST', { response }),
+    req<{ user: AuthUser; usedPasskey: string }>('/auth/passkeys/login/verify', 'POST', {
+      response,
+    }),
   renamePasskey: (id: string, label: string) =>
     req<{ ok: boolean }>('/auth/passkeys/rename', 'POST', { id, label }),
   deletePasskey: (id: string) => req<{ ok: boolean }>('/auth/passkeys/delete', 'POST', { id }),
   listSessions: () => req<{ sessions: SessionInfo[] }>('/auth/sessions', 'GET'),
   exportAccount: () => req<AccountExport>('/auth/export', 'GET'),
   renameSession: (id: string, label: string) =>
-    req<{ session: Pick<SessionInfo, 'id' | 'device'> }>('/auth/sessions/rename', 'POST', { id, label }),
+    req<{ session: Pick<SessionInfo, 'id' | 'device'> }>('/auth/sessions/rename', 'POST', {
+      id,
+      label,
+    }),
   revokeSession: (id: string) => req<{ ok: boolean }>('/auth/sessions/revoke', 'POST', { id }),
   revokeOtherSessions: () => req<{ ok: boolean }>('/auth/sessions/revoke-others', 'POST'),
   deleteAccount: (body: { password?: string; confirm?: string }) =>
