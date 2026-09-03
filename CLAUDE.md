@@ -1,8 +1,8 @@
 # Working in this repo
 
-The house rules (planning, commits, explaining, comment philosophy) live in the global
-`~/.claude/CLAUDE.md`. This file is only what is true _here_, and mostly what is countable —
-the rules that failed in this repo were the ones that needed judgment.
+Planning, commits and how to explain things live in the global `~/.claude/CLAUDE.md`. This file is
+what is true _here_: the patterns to follow, the smells that actually shipped, and the gates that
+catch what judgment did not.
 
 ## Before you say anything is done
 
@@ -26,10 +26,45 @@ Ten gates. The deploy job is gated on them, so a red gate means nothing ships.
 `comments`, `size`, `docs` and `migrations` are local scripts in `scripts/`. Each exists because it caught
 a real defect. Read the script before deciding a failure is spurious.
 
+## Follow the patterns already here
+
+A change that invents its own shape is harder to read than a worse change that matches its
+neighbours. What this repo settled on:
+
+- **Routes** are one module per concern in `src/routes/`, each its own Hono instance mounted in
+  `index.ts`. A new route joins an existing group; it does not go in `index.ts`.
+- **What routes share** lives in `src/http/context.ts` — rate limiting, the step-up gate, the two
+  refusal helpers. Nothing route-specific goes there.
+- **Refusals** use `unauthenticated(c)` and `rateLimited(c)`, never a fresh object literal. Apps
+  switch on `error`, so a typo is invisible here and breaks them.
+- **Shared UI state** goes in a hook (`lib/useSessions.ts`) when two components act on it, not in
+  the parent with props threaded down. Two copies of one truth is the bug.
+- **Account page sections** are components in `components/`, each owning its own state.
+- **Tests**: DB-backed in `packages/api/test/`, pure next to the module in `src/`.
+
+## Smells that actually happened here
+
+Each of these shipped and was found later. They are the ones to look for:
+
+- **A literal repeated across call sites.** The two refusal bodies were written out in 39 places.
+  Anything a caller matches on belongs in one function.
+- **The same fact paraphrased in several files.** The lockout chain was explained three times in
+  three wordings, which no text-matching check can see. One module owns a fact; the others point
+  at it.
+- **A component owning another's state.** The device list and the security banner both acted on
+  sessions, so one could show a device the other had revoked.
+- **A test that passes while measuring nothing.** A rate-limit test that never tripped the limit,
+  an assertion that held by coincidence, a mutation caught by `noUnusedLocals` rather than by the
+  test. Break the code to prove the test bites.
+- **A guard on one side only.** `safeAppRedirect` was fixed on the server while `safeReturnTo` in
+  the browser kept the same hole for hours. When two layers enforce one rule, change both.
+- **A comment left behind by a move.** Seven of them after one refactor, one claiming a defence the
+  route did not have.
+
 ## Comments
 
-Countable, because "don't add unnecessary comments" needs judgment that is worst right after
-writing the code:
+Countable rules first, because "don't add unnecessary comments" needs judgment that is worst right
+after writing the code:
 
 - No comment block over four lines. If one seems necessary, ask.
 - **Never raise `SRC_BUDGET` to fit prose.** Trim instead. No script can enforce this about itself.
@@ -37,6 +72,24 @@ writing the code:
 - After moving code, re-read every comment near the seam. A stranded one here claimed an
   enumeration defence on a route that has none.
 - Report the number `pnpm comments` prints rather than asserting the comments are fine.
+
+### When one is warranted, make it readable
+
+Short is the goal; understandable is the constraint. A comment a reader has to parse twice failed,
+however brief. Write what a colleague would say over your shoulder:
+
+- **Lead with the hazard, in the imperative.** "Don't swap this for X: it…" beats "Not X: it…".
+  A "not X" label states what the code is; the reader needs aiming at the change they are about to
+  make.
+- **One idea per sentence. Do not stack.** Three facts joined by "so" and "and" force a re-read.
+  Split them, or drop the ones that only restate the code.
+- **Plain subject and verb.** "Keep the checkbox outside the trigger" beats "The grow wrapper is
+  what right-aligns the slot count."
+- **Name the mechanism concretely.** "would be undone by the next pull" means nothing to someone
+  who did not just write it.
+
+Keep, at any length: silent-failure traps, security reasoning, incident postmortems, cache and
+immutability constraints. `auth/stepUp.ts` is the model — two real outages, written down.
 
 ## Size
 
