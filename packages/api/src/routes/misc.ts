@@ -11,22 +11,23 @@ import {
   MIN,
   needsStepUp,
   overLimit,
+  rateLimited,
   sessionMeta,
+  unauthenticated,
   type Env2,
 } from '../http/context.js';
 
 const app = new Hono<Env2>();
 
 app.post('/auth/disconnect-google', async (c) => {
-  if (await overLimit(c, 'disconnect-google', 10, 5 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  if (await overLimit(c, 'disconnect-google', 10, 5 * MIN)) return rateLimited(c);
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
   const sessionUser = cookie ? await validateSession(db, cookie) : null;
-  if (!sessionUser) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!sessionUser) return unauthenticated(c);
 
   const row = await db.select().from(users).where(eq(users.id, sessionUser.id)).get();
-  if (!row) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!row) return unauthenticated(c);
   if (!row.googleId) return c.json({ ok: true }); // already unlinked
   if (!row.passwordHash)
     return c.json(

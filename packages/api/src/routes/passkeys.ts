@@ -30,7 +30,10 @@ import {
   newSignInAlert,
   overLimit,
   publicUser,
+  rateLimited,
   sessionMeta,
+  signedIn,
+  unauthenticated,
   type Ctx,
   type Env2,
 } from '../http/context.js';
@@ -44,20 +47,18 @@ function rp(c: Ctx) {
 }
 
 app.get('/auth/passkeys', async (c) => {
-  const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
-  const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const me = await signedIn(c, db);
+  if (!me) return unauthenticated(c);
   return c.json({ passkeys: await listPasskeys(db, me.id) });
 });
 
 app.post('/auth/passkeys/register/options', async (c) => {
-  if (await overLimit(c, 'passkey-reg', 10, 10 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  if (await overLimit(c, 'passkey-reg', 10, 10 * MIN)) return rateLimited(c);
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
   const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!me) return unauthenticated(c);
   const stale = await needsStepUp(c, db, cookie!, me.hasPassword);
   if (stale) return stale;
 
@@ -74,7 +75,7 @@ app.post('/auth/passkeys/register/verify', async (c) => {
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
   const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!me) return unauthenticated(c);
 
   const stale = await needsStepUp(c, db, cookie!, me.hasPassword);
   if (stale) return stale;
@@ -101,8 +102,7 @@ app.post('/auth/passkeys/register/verify', async (c) => {
 });
 
 app.post('/auth/passkeys/login/options', async (c) => {
-  if (await overLimit(c, 'passkey-login', 20, 10 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  if (await overLimit(c, 'passkey-login', 20, 10 * MIN)) return rateLimited(c);
   const db = createDb(c.env);
   const { options, challengeId } = await startLogin(db, rp(c));
   setChallengeCookie(c, CHALLENGE_COOKIE, challengeId, CHALLENGE_TTL_MS);
@@ -111,8 +111,7 @@ app.post('/auth/passkeys/login/options', async (c) => {
 });
 
 app.post('/auth/passkeys/login/verify', async (c) => {
-  if (await overLimit(c, 'passkey-login-verify', 20, 10 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  if (await overLimit(c, 'passkey-login-verify', 20, 10 * MIN)) return rateLimited(c);
   const db = createDb(c.env);
   const body = (await c.req.json().catch(() => null)) as { response?: unknown } | null;
   if (!body?.response) return c.json({ error: 'ValidationError' }, 400);
@@ -144,10 +143,9 @@ app.post('/auth/passkeys/login/verify', async (c) => {
 });
 
 app.post('/auth/passkeys/rename', async (c) => {
-  const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
-  const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const me = await signedIn(c, db);
+  if (!me) return unauthenticated(c);
   const parsed = z
     .object({ id: z.string().min(1), label: z.string().trim().min(1).max(40) })
     .safeParse(await c.req.json().catch(() => null));
@@ -164,7 +162,7 @@ app.post('/auth/passkeys/delete', async (c) => {
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
   const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me || !cookie) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!me || !cookie) return unauthenticated(c);
   const parsed = z
     .object({ id: z.string().min(1) })
     .safeParse(await c.req.json().catch(() => null));

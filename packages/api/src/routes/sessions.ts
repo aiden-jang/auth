@@ -8,7 +8,7 @@ import { revokeSession, validateSession } from '../auth/session.js';
 import { hashToken } from '../auth/token.js';
 import { clearSessionCookie, getCookie, SESSION_COOKIE } from '../auth/cookie.js';
 import { recordSecurityEvent } from '../securityEvents.js';
-import { sessionMeta, type Env2 } from '../http/context.js';
+import { sessionMeta, signedIn, type Env2, unauthenticated } from '../http/context.js';
 
 const app = new Hono<Env2>();
 
@@ -23,7 +23,7 @@ app.get('/auth/sessions', async (c) => {
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
   const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!me) return unauthenticated(c);
   const currentId = cookie ? await hashToken(cookie) : '';
 
   const now = Date.now();
@@ -60,10 +60,9 @@ app.get('/auth/sessions', async (c) => {
 
 // Give a session a memorable, user-controlled label without exposing or changing its token.
 app.post('/auth/sessions/rename', async (c) => {
-  const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
-  const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const me = await signedIn(c, db);
+  if (!me) return unauthenticated(c);
   const parsed = z
     .object({ id: z.string().min(1), label: z.string().trim().min(1).max(40) })
     .safeParse(await c.req.json().catch(() => null));
@@ -85,10 +84,9 @@ app.post('/auth/sessions/rename', async (c) => {
 
 // Revoke one session (scoped to the caller's own sessions) — signs that device out.
 app.post('/auth/sessions/revoke', async (c) => {
-  const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
-  const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const me = await signedIn(c, db);
+  if (!me) return unauthenticated(c);
   const parsed = z
     .object({ id: z.string().min(1) })
     .safeParse(await c.req.json().catch(() => null));
@@ -114,7 +112,7 @@ app.post('/auth/sessions/revoke-others', async (c) => {
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
   const me = cookie ? await validateSession(db, cookie) : null;
-  if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  if (!me) return unauthenticated(c);
   const currentId = cookie ? await hashToken(cookie) : '';
   const revoked = await db
     .delete(sessions)

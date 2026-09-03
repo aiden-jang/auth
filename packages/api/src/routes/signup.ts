@@ -5,8 +5,8 @@ import { z } from 'zod';
 import { createDb } from '../db/client.js';
 import { users } from '../db/schema.js';
 import { hashPassword, verifyPassword } from '../auth/password.js';
-import { createSession, validateSession } from '../auth/session.js';
-import { getCookie, SESSION_COOKIE, setSessionCookie } from '../auth/cookie.js';
+import { createSession } from '../auth/session.js';
+import { setSessionCookie } from '../auth/cookie.js';
 import { consumeToken, issueToken } from '../auth/verification.js';
 import { sendEmail } from '../email.js';
 import { renderEmail } from '../emailLayout.js';
@@ -18,9 +18,12 @@ import {
   MIN,
   newSignInAlert,
   overLimit,
+  rateLimited,
   publicUser,
   sessionMeta,
+  signedIn,
   turnstileOk,
+  unauthenticated,
   type Env2,
 } from '../http/context.js';
 
@@ -42,8 +45,7 @@ const registerBody = z.object({
 });
 
 app.post('/auth/register', async (c) => {
-  if (await overLimit(c, 'register', 10, 60 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  if (await overLimit(c, 'register', 10, 60 * MIN)) return rateLimited(c);
   const parsed = registerBody.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success)
     return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
@@ -102,8 +104,7 @@ const loginBody = z.object({
 });
 
 app.post('/auth/login', async (c) => {
-  if (await overLimit(c, 'login', 10, 5 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
+  if (await overLimit(c, 'login', 10, 5 * MIN)) return rateLimited(c);
   const parsed = loginBody.safeParse(await c.req.json().catch(() => null));
   if (!parsed.success)
     return c.json({ error: 'ValidationError', issues: parsed.error.flatten() }, 400);
@@ -175,12 +176,10 @@ app.post('/auth/verify-email', async (c) => {
 });
 
 app.post('/auth/resend-verification', async (c) => {
-  if (await overLimit(c, 'resend-verify', 5, 60 * MIN))
-    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
-  const cookie = getCookie(c, SESSION_COOKIE);
+  if (await overLimit(c, 'resend-verify', 5, 60 * MIN)) return rateLimited(c);
   const db = createDb(c.env);
-  const user = cookie ? await validateSession(db, cookie) : null;
-  if (!user) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const user = await signedIn(c, db);
+  if (!user) return unauthenticated(c);
   if (user.emailVerified) return c.json({ ok: true, alreadyVerified: true });
   const token = await issueToken(db, user.id, 'verify');
   await sendEmail(c.env, {
