@@ -23,7 +23,8 @@
     "comments": "node scripts/check-comments.mjs",
     "docs": "node scripts/check-docs.mjs",
     "migrations": "node scripts/check-migrations.mjs",
-    "size": "node scripts/check-size.mjs"
+    "size": "node scripts/check-size.mjs",
+    "verify:fast": "pnpm typecheck && pnpm lint && pnpm knip && pnpm comments && pnpm size && pnpm docs && pnpm migrations && pnpm format:check"
   },
   "devDependencies": {
     "@aidenjang/config": "workspace:*",
