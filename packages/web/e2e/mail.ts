@@ -2,13 +2,8 @@ import { readFileSync } from 'node:fs';
 import { expect } from '@playwright/test';
 import { WORKER_LOG } from '../playwright.config';
 
-/*
- * A link out of the worker's own log.
- *
- * The database stores only the hash of a token, so the raw one exists nowhere but the mail. With no
- * RESEND_API_KEY the worker prints it instead of sending, which is the only way for a test to
- * follow the link a real person clicks.
- */
+/* The database stores only a token's hash, so the raw one exists nowhere but the mail -- which the
+   worker prints instead of sending when there is no RESEND_API_KEY. */
 export async function linkEmailedTo(email: string, path: string): Promise<string> {
   const find = (): string | null => {
     // Split on the log's own prefix and read only the block addressed to this account. Scanning the

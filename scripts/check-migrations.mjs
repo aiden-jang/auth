@@ -1,14 +1,8 @@
 /*
- * The schema in code and the migrations on disk have to agree, checked by `pnpm verify`.
+ * The schema in code and the migrations on disk have to agree.
  *
- * Two things can go wrong and neither is visible in review. A change to schema.ts with no migration
- * written means the deploy ships code for columns the database does not have. And a migration
- * committed without its snapshot leaves drizzle's view of the schema stuck at an older version, so
- * the *next* generate re-creates tables that already exist and the migration fails on apply.
- *
- * Both matter here because the deploy applies migrations before it publishes: a migration that
- * cannot apply is a deploy that does not happen. This repo has been taken down by the first of
- * these already -- see the note in src/auth/stepUp.ts.
+ * The deploy applies migrations before it publishes, so a migration that cannot apply is a deploy
+ * that does not happen. See the note in src/auth/stepUp.ts.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, globSync, readFileSync, rmSync } from 'node:fs';

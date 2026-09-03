@@ -1,14 +1,8 @@
 import { expect, test, type Page } from './fixtures';
 import { linkEmailedTo } from './mail';
 
-/*
- * Forgetting a password and getting back in.
- *
- * The whole point of this path is that somebody who has lost their password can still reach their
- * account, so it is the one flow where a break locks people out with no way round it. The API
- * tests know the token is one-time and expires; only this knows whether a person can follow the
- * link in their inbox and end up signed in.
- */
+/* Forgetting a password and getting back in: the one flow where a break locks people out with no
+   way round it. */
 
 const password = 'correct horse battery staple';
 

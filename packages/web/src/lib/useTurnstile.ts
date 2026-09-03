@@ -1,12 +1,7 @@
 import { useCallback, useState } from 'react';
 
-/*
- * The Turnstile token for one form, and discarding it after a failed submit.
- *
- * A token is spent the moment the server checks it, so a form that keeps the old one on a retry
- * sends something already used and is refused a second time for a reason that has nothing to do
- * with what the person typed. Bumping `resetSignal` makes the widget solve a fresh one.
- */
+/* A token is spent the moment the server checks it, so keeping it for a retry gets the form
+   refused again for a reason that has nothing to do with what the person typed. */
 export interface TurnstileField {
   token: string;
   setToken: (token: string) => void;

@@ -5,15 +5,8 @@ import { sessionHorizon } from '../lib/sessionHorizon';
 import { inputClass } from './AuthCard';
 import { Skeleton } from './Skeleton';
 
-/*
- * The "signed in on these devices" list: renaming, signing one out, signing the rest out.
- *
- * The state lives in useSessions rather than here, because the security-review banner on the
- * account page acts on the same devices. This component only renders them.
- *
- * Destructured back into the names the markup already used, so the JSX below is the same markup it
- * was inside the page -- the move is a move, not a rewrite.
- */
+/* State lives in useSessions, not here: the security-review banner acts on the same devices, and
+   two copies could disagree about which are still signed in. */
 export function SessionList({
   sessions: store,
   mountedAt,

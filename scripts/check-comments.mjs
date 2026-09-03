@@ -12,9 +12,10 @@ import { globSync, readFileSync } from 'node:fs';
 /*
  * Raise this only when a phase adds a module, never to fit prose into it. If the number has to move
  * to accommodate an explanation you are rewriting rather than a module you are adding, trim the
- * explanation instead.
+ * explanation instead. It was set at 910 once and had crept to 907 within a day, entirely on
+ * paragraphs restating what the file below already showed.
  */
-const SRC_BUDGET = 910;
+const SRC_BUDGET = 865;
 const DUP_MIN_CHARS = 45;
 
 /**
