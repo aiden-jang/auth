@@ -34,6 +34,9 @@ export function PasskeyList({
   }, []);
 
   useEffect(() => {
+    // load() only sets state after its await, so there is no synchronous cascade here. The rule
+    // cannot see past the promise.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 

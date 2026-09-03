@@ -22,14 +22,17 @@ export function ForgotPasswordPage(): ReactNode {
   const [resendIn, setResendIn] = useState(0);
   const [resetSignal, setResetSignal] = useState(0);
 
+  /* Keyed on whether it is counting, not on the count: depending on `resendIn` itself would tear
+     down and rebuild the interval every single second. */
+  const counting = resendIn > 0;
   useEffect(() => {
-    if (resendIn <= 0) return;
+    if (!counting) return;
     const timer = window.setInterval(
       () => setResendIn((seconds) => Math.max(0, seconds - 1)),
       1000,
     );
     return () => window.clearInterval(timer);
-  }, [resendIn > 0]);
+  }, [counting]);
 
   async function requestReset(): Promise<void> {
     try {

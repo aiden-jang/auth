@@ -38,6 +38,23 @@ function exactTime(iso: string): string {
   });
 }
 
+/*
+ * The message a failed "Connect Google" round-trip redirects back with. Read straight from the URL
+ * rather than in an effect: it cannot change while the page is open.
+ */
+function readGoogleLinkError(): string | null {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('error') !== 'google_failed') return null;
+  switch (params.get('reason')) {
+    case 'google_already_linked':
+      return 'That Google account is already linked to a different account.';
+    case 'link_unauthenticated':
+      return 'Your session expired. Sign in again to connect Google.';
+    default:
+      return 'Could not connect Google. Please try again.';
+  }
+}
+
 export function AccountPage(): ReactNode {
   // Intercepts a REAUTH_REQUIRED refusal from the server and re-runs the action once confirmed.
   const stepUp = useStepUp();
@@ -61,7 +78,13 @@ export function AccountPage(): ReactNode {
   // password does not sign other devices out, unlike a change).
   const [pwWasSet, setPwWasSet] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
-  const [googleMsg, setGoogleMsg] = useState<string | null>(null);
+  // Read once, on the first render: the ?error the Google callback redirects back with is fixed
+  // by the time this page mounts, so deriving it in an effect only costs a second render.
+  const [googleLinkError] = useState(readGoogleLinkError);
+  /* Stamped once. "Added in the last day" only has to be right to the hour, and reading the clock
+     while rendering makes the same list render differently twice. */
+  const [mountedAt] = useState(() => Date.now());
+  const [googleMsg, setGoogleMsg] = useState<string | null>(googleLinkError);
   const [sessions, setSessions] = useState<SessionInfo[] | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [revokingOthers, setRevokingOthers] = useState(false);
@@ -372,23 +395,16 @@ export function AccountPage(): ReactNode {
   }, []);
 
   useEffect(() => {
+    // refreshSessions clears the error before it fetches, which is a real synchronous setState.
+    // Worth one render on mount rather than showing a stale failure over a list being reloaded.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshSessions();
   }, []);
 
-  // Surface a failed "Connect Google" round-trip (the callback redirects here with ?error).
+  // Drop the ?error from the address bar once it has been read, so a reload does not re-announce it.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('error') !== 'google_failed') return;
-    const reason = params.get('reason');
-    setGoogleMsg(
-      reason === 'google_already_linked'
-        ? 'That Google account is already linked to a different account.'
-        : reason === 'link_unauthenticated'
-          ? 'Your session expired. Sign in again to connect Google.'
-          : 'Could not connect Google. Please try again.',
-    );
-    window.history.replaceState({}, '', '/account');
-  }, []);
+    if (googleLinkError) window.history.replaceState({}, '', '/account');
+  }, [googleLinkError]);
 
   async function logout(): Promise<void> {
     await authApi.logout().catch(() => undefined);
@@ -846,8 +862,7 @@ export function AccountPage(): ReactNode {
                   const expanded = expandedSessionId === s.id;
                   const horizon = sessionHorizon(s.createdAt, s.expiresAt);
                   const recentlyAdded =
-                    !s.current &&
-                    Date.now() - new Date(s.createdAt).getTime() < 24 * 60 * 60 * 1000;
+                    !s.current && mountedAt - new Date(s.createdAt).getTime() < 24 * 60 * 60 * 1000;
                   return (
                     <li key={s.id} className="rounded-xl border border-line bg-field px-4 py-3">
                       <div className="flex items-center justify-between gap-4">
