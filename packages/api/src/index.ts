@@ -13,24 +13,16 @@ import signupRoutes from './routes/signup.js';
 
 export { RateLimiter } from './rateLimiter.js';
 
-/*
- * The service: bindings, the middleware every route sits behind, and the route groups mounted
- * under it. The handlers themselves live in ./routes, one module per concern.
- */
+/* Bindings, the middleware every route sits behind, and the route groups mounted under it. */
 
 const app = new Hono<Env2>();
 
-// Safety net: any error a route does not handle itself is logged server-side (Workers Logs /
-// `wrangler tail`) and returned as a generic 500. On the identity service especially, an internal
-// failure must never leak a stack trace or implementation detail to the client.
+// An identity service must never answer with a stack trace: anything unhandled is logged and
+// comes back as a generic 500.
 app.onError(onUnhandledError);
 
-// Security response headers on every route. CSRF is left to the session cookie's SameSite=Lax
-// attribute, Turnstile, and the CORS allowlist below, since auth is intentionally callable
-// cross-origin by the app frontends.
-//
-// Turnstile loads a script + iframe and phones home to challenges.cloudflare.com, so the auth
-// pages need it allowed in script-src, frame-src, and connect-src on top of the shared default.
+// CSRF is left to SameSite=Lax, Turnstile and the CORS allowlist, because auth is deliberately
+// callable cross-origin. Turnstile needs its own origin in script-src, frame-src and connect-src.
 const TURNSTILE_ORIGIN = 'https://challenges.cloudflare.com';
 const AUTH_CSP =
   DEFAULT_CSP.replace("script-src 'self'", `script-src 'self' ${TURNSTILE_ORIGIN}`).replace(
@@ -41,7 +33,7 @@ app.use('*', async (c, next) => {
   const requestId = requestIdFrom(c.req.raw);
   c.set('requestId', requestId);
   await next();
-  // On every response, not just failures: a 200 with a surprising body needs correlating as much as a 500.
+  // On every response: a 200 with a surprising body needs correlating as much as a 500.
   c.header('x-request-id', requestId);
 });
 
@@ -58,18 +50,10 @@ app.use('/auth/*', (c, next) =>
   })(c, next),
 );
 
-/**
- * Nothing under /auth is cacheable, and /auth/me least of all.
- *
- * It had no Cache-Control at all. A GET with no cache directives is *heuristically* cacheable, so
- * browsers were free to keep the signed-in `200 {user}` and hand it back later. The visible bug: sign
- * out, press back, the page re-checks the session, the browser answers from its own cache, and you are
- * apparently signed in again until a refresh bypasses it.
- *
- * The reason this is worse than a display glitch: these responses are per-session and the only Vary
- * here is Origin, not Cookie, so any shared cache between the browser and the Worker could in principle
- * serve one person's account to somebody else. `no-store` is the only correct answer for a response that
- * depends on who is asking.
+/*
+ * Nothing under /auth is cacheable. A GET with no cache directives is heuristically cacheable, and
+ * these responses depend on who is asking while the only Vary is Origin, not Cookie -- so a shared
+ * cache could serve one person's account to somebody else.
  */
 app.use('/auth/*', async (c, next) => {
   await next();
@@ -79,11 +63,8 @@ app.use('/auth/*', async (c, next) => {
 
 app.get('/health', (c) => c.json({ status: 'ok', service: 'auth' }));
 
-/*
- * Mounted rather than declared here, so a change to passkeys is not an edit to the same file as
- * password reset. The middleware above -- request id, security headers, CORS, no-store -- still
- * applies to every route inside each group.
- */
+/* One module per concern, so a change to passkeys is not an edit to the same file as password
+   reset. Everything above still applies to each group. */
 app.route('/', signupRoutes);
 app.route('/', googleRoutes);
 app.route('/', passwordRoutes);
@@ -92,8 +73,7 @@ app.route('/', sessionRoutes);
 app.route('/', accountRoutes);
 app.route('/', disconnectGoogleRoute);
 
-// Everything that isn't an API route: serve the login/account UI (SPA fallback via assets).
-// Last, so it only ever catches what nothing above claimed.
+// The SPA, last so it only catches what nothing above claimed.
 app.all('*', (c) => c.env.ASSETS.fetch(c.req.raw));
 
 export default app;

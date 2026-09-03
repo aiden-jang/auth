@@ -1,24 +1,15 @@
-// Shared HTTP hardening for the Workers. Two pieces:
-//   securityHeaders() — the response headers every web-facing Worker should set.
-//   enforceSameOrigin() — a defense-in-depth CSRF guard for state-changing requests.
-//
-// Framework-agnostic core (securityHeaders / enforceSameOrigin) plus a ready-made Hono
-// middleware (harden) — the plain-fetch Workers call the core helpers around their Response.
+// Shared HTTP hardening. Each app carries its own copy of this file rather than importing one, so
+// a Worker is never unsafe because something else failed to deploy. This is the reference version.
+// The core helpers are framework-agnostic; `harden` is the Hono wrapper around them.
 
 import type { MiddlewareHandler } from 'hono';
 
 /**
- * Conservative Content-Security-Policy that our Vite SPAs run under without changes:
- *  - script-src 'self': prod bundles are external files, no inline <script>.
- *  - style-src 'unsafe-inline': React `style={}` props and Vite's injected CSS need it.
- *  - font/style google entries: cover Inter loaded via Google Fonts (either @import or <link>).
- *  - img data:/blob:: inline SVG/canvas exports and data-URI icons.
- *  - connect-src 'self': same-origin fetch AND same-origin ws/wss (owewell realtime) — 'self'
- *    matches the ws/wss upgrade to the same host per CSP3.
- *  - cloudflareinsights: the (optional) Web Analytics beacon.
- * Tighten per app after browser-verifying on deploy; anything cross-origin a specific app needs
- * (e.g. wherever's places API, iguess if it ever calls a cross-origin AI host) goes through
- * the `csp` override rather than loosening this default for everyone.
+ * Conservative CSP that a Vite SPA runs under unchanged. The two entries that look like mistakes:
+ * `style-src 'unsafe-inline'` is required by React `style={}` props and Vite's injected CSS, and
+ * `connect-src 'self'` covers same-origin ws/wss too, since CSP3 matches the upgrade to the host.
+ *
+ * An app needing a cross-origin source passes the `csp` override rather than loosening this.
  */
 export const DEFAULT_CSP = [
   "default-src 'self'",
@@ -45,7 +36,6 @@ export interface SecurityHeaderOptions {
   permissionsPolicy?: string;
 }
 
-/** The security response headers as a plain object, ready to spread onto any Headers/Response. */
 export function securityHeaders(opts: SecurityHeaderOptions = {}): Record<string, string> {
   return {
     'Content-Security-Policy': opts.csp ?? DEFAULT_CSP,
@@ -57,7 +47,6 @@ export function securityHeaders(opts: SecurityHeaderOptions = {}): Record<string
   };
 }
 
-/** Mutate a Headers object in place with the security headers. Returns it for chaining. */
 export function applySecurityHeaders(headers: Headers, opts: SecurityHeaderOptions = {}): Headers {
   for (const [key, value] of Object.entries(securityHeaders(opts))) headers.set(key, value);
   return headers;
@@ -71,16 +60,12 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  * adds a second gate: for a state-changing method, if the request carries an Origin header whose
  * host differs from the request's own host, reject it.
  *
- * We only reject on a *present, mismatched* Origin — same-origin fetches always send a matching
- * Origin, so legitimate traffic passes, while requests that genuinely omit Origin (rare, and
- * cookie-less cross-site anyway) are left to the SameSite gate rather than being hard-blocked.
+ * Only a *present, mismatched* Origin is rejected. A missing one is left to the SameSite gate
+ * rather than hard-blocked.
  *
- * Localhost origins are always allowed: in `wrangler dev` a Worker with a custom-domain route sees
- * every request as that production host, so a genuine same-origin call from the local web app
- * (Origin `http://localhost:PORT`) would never match. A browser only sends a localhost Origin from
- * a page actually on localhost — an attacker's page can't forge it — so allowing it is safe.
- *
- * @returns a 403 Response to short-circuit with, or null when the request is allowed.
+ * Localhost is always allowed: under `wrangler dev` a Worker with a custom-domain route sees every
+ * request as that production host, so a genuine call from the local web app would never match. A
+ * browser only sends a localhost Origin from a page actually on localhost, so it cannot be forged.
  */
 export function enforceSameOrigin(request: Request): Response | null {
   if (SAFE_METHODS.has(request.method)) return null;
