@@ -18,6 +18,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
+      # Fails on an export nothing imports, so a refactor that orphans code says so here rather
+      # than leaving it to be found by someone wondering whether it is still load-bearing.
+      - run: pnpm knip
       # Generated drizzle snapshots and the lockfile are in .prettierignore; everything a person
       # writes is checked. This was the one gate the other apps had and this one did not.
       - run: pnpm format:check
