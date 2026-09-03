@@ -10,11 +10,15 @@ catch what judgment did not.
 pnpm verify
 ```
 
-Twelve gates, and always `pnpm run <name>` — bare `pnpm docs` resolves to npm's own command
-and exits 0 without running anything. `pnpm verify:fast` is the same list without build, tests and the browser suite — that
-is what the pre-commit hook and the Stop hook in `.claude/settings.json` run, in about 13 seconds.
-Neither replaces `pnpm verify`; they only stop obviously-broken work from being committed or
-declared finished. The deploy job is gated on them, so a red gate means nothing ships.
+Twelve gates. The deploy job is gated on them, so a red gate means nothing ships.
+
+`pnpm verify:fast` is the same list without build, tests and the browser suite. That is what the
+pre-commit hook and the Stop hook in `.claude/settings.json` run, in about 13 seconds. Neither
+replaces `pnpm verify`; they only stop obviously-broken work being committed or declared finished.
+
+Always `pnpm run <name>`, and never name a script after an npm command. A script called `docs` was
+shadowed by npm's own `docs`, which exits 0 without running anything, so that gate reported green
+for a day while never executing. `pnpm run gates` now fails on the bare form.
 
 | gate                 | rejects                                                                             |
 | -------------------- | ----------------------------------------------------------------------------------- |

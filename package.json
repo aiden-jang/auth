@@ -17,15 +17,15 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r test",
-    "verify": "pnpm run gates && pnpm run typecheck && pnpm run lint && pnpm run knip && pnpm run comments && pnpm run size && pnpm run docs && pnpm run migrations && pnpm run format:check && pnpm run build && pnpm -r test && pnpm --filter @aidenjang/auth-web e2e",
+    "verify": "pnpm run gates && pnpm run typecheck && pnpm run lint && pnpm run knip && pnpm run comments && pnpm run size && pnpm run check:docs && pnpm run migrations && pnpm run format:check && pnpm run build && pnpm -r test && pnpm --filter @aidenjang/auth-web e2e",
     "deploy:only": "pnpm --filter @aidenjang/auth-api run deploy",
     "knip": "knip",
     "comments": "node scripts/check-comments.mjs",
-    "docs": "node scripts/check-docs.mjs",
     "migrations": "node scripts/check-migrations.mjs",
     "size": "node scripts/check-size.mjs",
-    "verify:fast": "pnpm run gates && pnpm run typecheck && pnpm run lint && pnpm run knip && pnpm run comments && pnpm run size && pnpm run docs && pnpm run migrations && pnpm run format:check",
-    "gates": "node scripts/check-gates.mjs"
+    "verify:fast": "pnpm run gates && pnpm run typecheck && pnpm run lint && pnpm run knip && pnpm run comments && pnpm run size && pnpm run check:docs && pnpm run migrations && pnpm run format:check",
+    "gates": "node scripts/check-gates.mjs",
+    "check:docs": "node scripts/check-docs.mjs"
   },
   "devDependencies": {
     "@aidenjang/config": "workspace:*",

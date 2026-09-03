@@ -35,6 +35,25 @@ for (const chain of ['verify', 'verify:fast']) {
   }
 }
 
+/*
+ * CI runs its own steps, and that is where the shadowed gate actually surfaced, so check the
+ * workflow too rather than only the chains in package.json.
+ */
+const workflow = readFileSync('.github/workflows/ci.yml', 'utf8');
+for (const m of workflow.matchAll(/^\s*(?:- )?run: (pnpm [^\n]+)$/gm)) {
+  const step = m[1].trim();
+  if (/^pnpm (?:-r|--filter|exec|install) /.test(step)) continue;
+  const bare = /^pnpm (?!run )([\w:-]+)$/.exec(step);
+  if (bare) {
+    problems.push(`ci.yml runs \`${step}\` — write \`pnpm run ${bare[1]}\``);
+    continue;
+  }
+  const named = /^pnpm run ([\w:-]+)$/.exec(step);
+  if (named && !scripts[named[1]]) {
+    problems.push(`ci.yml runs \`${step}\` but there is no ${named[1]} script`);
+  }
+}
+
 if (problems.length > 0) {
   console.error('gate check failed:\n');
   for (const p of problems) console.error(`  ${p}`);
@@ -42,4 +61,4 @@ if (problems.length > 0) {
   process.exit(1);
 }
 
-console.log(`gates ok: every step of verify and verify:fast resolves to a real script`);
+console.log('gates ok: every step of verify, verify:fast and ci.yml resolves to a real script');
