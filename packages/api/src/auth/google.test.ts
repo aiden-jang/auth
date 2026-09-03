@@ -36,8 +36,24 @@ describe('where a sign-in is allowed to land', () => {
     ['our name as a subdomain of theirs', 'https://x.aidenjang.com.evil.com/'],
     ['our host smuggled into userinfo', 'https://aidenjang.com@evil.com/'],
     ['a trailing-dot host', 'https://aidenjang.com./x'],
+    ['a loopback address, in production', 'http://localhost:1234/steal'],
+    ['a loopback ip, in production', 'http://127.0.0.1:9/x'],
+    ['a downgrade to plain http', 'http://aidenjang.com/x'],
   ])('refuses %s', (_, target) => {
     expect(safeAppRedirect(target, PROD)).toBe(ACCOUNT);
+  });
+
+  /*
+   * Dev runs the worker and the UI on two localhost ports, so the hand-back really is loopback
+   * there. What decides is the app's own origin, not the target: production never serves from
+   * localhost, so it can never be talked into pointing at one.
+   */
+  it('allows loopback only when the account app is itself on loopback', () => {
+    const DEV = 'http://localhost:34110';
+    expect(safeAppRedirect('http://localhost:34110/account', DEV)).toBe(
+      'http://localhost:34110/account',
+    );
+    expect(safeAppRedirect('/groups', DEV)).toBe('http://localhost:34110/groups');
   });
 
   it('accepts the apex and any subdomain of it', () => {

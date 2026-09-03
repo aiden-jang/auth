@@ -23,24 +23,27 @@ export interface AuthedUser {
 }
 
 /**
- * Resolve a post-login redirect target safely: allow only aidenjang.com hosts (or localhost in
- * dev), else fall back to `${base}/account`. `base` is the UI origin (APP_URL). Blocks
- * open-redirect via `return_to`.
+ * Resolve a post-login redirect target safely: allow only https aidenjang.com hosts, else fall
+ * back to `${base}/account`. `base` is the UI origin (APP_URL). Blocks open-redirect via
+ * `return_to`, which is a phishing vector worth caring about because the victim really did just
+ * sign in to the real site and carries that trust to wherever they land.
+ *
+ * Loopback is allowed only when the account app is itself on loopback, which is true in dev (the
+ * worker and Vite sit on two localhost ports) and never in production. Keying that off `base`
+ * rather than the target is what stops production being talked into pointing somebody at a
+ * service on their own machine.
  */
 export function safeAppRedirect(returnTo: string, base: string): string {
-  const origin = new URL(base).origin;
+  const baseUrl = new URL(base);
+  const origin = baseUrl.origin;
+  const devBase = baseUrl.hostname === 'localhost' || baseUrl.hostname === '127.0.0.1';
   if (returnTo) {
     try {
       const u = new URL(returnTo, origin);
       const h = u.hostname;
-      if (
-        h === 'aidenjang.com' ||
-        h.endsWith('.aidenjang.com') ||
-        h === 'localhost' ||
-        h === '127.0.0.1'
-      ) {
-        return u.toString();
-      }
+      const ours = h === 'aidenjang.com' || h.endsWith('.aidenjang.com');
+      const loopback = h === 'localhost' || h === '127.0.0.1';
+      if ((ours && u.protocol === 'https:') || (loopback && devBase)) return u.toString();
     } catch {
       /* not a valid URL — fall through */
     }
@@ -146,11 +149,19 @@ export async function exchangeGoogleCode(
 }
 
 /**
- * Find or create the account for a Google identity. Match by google_id first, then link to an
- * existing account with the same *verified* email (Google guarantees the address), else create a
- * new passwordless account.
+ * Find or create the account for a Google identity, or null if Google will not vouch for the
+ * address. Match by google_id first, then link to an existing account with the same email, else
+ * create a new passwordless account.
+ *
+ * Everything past the google_id match turns on an email address, so an unverified one buys
+ * nothing and risks everything: matching one to an existing account hands that account to whoever
+ * claimed the address, and opening a new one lets somebody squat an address they do not own. A
+ * google_id that already matches is a binding established earlier and stands on its own.
  */
-export async function upsertGoogleUser(db: DB, identity: GoogleIdentity): Promise<AuthedUser> {
+export async function upsertGoogleUser(
+  db: DB,
+  identity: GoogleIdentity,
+): Promise<AuthedUser | null> {
   const toAuthed = (u: {
     id: string;
     email: string;
@@ -166,16 +177,15 @@ export async function upsertGoogleUser(db: DB, identity: GoogleIdentity): Promis
   const byGoogle = await db.select().from(users).where(eq(users.googleId, identity.sub)).get();
   if (byGoogle) return toAuthed(byGoogle);
 
+  if (!identity.emailVerified) return null;
+
   const byEmail = await db.select().from(users).where(eq(users.email, identity.email)).get();
   if (byEmail) {
-    if (identity.emailVerified) {
-      await db
-        .update(users)
-        .set({ googleId: identity.sub, emailVerified: true, updatedAt: new Date() })
-        .where(eq(users.id, byEmail.id));
-      return toAuthed({ ...byEmail, emailVerified: true });
-    }
-    return toAuthed(byEmail);
+    await db
+      .update(users)
+      .set({ googleId: identity.sub, emailVerified: true, updatedAt: new Date() })
+      .where(eq(users.id, byEmail.id));
+    return toAuthed({ ...byEmail, emailVerified: true });
   }
 
   const id = crypto.randomUUID();
@@ -185,12 +195,7 @@ export async function upsertGoogleUser(db: DB, identity: GoogleIdentity): Promis
     passwordHash: null,
     googleId: identity.sub,
     displayName: identity.name,
-    emailVerified: identity.emailVerified,
+    emailVerified: true,
   });
-  return {
-    id,
-    email: identity.email,
-    displayName: identity.name,
-    emailVerified: identity.emailVerified,
-  };
+  return { id, email: identity.email, displayName: identity.name, emailVerified: true };
 }

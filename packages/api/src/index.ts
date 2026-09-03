@@ -496,6 +496,8 @@ app.get('/auth/google/callback', async (c) => {
     }
 
     const user = await upsertGoogleUser(db, identity);
+    // Google would not vouch for the address, so it cannot be used to reach an account.
+    if (!user) return fail('email_unverified');
     const meta = sessionMeta(c);
     const alert = await newSignInAlert(
       db,
