@@ -11,14 +11,8 @@ export function VerifyEmailPage(): ReactNode {
   // "Confirming your email..." at somebody whose link was truncated.
   const [status, setStatus] = useState<'pending' | 'ok' | 'error'>(token ? 'pending' : 'error');
 
-  /*
-   * A verification token is spent on first use, so this may only ever send it once.
-   *
-   * Without the guard the effect running twice -- StrictMode in development, a remount, a fast
-   * refresh -- sends it twice: the first call verifies the address and the second is refused
-   * because the token is now gone, and whichever settles last decides what the page says. The
-   * person is left reading "invalid or expired" about a link that just worked.
-   */
+  /* The token is spent on first use, so send it once. An effect that runs twice verifies the
+     address and is then refused, and whichever settles last decides what the page says. */
   const spent = useRef<string | null>(null);
 
   useEffect(() => {

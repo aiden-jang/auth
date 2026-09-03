@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { authApi, type SessionInfo } from './api';
 
-/*
- * The signed-in devices, and everything that changes them.
- *
- * A hook rather than state inside the list, because two different parts of the account page act on
- * the same devices: the list itself, and the security-review banner, whose whole job is to sign the
- * other devices out. Two copies of this state would let one of them show a device the other had
- * already revoked.
- */
+/* A hook, not state inside SessionList: the security-review banner signs the other devices out, so
+   both need the same copy. */
 export interface Sessions {
   list: SessionInfo[] | null;
   error: string | null;

@@ -4,16 +4,8 @@ import { labelClass } from './AuthCard';
 import { PasswordInput } from './PasswordInput';
 import { PasswordStrength } from './PasswordStrength';
 
-/*
- * Setting a password, and changing one.
- *
- * Two flows in one form because they differ only in what proves you may: changing already requires
- * the old password, while an account that signs in with Google has none to ask for, so adding one
- * goes through the step-up prompt instead.
- *
- * `changingPw` stays with the page rather than here: opening this form hides most of the rest of
- * the account page, and the security-review banner opens it too.
- */
+/* `changingPw` is a prop, not state: opening this form hides most of the account page, and the
+   security-review banner opens it too. */
 export function PasswordSection({
   user,
   changingPw,

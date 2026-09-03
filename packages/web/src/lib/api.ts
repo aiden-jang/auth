@@ -46,14 +46,8 @@ export interface SessionInfo {
   expiresAt: string;
 }
 
-/*
- * Deliberately not an enumeration of the event names.
- *
- * The server owns that vocabulary, and this trail is only ever passed through into the account
- * data download -- nothing here switches on a value. Listing them again in this file would be a
- * second copy that nothing keeps in step with securityEvents.ts, and the first symptom of a new
- * event type would be a type that quietly disagrees with the wire.
- */
+/* Not an enumeration on purpose: securityEvents.ts owns the vocabulary, nothing here switches on a
+   value, and a second copy is one nothing keeps in step. */
 interface SecurityEvent {
   id: string;
   type: string;

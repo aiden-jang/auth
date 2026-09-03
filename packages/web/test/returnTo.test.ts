@@ -9,13 +9,8 @@ function servedFrom(origin: string): void {
 
 afterEach(() => vi.unstubAllGlobals());
 
-/*
- * Where a sign-in is allowed to hand somebody afterwards, decided in the browser.
- *
- * The server refuses an unsafe `return_to` in safeAppRedirect, but this decides the redirect the
- * SPA performs itself after a login, and it is reached with a value straight out of the query
- * string. Both sides have to agree or the stricter one is decoration.
- */
+/* The SPA performs this redirect itself, on a value straight out of the query string. It has to
+   agree with safeAppRedirect on the server, or the stricter of the two is decoration. */
 describe('where a sign-in may hand somebody on to', () => {
   it('allows an app on the platform', () => {
     servedFrom('https://accounts.aidenjang.com');

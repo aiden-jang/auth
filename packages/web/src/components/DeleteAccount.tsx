@@ -3,17 +3,8 @@ import { authApi, type AuthUser } from '../lib/api';
 import { inputClass, labelClass } from './AuthCard';
 import { PasswordInput } from './PasswordInput';
 
-/*
- * The one thing on this page that cannot be undone.
- *
- * Its own component because it owns five pieces of state that exist only while somebody is halfway
- * through deleting, and none of the rest of the account page has any business reading them.
- *
- * What it asks for depends on how the account signs in: a password if there is one, otherwise the
- * email address typed out. The server asks for the same thing again, and for a passwordless account
- * also for a session that has proved itself recently -- typing your own address is confirmation,
- * not proof.
- */
+/* What this asks for depends on how the account signs in, and the server asks again either way --
+   see the delete-account route for which proof it demands and why. */
 export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
   const [showDelete, setShowDelete] = useState(false);
   const [deletePw, setDeletePw] = useState('');
