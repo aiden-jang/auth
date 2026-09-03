@@ -20,8 +20,9 @@ import { globSync, readFileSync } from 'node:fs';
  * 858 -> 820 after index.ts and harden.ts, the last two files that were more prose than code.
  * 820 -> 718 after a pass over every block longer than four lines, and after the scanner stopped
  * counting route paths as comments.
+ * 718 -> 699: the lockout chain had been explained in three files at once.
  */
-const SRC_BUDGET = 718;
+const SRC_BUDGET = 699;
 const DUP_MIN_CHARS = 45;
 
 /**

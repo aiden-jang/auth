@@ -90,13 +90,9 @@ export interface HardenOptions extends SecurityHeaderOptions {
 }
 
 /**
- * One-line hardening for a Hono Worker: `app.use('*', harden())`. Guards state-changing requests
- * (CSRF) up front, then stamps the security headers onto the response on the way out.
- *
- * Two Workers realities it handles:
- *  - WebSocket upgrades (status 101, e.g. owewell realtime) pass through untouched.
- *  - Static-asset responses from `env.ASSETS.fetch` carry immutable headers, so we rebuild the
- *    Response with a fresh, mutable Headers rather than mutating in place (which would throw).
+ * CSRF guard in, security headers out. Two Workers details: a 101 upgrade passes through untouched,
+ * and `env.ASSETS.fetch` responses have immutable headers, so the Response is rebuilt rather than
+ * mutated -- mutating throws.
  */
 export function harden(opts: HardenOptions = {}): MiddlewareHandler {
   const { csrf = true, ...headerOpts } = opts;

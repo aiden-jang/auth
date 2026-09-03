@@ -134,13 +134,9 @@ app.get('/auth/export', async (c) => {
 });
 
 /*
- * Permanently delete the account and everything attached (sessions and tokens cascade).
- *
- * What it asks for depends on how the account signs in. A password account types the password. A
- * passwordless one types its own email address, which is confirmation rather than proof -- anyone
- * holding the cookie reads that address off /auth/me -- so it also has to prove the session is
- * fresh. That does not strand anybody: proving a Google-only account means signing in with Google
- * again, which is exactly how it got here.
+ * Sessions and tokens cascade. A password account types its password; a passwordless one types its
+ * own address, which anyone holding the cookie reads off /auth/me -- confirmation, not proof -- so
+ * that case also has to prove the session is fresh.
  */
 app.post('/auth/delete-account', async (c) => {
   if (await overLimit(c, 'delete-account', 5, 10 * MIN)) return rateLimited(c);

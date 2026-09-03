@@ -1,13 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { authApi, googleConnectUrl, type AuthUser } from '../lib/api';
 
-/*
- * Whether Google is linked, and unlinking it.
- *
- * Unlinking goes through the step-up prompt: it changes how the account signs in, and doing it from
- * a stolen cookie was half of a real lockout chain -- give the account a password the thief knows,
- * then cut the Google the owner uses.
- */
+/* Unlinking goes behind the step-up prompt; it is half the chain described in auth/stepUp.ts. */
 export function ConnectedAccounts({
   user,
   googleMsg,
