@@ -1,19 +1,14 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import {
-  authApi,
-  googleConnectUrl,
-  googleEnabled,
-  type AuthUser,
-  type SessionInfo,
-} from '../lib/api';
+import { authApi, googleConnectUrl, googleEnabled, type AuthUser } from '../lib/api';
 import { AccountShell, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
 import { Skeleton } from '../components/Skeleton';
 import { APPS, appHref } from '../lib/apps';
+import { DeleteAccount } from '../components/DeleteAccount';
+import { useSessions } from '../lib/useSessions';
 import { PasskeyList } from '../components/PasskeyList';
-import { sessionHorizon } from '../lib/sessionHorizon';
-import { reassurance } from '../lib/reassurance';
+import { SessionList } from '../components/SessionList';
 import { useStepUp } from '../components/StepUpPrompt';
 
 function timeAgo(iso: string): string {
@@ -58,6 +53,7 @@ function readGoogleLinkError(): string | null {
 export function AccountPage(): ReactNode {
   // Intercepts a REAUTH_REQUIRED refusal from the server and re-runs the action once confirmed.
   const stepUp = useStepUp();
+  const sessions = useSessions();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [verificationStatus, setVerificationStatus] = useState<'sending' | 'sent' | null>(null);
@@ -85,86 +81,14 @@ export function AccountPage(): ReactNode {
      while rendering makes the same list render differently twice. */
   const [mountedAt] = useState(() => Date.now());
   const [googleMsg, setGoogleMsg] = useState<string | null>(googleLinkError);
-  const [sessions, setSessions] = useState<SessionInfo[] | null>(null);
-  const [revokingId, setRevokingId] = useState<string | null>(null);
-  const [revokingOthers, setRevokingOthers] = useState(false);
   const [securityReview, setSecurityReview] = useState(
     () => new URLSearchParams(window.location.search).get('security') === 'review',
   );
   const [securityReviewStatus, setSecurityReviewStatus] = useState<'securing' | 'secured' | null>(
     null,
   );
-  const [refreshingSessions, setRefreshingSessions] = useState(false);
-  const [sessionsRefreshed, setSessionsRefreshed] = useState(false);
-  const [sessionError, setSessionError] = useState<string | null>(null);
-  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
-  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
-  const [sessionNameDraft, setSessionNameDraft] = useState('');
-  const [savingSessionName, setSavingSessionName] = useState(false);
   const [exportStatus, setExportStatus] = useState<'exporting' | 'downloaded' | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [showDelete, setShowDelete] = useState(false);
-  const [deletePw, setDeletePw] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState('');
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  async function revoke(id: string): Promise<void> {
-    setRevokingId(id);
-    setSessionError(null);
-    try {
-      await authApi.revokeSession(id);
-      setSessions((s) => s?.filter((x) => x.id !== id) ?? null);
-      setExpandedSessionId((current) => (current === id ? null : current));
-    } catch {
-      setSessionError('Couldn’t sign that device out. Try again.');
-    } finally {
-      setRevokingId(null);
-    }
-  }
-
-  function beginSessionRename(session: SessionInfo): void {
-    setRenamingSessionId(session.id);
-    setSessionNameDraft(session.device ?? '');
-    setSessionError(null);
-  }
-
-  async function renameSession(event: FormEvent, id: string): Promise<void> {
-    event.preventDefault();
-    const label = sessionNameDraft.trim();
-    if (!label) return;
-    setSavingSessionName(true);
-    setSessionError(null);
-    try {
-      const { session } = await authApi.renameSession(id, label);
-      setSessions(
-        (current) =>
-          current?.map((item) => (item.id === id ? { ...item, device: session.device } : item)) ??
-          null,
-      );
-      setRenamingSessionId(null);
-      setSessionNameDraft('');
-    } catch {
-      setSessionError('Couldn’t rename that device. Try again.');
-    } finally {
-      setSavingSessionName(false);
-    }
-  }
-
-  async function revokeOthers(): Promise<boolean> {
-    setRevokingOthers(true);
-    setSessionError(null);
-    try {
-      await authApi.revokeOtherSessions();
-      setSessions((s) => s?.filter((x) => x.current) ?? null);
-      return true;
-    } catch {
-      setSessionError('Couldn’t sign the other devices out. Try again.');
-      return false;
-    } finally {
-      setRevokingOthers(false);
-    }
-  }
 
   function dismissSecurityReview(): void {
     setSecurityReview(false);
@@ -176,7 +100,7 @@ export function AccountPage(): ReactNode {
   async function secureAccount(): Promise<void> {
     if (!user || securityReviewStatus === 'securing') return;
     setSecurityReviewStatus('securing');
-    const secured = await revokeOthers();
+    const secured = await sessions.revokeOthers();
     if (!secured) {
       setSecurityReviewStatus(null);
       return;
@@ -185,26 +109,6 @@ export function AccountPage(): ReactNode {
     if (user.hasPassword) {
       setPwDone(false);
       setChangingPw(true);
-    }
-  }
-
-  async function refreshSessions(manual = false): Promise<void> {
-    if (manual) setRefreshingSessions(true);
-    setSessionError(null);
-    try {
-      const result = await authApi.listSessions();
-      setSessions(result.sessions);
-      if (manual) {
-        setSessionsRefreshed(true);
-        window.setTimeout(() => setSessionsRefreshed(false), 1800);
-      }
-    } catch {
-      // Preserve a previously loaded list. A refresh failure should not make every known session
-      // disappear and falsely imply that no devices are signed in.
-      setSessions((current) => current ?? []);
-      setSessionError('Couldn’t refresh active devices. Try again.');
-    } finally {
-      if (manual) setRefreshingSessions(false);
     }
   }
 
@@ -258,22 +162,6 @@ export function AccountPage(): ReactNode {
       window.setTimeout(() => setEmailCopied(false), 1800);
     } catch {
       // The address remains selectable as the no-fail fallback.
-    }
-  }
-
-  async function submitDelete(e: FormEvent): Promise<void> {
-    e.preventDefault();
-    if (!user) return;
-    setDeleting(true);
-    setDeleteError(null);
-    try {
-      await authApi.deleteAccount(
-        user.hasPassword ? { password: deletePw } : { confirm: deleteConfirm },
-      );
-      window.location.replace('/login');
-    } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Could not delete your account.');
-      setDeleting(false);
     }
   }
 
@@ -392,13 +280,6 @@ export function AccountPage(): ReactNode {
     };
     window.addEventListener('pageshow', onPageShow);
     return () => window.removeEventListener('pageshow', onPageShow);
-  }, []);
-
-  useEffect(() => {
-    // refreshSessions clears the error before it fetches, which is a real synchronous setState.
-    // Worth one render on mount rather than showing a stale failure over a list being reloaded.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refreshSessions();
   }, []);
 
   // Drop the ?error from the address bar once it has been read, so a reload does not re-announce it.
@@ -810,215 +691,12 @@ export function AccountPage(): ReactNode {
       {!changingPw && (
         <>
           <hr className="my-6 border-line" />
-          <section id="active-sessions" aria-label="Active sessions" className="scroll-mt-4">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
-                Active sessions
-              </h2>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => void refreshSessions(true)}
-                  disabled={refreshingSessions}
-                  className="text-xs font-medium text-muted hover:text-accent hover:underline disabled:cursor-default disabled:opacity-60"
-                >
-                  {refreshingSessions
-                    ? 'Refreshing…'
-                    : sessionsRefreshed
-                      ? 'Up to date'
-                      : 'Refresh'}
-                </button>
-                {sessions && sessions.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => void revokeOthers()}
-                    disabled={revokingOthers}
-                    className="cursor-pointer text-xs font-medium text-accent hover:underline disabled:opacity-60"
-                  >
-                    {revokingOthers ? 'Signing out...' : 'Sign out everywhere else'}
-                  </button>
-                )}
-              </div>
-            </div>
-            {(sessions === null || refreshingSessions) && (
-              <p role="status" className="mt-3 text-xs text-muted">
-                {reassurance('sessions')}
-              </p>
-            )}
-            <ul className="mt-3 space-y-2">
-              {sessions === null ? (
-                <>
-                  <li>
-                    <Skeleton className="h-14 w-full" />
-                  </li>
-                  <li>
-                    <Skeleton className="h-14 w-full" />
-                  </li>
-                </>
-              ) : sessions.length === 0 ? (
-                <li className="text-sm text-muted">No active sessions.</li>
-              ) : (
-                sessions.map((s) => {
-                  const expanded = expandedSessionId === s.id;
-                  const horizon = sessionHorizon(s.createdAt, s.expiresAt);
-                  const recentlyAdded =
-                    !s.current && mountedAt - new Date(s.createdAt).getTime() < 24 * 60 * 60 * 1000;
-                  return (
-                    <li key={s.id} className="rounded-xl border border-line bg-field px-4 py-3">
-                      <div className="flex items-center justify-between gap-4">
-                        <button
-                          type="button"
-                          onClick={() => setExpandedSessionId(expanded ? null : s.id)}
-                          aria-expanded={expanded}
-                          className="min-w-0 flex-1 cursor-pointer text-left"
-                        >
-                          <span className="flex items-center gap-2">
-                            <span className="truncate text-sm font-medium text-ink">
-                              {s.device ?? 'Unknown device'}
-                            </span>
-                            {s.current && (
-                              <span className="shrink-0 rounded-full border border-pos/30 bg-pos/10 px-2 py-0.5 text-xs font-medium text-pos">
-                                this device
-                              </span>
-                            )}
-                            {recentlyAdded && (
-                              <span className="shrink-0 rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
-                                new
-                              </span>
-                            )}
-                            {horizon.tone === 'soon' && (
-                              <span className="shrink-0 rounded-full border border-neg/25 bg-neg/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neg">
-                                expires soon
-                              </span>
-                            )}
-                          </span>
-                          <span className="block text-xs text-muted">
-                            {[s.location, timeAgo(s.lastSeenAt)].filter(Boolean).join(' · ')} ·{' '}
-                            {expanded ? 'hide details' : 'details'}
-                          </span>
-                        </button>
-                        {!s.current && (
-                          <button
-                            type="button"
-                            onClick={() => void revoke(s.id)}
-                            disabled={revokingId === s.id}
-                            className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2 text-sm text-muted transition hover:text-ink disabled:opacity-60"
-                          >
-                            {revokingId === s.id ? '...' : 'Sign out'}
-                          </button>
-                        )}
-                      </div>
-                      {expanded && (
-                        <div className="mt-3 border-t border-line pt-3">
-                          <dl className="grid gap-2 text-xs sm:grid-cols-4">
-                            <div>
-                              <dt className="text-muted">First signed in</dt>
-                              <dd className="mt-0.5 font-medium text-ink">
-                                {exactTime(s.createdAt)}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="text-muted">Last active</dt>
-                              <dd className="mt-0.5 font-medium text-ink">
-                                {exactTime(s.lastSeenAt)}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="text-muted">Approximate location</dt>
-                              <dd className="mt-0.5 font-medium text-ink">
-                                {s.location ?? 'Not available'}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="text-muted">Session lifetime</dt>
-                              <dd
-                                className={`mt-0.5 font-medium ${
-                                  horizon.tone === 'soon' ? 'text-neg' : 'text-ink'
-                                }`}
-                              >
-                                {horizon.label}
-                              </dd>
-                            </div>
-                          </dl>
-                          <div className="mt-3">
-                            <div className="mb-1 flex items-center justify-between gap-3 text-[10px] text-muted">
-                              <span>session time remaining</span>
-                              <span className="tnum">{horizon.percentRemaining}%</span>
-                            </div>
-                            <div
-                              className="h-1.5 overflow-hidden rounded-full bg-line"
-                              role="progressbar"
-                              aria-label={`${s.device ?? 'This session'} lifetime remaining`}
-                              aria-valuemin={0}
-                              aria-valuemax={100}
-                              aria-valuenow={horizon.percentRemaining}
-                            >
-                              <div
-                                className={`h-full rounded-full transition-[width] ${
-                                  horizon.tone === 'soon' ? 'bg-neg' : 'bg-accent'
-                                }`}
-                                style={{ width: `${horizon.percentRemaining}%` }}
-                              />
-                            </div>
-                          </div>
-                          {renamingSessionId === s.id ? (
-                            <form
-                              onSubmit={(event) => void renameSession(event, s.id)}
-                              className="mt-3 flex flex-col gap-2 rounded-lg border border-line bg-canvas/50 p-3 sm:flex-row sm:items-end"
-                            >
-                              <label className="min-w-0 flex-1 text-xs font-medium text-muted">
-                                Device name
-                                <input
-                                  autoFocus
-                                  maxLength={40}
-                                  value={sessionNameDraft}
-                                  onChange={(event) => setSessionNameDraft(event.target.value)}
-                                  placeholder="Personal MacBook"
-                                  className={`${inputClass} mt-1 py-2`}
-                                />
-                              </label>
-                              <div className="flex gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setRenamingSessionId(null);
-                                    setSessionNameDraft('');
-                                  }}
-                                  className="rounded-lg border border-line px-3 py-2 text-xs font-medium text-muted hover:text-ink"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="submit"
-                                  disabled={savingSessionName || !sessionNameDraft.trim()}
-                                  className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
-                                >
-                                  {savingSessionName ? 'Saving…' : 'Save name'}
-                                </button>
-                              </div>
-                            </form>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => beginSessionRename(s)}
-                              className="mt-3 text-xs font-medium text-accent hover:underline"
-                            >
-                              Rename device
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </li>
-                  );
-                })
-              )}
-            </ul>
-            {sessionError && (
-              <p role="alert" className="mt-3 text-sm font-medium text-neg">
-                {sessionError}
-              </p>
-            )}
-          </section>
+          <SessionList
+            sessions={sessions}
+            mountedAt={mountedAt}
+            timeAgo={timeAgo}
+            exactTime={exactTime}
+          />
           <hr className="my-6 border-line" />
           <PasskeyList guard={stepUp.guard} />
           <hr className="my-6 border-line" />
@@ -1063,87 +741,7 @@ export function AccountPage(): ReactNode {
         Log out
       </button>
 
-      {!changingPw && (
-        <section aria-label="Danger zone" className="mt-8">
-          <hr className="mb-6 border-line" />
-          {showDelete ? (
-            <form
-              onSubmit={(e) => void submitDelete(e)}
-              className="space-y-3 rounded-xl border border-neg/30 bg-neg/5 p-4"
-            >
-              <h2 className="text-sm font-semibold text-neg">Delete account</h2>
-              <p className="text-sm text-muted">
-                This permanently deletes your account and signs you out of every app. It cannot be
-                undone.
-              </p>
-              {user.hasPassword ? (
-                <div>
-                  {/* Labelled, not just placeheld: a placeholder disappears on the first keystroke
-                      and is the only name a screen reader had for the field guarding this. */}
-                  <label htmlFor="delete-password" className={labelClass}>
-                    Your password
-                  </label>
-                  <PasswordInput
-                    id="delete-password"
-                    autoComplete="current-password"
-                    placeholder="Your password"
-                    value={deletePw}
-                    onChange={setDeletePw}
-                    required
-                  />
-                </div>
-              ) : (
-                <div>
-                  <label htmlFor="delete-confirm" className={labelClass}>
-                    Type your email to confirm
-                  </label>
-                  <input
-                    id="delete-confirm"
-                    className={inputClass}
-                    value={deleteConfirm}
-                    onChange={(e) => setDeleteConfirm(e.target.value)}
-                    placeholder={user.email}
-                    autoComplete="off"
-                  />
-                </div>
-              )}
-              {deleteError && (
-                <p role="alert" className="text-sm font-medium text-neg">
-                  {deleteError}
-                </p>
-              )}
-              <div className="flex gap-2">
-                <button
-                  className="cursor-pointer rounded-full bg-neg px-5 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={deleting}
-                >
-                  {deleting ? 'Deleting...' : 'Delete my account'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowDelete(false);
-                    setDeleteError(null);
-                    setDeletePw('');
-                    setDeleteConfirm('');
-                  }}
-                  className="cursor-pointer rounded-full border border-line px-4 py-2.5 text-sm text-muted transition hover:text-ink"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowDelete(true)}
-              className="cursor-pointer text-sm font-medium text-neg hover:underline"
-            >
-              Delete account
-            </button>
-          )}
-        </section>
-      )}
+      {!changingPw && <DeleteAccount user={user} />}
 
       <nav className="mt-6 flex justify-center gap-5 text-xs text-muted">
         <a href="/privacy" className="hover:text-accent hover:underline">
