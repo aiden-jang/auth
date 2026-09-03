@@ -197,8 +197,4 @@ app.post('/auth/resend-verification', async (c) => {
   return c.json({ ok: true });
 });
 
-// Update the signed-in user's profile. Only the display name is editable
-// today (email/password have their own dedicated flows), but the endpoint
-// is shaped as a general profile update so more fields can be added here.
-
 export default app;

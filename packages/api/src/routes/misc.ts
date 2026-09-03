@@ -19,6 +19,8 @@ import {
 
 const app = new Hono<Env2>();
 
+// Unlink Google from the signed-in account. Refuse if it would leave no way to sign in (a
+// Google-only account must set a password first), so the user can never lock themselves out.
 app.post('/auth/disconnect-google', async (c) => {
   if (await overLimit(c, 'disconnect-google', 10, 5 * MIN)) return rateLimited(c);
   const cookie = getCookie(c, SESSION_COOKIE);
@@ -46,12 +48,5 @@ app.post('/auth/disconnect-google', async (c) => {
   deliverCredentialAlert(c, row.email, 'google_disconnected', meta);
   return c.json({ ok: true });
 });
-
-// The signed-in user's recent security activity. The allowlisted event type is recorded by this
-// service, while device and location remain intentionally coarse.
-
-// A portable copy of the account data this identity service keeps. Credentials, provider ids,
-// session hashes, raw user agents and IP addresses are deliberately absent from both the query and
-// the response shape, so an export is useful without becoming a bag of reusable secrets.
 
 export default app;

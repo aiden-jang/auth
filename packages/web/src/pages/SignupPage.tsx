@@ -6,6 +6,7 @@ import { AuthCard, buttonClass, inputClass, labelClass } from '../components/Aut
 import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
+import { useTurnstile } from '../lib/useTurnstile';
 import { GoogleSignIn } from '../components/GoogleSignIn';
 import { EmailSuggestion } from '../components/EmailSuggestion';
 import { reassurance } from '../lib/reassurance';
@@ -21,10 +22,9 @@ export function SignupPage(): ReactNode {
   const [confirmEmail, setConfirmEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [turnstileToken, setTurnstileToken] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [resetSignal, setResetSignal] = useState(0);
+  const turnstile = useTurnstile();
 
   const withReturn = (p: string) =>
     returnTo ? `${p}?return_to=${encodeURIComponent(returnTo)}` : p;
@@ -46,15 +46,13 @@ export function SignupPage(): ReactNode {
     setError(null);
     setLoading(true);
     try {
-      await authApi.register(email, password, displayName, turnstileToken, returnTo);
+      await authApi.register(email, password, displayName, turnstile.token, returnTo);
       // replace: back should not return to a signup form for an account that now exists.
       window.location.replace(safeReturnTo(returnTo) ?? '/account');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create your account.');
       setLoading(false);
-      // The token was consumed server-side; drop it and re-solve so a retry uses a fresh one.
-      setTurnstileToken('');
-      setResetSignal((n) => n + 1);
+      turnstile.discard();
     }
   }
 
@@ -209,9 +207,12 @@ export function SignupPage(): ReactNode {
           </p>
         )}
 
-        <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />
+        <Turnstile onToken={turnstile.setToken} resetSignal={turnstile.resetSignal} />
 
-        <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstileToken)}>
+        <button
+          className={buttonClass}
+          disabled={loading || (turnstileEnabled && !turnstile.token)}
+        >
           {loading ? 'Creating...' : 'Create account'}
         </button>
         {loading && (

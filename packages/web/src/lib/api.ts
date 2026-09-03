@@ -30,7 +30,7 @@ export interface AuthUser {
 export interface Passkey {
   id: string;
   label: string;
-  /** Synced to a provider's cloud, so losing the device does not lose the key. */
+  /** Drives the "synced" badge in the passkey list. */
   backedUp: boolean;
   createdAt: string;
   lastUsedAt: string | null;
