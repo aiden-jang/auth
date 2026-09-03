@@ -26,6 +26,9 @@ export const WORKER_LOG = '/tmp/aidenjang-auth-e2e-worker.log';
  */
 const RUN_IP = `203.0.113.${(Math.floor(Date.now() / 1000) % 250) + 1}`;
 
+/* Browser tests get a finer-grained address per test from e2e/fixtures.ts; this one covers the
+   API-only specs, which use the `request` fixture and never open a context. */
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 60_000,

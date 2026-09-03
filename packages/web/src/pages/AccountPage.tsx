@@ -1,13 +1,14 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { authApi, googleConnectUrl, googleEnabled, type AuthUser } from '../lib/api';
-import { AccountShell, buttonClass, inputClass, labelClass } from '../components/AuthCard';
-import { PasswordInput } from '../components/PasswordInput';
-import { PasswordStrength } from '../components/PasswordStrength';
+import { authApi, googleEnabled, type AuthUser } from '../lib/api';
+import { AccountShell, buttonClass, inputClass } from '../components/AuthCard';
 import { Skeleton } from '../components/Skeleton';
 import { APPS, appHref } from '../lib/apps';
 import { DeleteAccount } from '../components/DeleteAccount';
 import { useSessions } from '../lib/useSessions';
+import { ConnectedAccounts } from '../components/ConnectedAccounts';
+import { ExportAccount } from '../components/ExportAccount';
 import { PasskeyList } from '../components/PasskeyList';
+import { PasswordSection } from '../components/PasswordSection';
 import { SessionList } from '../components/SessionList';
 import { useStepUp } from '../components/StepUpPrompt';
 
@@ -64,16 +65,9 @@ export function AccountPage(): ReactNode {
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [changingPw, setChangingPw] = useState(false);
-  const [curPw, setCurPw] = useState('');
-  const [newPw, setNewPw] = useState('');
-  const [confirmPw, setConfirmPw] = useState('');
-  const [pwSaving, setPwSaving] = useState(false);
-  const [pwError, setPwError] = useState<string | null>(null);
   const [pwDone, setPwDone] = useState(false);
   // Tracks which action just succeeded, so the confirmation reads correctly (adding a first
   // password does not sign other devices out, unlike a change).
-  const [pwWasSet, setPwWasSet] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
   // Read once, on the first render: the ?error the Google callback redirects back with is fixed
   // by the time this page mounts, so deriving it in an effect only costs a second render.
   const [googleLinkError] = useState(readGoogleLinkError);
@@ -87,8 +81,6 @@ export function AccountPage(): ReactNode {
   const [securityReviewStatus, setSecurityReviewStatus] = useState<'securing' | 'secured' | null>(
     null,
   );
-  const [exportStatus, setExportStatus] = useState<'exporting' | 'downloaded' | null>(null);
-  const [exportError, setExportError] = useState<string | null>(null);
 
   function dismissSecurityReview(): void {
     setSecurityReview(false);
@@ -128,32 +120,6 @@ export function AccountPage(): ReactNode {
     }
   }
 
-  async function downloadAccountData(): Promise<void> {
-    if (exportStatus) return;
-    setExportStatus('exporting');
-    setExportError(null);
-    try {
-      const data = await authApi.exportAccount();
-      const href = URL.createObjectURL(
-        new Blob([`${JSON.stringify(data, null, 2)}\n`], {
-          type: 'application/json;charset=utf-8',
-        }),
-      );
-      const link = document.createElement('a');
-      link.href = href;
-      link.download = `aidenjang-account-${data.exportedAt.slice(0, 10)}.json`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(href), 0);
-      setExportStatus('downloaded');
-      window.setTimeout(() => setExportStatus(null), 2200);
-    } catch {
-      setExportStatus(null);
-      setExportError('Couldn’t prepare your account data. Try again.');
-    }
-  }
-
   async function copyEmail(): Promise<void> {
     if (!user || emailCopied) return;
     try {
@@ -162,67 +128,6 @@ export function AccountPage(): ReactNode {
       window.setTimeout(() => setEmailCopied(false), 1800);
     } catch {
       // The address remains selectable as the no-fail fallback.
-    }
-  }
-
-  async function disconnectGoogle(): Promise<void> {
-    if (!user) return;
-    setDisconnecting(true);
-    setGoogleMsg(null);
-    try {
-      await stepUp.guard('unlink Google', async () => {
-        await authApi.disconnectGoogle();
-        setUser({ ...user, hasGoogle: false });
-      });
-    } catch (err) {
-      setGoogleMsg(err instanceof Error ? err.message : 'Could not disconnect Google.');
-    } finally {
-      setDisconnecting(false);
-    }
-  }
-
-  function resetPwForm(): void {
-    setCurPw('');
-    setNewPw('');
-    setConfirmPw('');
-    setPwError(null);
-  }
-
-  async function submitPassword(e: FormEvent): Promise<void> {
-    e.preventDefault();
-    if (!user) return;
-    if (newPw !== confirmPw) {
-      setPwError('Those passwords do not match.');
-      return;
-    }
-    setPwSaving(true);
-    setPwError(null);
-    try {
-      if (user.hasPassword) {
-        // Changing a password already proves you know the old one, so it needs no extra step.
-        await authApi.changePassword(curPw, newPw);
-        setPwWasSet(false);
-      } else {
-        await stepUp.guard('add a password', async () => {
-          await authApi.setPassword(newPw);
-          setUser({ ...user, hasPassword: true });
-          setPwWasSet(true);
-        });
-      }
-      setChangingPw(false);
-      resetPwForm();
-      setPwDone(true);
-      if (securityReviewStatus === 'secured') dismissSecurityReview();
-    } catch (err) {
-      setPwError(
-        err instanceof Error
-          ? err.message
-          : user.hasPassword
-            ? 'Could not change your password.'
-            : 'Could not set your password.',
-      );
-    } finally {
-      setPwSaving(false);
     }
   }
 
@@ -518,173 +423,27 @@ export function AccountPage(): ReactNode {
         </div>
       )}
 
-      <section aria-label="Security">
-        {changingPw ? (
-          <form onSubmit={(e) => void submitPassword(e)} className="space-y-3">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
-              {user.hasPassword ? 'Change password' : 'Set a password'}
-            </h2>
-            {!user.hasPassword && (
-              <p className="text-sm text-muted">
-                You signed up with Google. Add a password to also sign in with your email.
-              </p>
-            )}
-            {user.hasPassword && (
-              <div>
-                <label htmlFor="current-password" className={labelClass}>
-                  Current password
-                </label>
-                <PasswordInput
-                  id="current-password"
-                  autoComplete="current-password"
-                  placeholder="Current password"
-                  value={curPw}
-                  onChange={setCurPw}
-                  required
-                  autoFocus
-                />
-              </div>
-            )}
-            <div>
-              <label htmlFor="new-password" className={labelClass}>
-                New password
-              </label>
-              <PasswordInput
-                id="new-password"
-                autoComplete="new-password"
-                placeholder="8+ characters"
-                value={newPw}
-                onChange={setNewPw}
-                required
-                minLength={8}
-                autoFocus={!user.hasPassword}
-              />
-              <PasswordStrength value={newPw} />
-            </div>
-            <div>
-              <label htmlFor="confirm-new-password" className={labelClass}>
-                Confirm new password
-              </label>
-              <PasswordInput
-                id="confirm-new-password"
-                autoComplete="new-password"
-                placeholder="Re-enter password"
-                value={confirmPw}
-                onChange={setConfirmPw}
-                required
-                minLength={8}
-              />
-            </div>
-            {pwError && (
-              <p
-                role="alert"
-                className="rounded-lg border border-neg/30 bg-neg/10 px-3 py-2 text-sm font-medium text-neg"
-              >
-                {pwError}
-              </p>
-            )}
-            <div className="flex gap-2">
-              <button
-                className="btn-gradient cursor-pointer rounded-full px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={pwSaving}
-              >
-                {pwSaving ? 'Saving...' : user.hasPassword ? 'Update password' : 'Set password'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setChangingPw(false);
-                  resetPwForm();
-                }}
-                className="cursor-pointer rounded-full border border-line px-4 py-2.5 text-sm text-muted transition hover:text-ink"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setPwDone(false);
-              setChangingPw(true);
-            }}
-            className="cursor-pointer text-sm font-medium text-accent hover:underline"
-          >
-            {user.hasPassword ? 'Change password' : 'Set a password'}
-          </button>
-        )}
-        {pwDone && !changingPw && (
-          <p className="mt-2 text-sm text-pos">
-            {pwWasSet
-              ? 'Password set. You can now sign in with your email and password too.'
-              : "Password changed. You've been signed out on other devices."}
-          </p>
-        )}
-      </section>
+      <PasswordSection
+        user={user}
+        changingPw={changingPw}
+        setChangingPw={setChangingPw}
+        pwDone={pwDone}
+        setPwDone={setPwDone}
+        guard={stepUp.guard}
+        onPasswordAdded={() => setUser({ ...user, hasPassword: true })}
+        onFinished={() => securityReviewStatus === 'secured' && dismissSecurityReview()}
+      />
 
       {googleEnabled && !changingPw && (
         <>
           <hr className="my-6 border-line" />
-          <section aria-label="Connected accounts">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
-              Connected accounts
-            </h2>
-            <div className="mt-3 flex items-center justify-between gap-4 rounded-xl border border-line bg-field px-4 py-3">
-              <span className="flex items-center gap-3">
-                <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden className="shrink-0">
-                  <path
-                    fill="#4285F4"
-                    d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.71-1.57 2.68-3.88 2.68-6.62z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.02-3.7H.96v2.34A9 9 0 0 0 9 18z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M3.98 10.72a5.4 5.4 0 0 1 0-3.44V4.94H.96a9 9 0 0 0 0 8.12l3.02-2.34z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.94l3.02 2.34C4.68 5.16 6.66 3.58 9 3.58z"
-                  />
-                </svg>
-                <span>
-                  <span className="block text-sm font-medium text-ink">Google</span>
-                  <span className="block text-xs text-muted">
-                    {user.hasGoogle ? 'Connected' : 'Not connected'}
-                  </span>
-                </span>
-              </span>
-              {user.hasGoogle ? (
-                user.hasPassword ? (
-                  <button
-                    type="button"
-                    onClick={() => void disconnectGoogle()}
-                    disabled={disconnecting}
-                    className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2 text-sm text-muted transition hover:text-ink disabled:opacity-60"
-                  >
-                    {disconnecting ? 'Disconnecting...' : 'Disconnect'}
-                  </button>
-                ) : (
-                  <span className="shrink-0 text-xs text-muted">Set a password to disconnect</span>
-                )
-              ) : (
-                <a
-                  href={googleConnectUrl('/account')}
-                  className="shrink-0 rounded-lg border border-line px-3 py-2 text-sm font-medium text-accent transition hover:border-accent"
-                >
-                  Connect
-                </a>
-              )}
-            </div>
-            {googleMsg && (
-              <p role="alert" className="mt-2 text-sm font-medium text-neg">
-                {googleMsg}
-              </p>
-            )}
-          </section>
+          <ConnectedAccounts
+            user={user}
+            googleMsg={googleMsg}
+            setGoogleMsg={setGoogleMsg}
+            guard={stepUp.guard}
+            onDisconnected={() => setUser({ ...user, hasGoogle: false })}
+          />
         </>
       )}
 
@@ -700,40 +459,7 @@ export function AccountPage(): ReactNode {
           <hr className="my-6 border-line" />
           <PasskeyList guard={stepUp.guard} />
           <hr className="my-6 border-line" />
-          <section
-            aria-labelledby="your-data-heading"
-            className="flex items-center justify-between gap-4"
-          >
-            <div>
-              <h2
-                id="your-data-heading"
-                className="text-xs font-medium uppercase tracking-wide text-muted"
-              >
-                Your data
-              </h2>
-              <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted">
-                Download your profile, sign-in methods, active devices, and security history as
-                JSON. Passwords and session credentials are never included.
-              </p>
-              {exportError && (
-                <p role="alert" className="mt-1.5 text-xs font-medium text-neg">
-                  {exportError}
-                </p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => void downloadAccountData()}
-              disabled={exportStatus !== null}
-              className="shrink-0 rounded-full border border-line px-4 py-2 text-xs font-semibold text-ink transition hover:border-accent hover:text-accent disabled:cursor-default disabled:opacity-60"
-            >
-              {exportStatus === 'exporting'
-                ? 'Preparing…'
-                : exportStatus === 'downloaded'
-                  ? 'Downloaded'
-                  : 'Download copy'}
-            </button>
-          </section>
+          <ExportAccount />
         </>
       )}
 
