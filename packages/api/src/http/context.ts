@@ -18,10 +18,7 @@ import {
 import type { SignInMethod } from '../securityEvents.js';
 import { verifyTurnstile } from '../turnstile.js';
 
-/*
- * What every route needs and no route owns: the bindings type, the rate limiter, the challenge,
- * and the two mails that go out when credentials change.
- */
+/* What every route needs and no route owns. */
 
 export type Env2 = { Bindings: Env; Variables: { requestId: string } };
 
@@ -29,17 +26,13 @@ export type Env2 = { Bindings: Env; Variables: { requestId: string } };
    makes every `Context<Env2, "/auth/login">` a type error at the call site. */
 export type Ctx = Context<Env2>;
 
-/*
- * The two refusals every route can give. Apps switch on `error`, so writing these out by hand at
- * each route risks a typo that is not a compile error here and not a visible bug until some other
- * app's error handling quietly stops matching.
- */
+/* Apps switch on `error`, and a typo in one is not a compile error here -- it surfaces as some
+   other app's error handling quietly not matching. Written once. */
 export const unauthenticated = (c: Ctx) => c.json({ error: 'UNAUTHENTICATED' }, 401);
 
 export const rateLimited = (c: Ctx) =>
   c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
 
-/** The user this request's cookie proves, or null for no cookie and for one that no longer resolves. */
 export async function signedIn(c: Ctx, db: DB): Promise<SessionUser | null> {
   const cookie = getCookie(c, SESSION_COOKIE);
   return cookie ? validateSession(db, cookie) : null;
@@ -47,7 +40,6 @@ export async function signedIn(c: Ctx, db: DB): Promise<SessionUser | null> {
 
 const clientIp = (c: Ctx): string => c.req.header('cf-connecting-ip') ?? 'local';
 
-/** True when this IP has exceeded `limit` hits for `action` in the window. */
 export async function overLimit(
   c: Ctx,
   action: string,
@@ -114,11 +106,7 @@ export async function newSignInAlert(
   return isFamiliarSignIn(recent, meta) ? null : signInAlertEmail(meta, accountUrl, method);
 }
 
-/*
- * Tell the owner their sign-in method changed. Fire-and-forget on purpose: a mail outage must not
- * block someone changing a password, least of all when they are changing it in a hurry because they
- * think somebody else has it.
- */
+/* Best-effort by design -- see credentialAlert.ts for why. */
 export function deliverCredentialAlert(
   c: Ctx,
   email: string,
@@ -139,9 +127,8 @@ export function deliverCredentialAlert(
 }
 
 /**
- * Gate for actions that can cost somebody their account.
+ * Gate for actions that can cost somebody their account. Null means proceed.
  *
- * Returns a 403 body when the session has not proved itself recently, and null when it may proceed.
  * `canUsePassword` tells the UI which proof to ask for: an account with no password has nothing to
  * type, so sending it to a password prompt would be a dead end.
  */
