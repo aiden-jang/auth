@@ -24,6 +24,8 @@ jobs:
       # Comment budget, duplicates, and comments a move left behind describing something that is no
       # longer under them. The last one caught a route claiming a defence it did not have.
       - run: pnpm comments
+      # Every route documented, every path in the docs real. API.md had fallen twenty routes behind.
+      - run: pnpm docs
       # Generated drizzle snapshots and the lockfile are in .prettierignore; everything a person
       # writes is checked.
       - run: pnpm format:check

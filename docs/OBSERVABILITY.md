@@ -5,7 +5,7 @@ other two are dashboard/external setup, documented here.
 
 ## 1. Workers Logs (error + request tracking) — enabled in code
 
-Every worker's `wrangler.toml` has:
+`packages/api/wrangler.toml` has:
 
 ```toml
 [observability]
@@ -13,8 +13,9 @@ enabled = true
 head_sampling_rate = 1
 ```
 
-- **Uncaught exceptions** are captured automatically. Handled errors are logged too — the API
-  workers funnel through `app.onError` / `try/catch`, the ai-worker returns `vision_failed`, etc.
+- **Uncaught exceptions** are captured automatically. Handled ones are logged too: everything the
+  routes do not catch themselves funnels through `app.onError`, which logs it with the request id
+  and answers a generic 500 rather than leaking a stack trace from the identity service.
 - **Live tail** during an incident: `pnpm --filter <worker> exec wrangler tail` (or
   `wrangler tail <name>`).
 - **Browse + query** historically: Cloudflare dashboard → Workers & Pages → _the worker_ → Logs

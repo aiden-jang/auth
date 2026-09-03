@@ -34,8 +34,9 @@ a defence.
 
 ## Transport & response headers
 
-Every web-facing Worker sets a common set of headers via `@aidenjang/http` (`harden()` for the
-Hono Workers). See `packages/http/src/index.ts` for the exact values.
+Every web-facing Worker sets a common set of headers through `harden()`. There is no shared
+package: each app carries its own copy, so a Worker never depends on this one being deployed to be
+served safely. This repo's lives in `packages/api/src/harden.ts`, which is the reference version.
 
 | Header                      | Value / intent                                                                                                                                                                                                                                 |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -66,7 +67,6 @@ override rather than loosening the shared default.
 
 ## Known gaps / follow-ups
 
-- Security headers are wired into each app's Worker via the inlined `harden()` middleware.
 - No secret scanning beyond git hygiene; secrets live only in `wrangler secret` / `.dev.vars`
   (gitignored), never committed.
 - Registration answers `409 EMAIL_TAKEN`, which does tell a caller whether an address has an
