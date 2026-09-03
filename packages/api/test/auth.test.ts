@@ -633,15 +633,9 @@ describe('delete account', () => {
 });
 
 /*
- * Step-up re-authentication.
- *
- * The bug these cover is a chain, not a single call. set-password used to accept a live cookie as
- * the whole proof of ownership (a Google-only account has no current password to ask for), and
- * disconnect-google is allowed as soon as a password exists (so nobody is left unable to sign in).
- * Run in order from a stolen cookie that is: give the account a password the thief knows, cut the
- * Google link the owner uses, and the owner is locked out of their own account.
- *
- * Each step was defensible. So these tests assert the chain, not the steps.
+ * These assert the chain, not the steps, because each step was defensible on its own: from a stolen
+ * cookie, set a password on a Google-only account, then cut the Google link the owner signs in
+ * with, and the owner is locked out.
  */
 describe('step-up re-authentication', () => {
   /** Age a session past the sudo window, the way a cookie stolen from a closed laptop would be. */
@@ -803,16 +797,11 @@ describe('session hygiene on credential changes', () => {
 });
 
 /*
- * A missing column must not take the platform down.
+ * A real outage as a test: `reauth_at` shipped before its migration, so the freshness query hit a
+ * column production did not have and every sign-in route answered 500, /auth/me included.
  *
- * This is the postmortem of a real outage, written as a test. The code that added `reauth_at` was
- * deployed before the migration ran, so the freshness query referenced a column production did not
- * have. Every session-creating route answered 500, and so did /auth/me, which every app calls to
- * resolve identity. A step-up convenience became a total sign-in outage.
- *
- * The read path now degrades instead: it cannot vouch for the session, so the session is treated as
- * unproven and sensitive actions ask for a password again. Asking more often is the safe direction to
- * fail in; the whole service being down is not.
+ * The read path degrades now -- an unvouchable session is treated as unproven, so sensitive actions
+ * ask again and the rest keeps working.
  */
 describe('surviving a schema that is behind the code', () => {
   it('still answers /auth/me when the freshness column is missing', async () => {
