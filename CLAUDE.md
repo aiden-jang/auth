@@ -34,6 +34,38 @@ for a day while never executing. `pnpm run gates` now fails on the bare form.
 `comments`, `size`, `docs` and `migrations` are local scripts in `scripts/`. Each exists because it caught
 a real defect. Read the script before deciding a failure is spurious.
 
+## Do not trust your own measurements
+
+Most of the false statements made while building this repo came from scans that measured nothing,
+not from misreading code:
+
+- A python `glob` with `{src,test}` braces matched zero files, so a coverage sweep compared against
+  an empty string and reported every module untested.
+- A `cd` inside a backgrounded command did not apply, so three "stability runs" ran nothing.
+- `@vitest/coverage-v8` reported 0% for everything, because it cannot instrument the Workers pool.
+- `pnpm docs` silently resolved to npm's own command, so that gate reported green for a day without
+  ever executing.
+
+So: an empty or suspiciously clean result means suspect the scan first. A count next to a green
+suite that looks impossible (0% coverage, 68 untested files) is the tool being wrong. And **green is
+not proof unless you have seen that check fail** — break the thing it guards, watch it go red, then
+believe it.
+
+## Writing a new gate
+
+- It has to cover its own source. `scripts/` was outside the comment gate's glob, so the gates
+  accumulated unchecked prose, including a budget comment that had become an inaccurate changelog.
+- It has to cover every place the failure can appear, not just where you first saw it. The
+  shadowed-script check read `package.json` while the failure had surfaced in `ci.yml`.
+- Exclude test files from source scans. Tests mount throwaway routes and declare throwaway types.
+- Prove it fails before trusting it, and prove the failure leaves the tree clean.
+
+## Numbers in prose
+
+Do not write live counts into docs: test totals, gate totals, file lengths. Nothing checks them and
+they go stale silently — three were already wrong when this file was written. Say what a thing is
+and let the gate print the number. Describing a past change is different, and fine.
+
 ## Follow the patterns already here
 
 A change that invents its own shape is harder to read than a worse change that matches its
@@ -77,6 +109,8 @@ after writing the code:
 - No comment block over four lines. If one seems necessary, ask.
 - **Never raise `SRC_BUDGET` to fit prose.** Trim instead. No script can enforce this about itself.
 - Never explain a refactor, or what the code used to do. A reader never saw that version.
+- A comment that logs successive changes is a changelog. Git has it, and the log will drift out of
+  step with the value it describes -- this file's own budget comment did.
 - After moving code, re-read every comment near the seam. A stranded one here claimed an
   enumeration defence on a route that has none.
 - Report the number `pnpm comments` prints rather than asserting the comments are fine.
