@@ -139,7 +139,7 @@ isolated in-memory D1 with the app's migrations applied per file, plus the live 
 Object. Coverage includes registration, login and sessions, verification and reset tokens, password
 change, Google-only accounts, session listing and revocation, and account deletion. The
 suite is kept **hermetic** by neutralizing any secrets a local `.dev.vars` would otherwise leak into
-the test Worker (so Turnstile is treated as unconfigured and no real email is sent). 393 tests: 279 in the
+the test Worker (so Turnstile is treated as unconfigured and no real email is sent). 396 tests: 282 in the
 API, 82 in the web app, 32 in the client.
 
 Above them, a Playwright suite walks the journey none of them can see: register, follow the link
@@ -165,12 +165,18 @@ follows is the one a real person would click. `pnpm --filter @aidenjang/auth-web
 For the zoomed-out view of how these fit together (the SSO trust flow, the shared Cloudflare
 conventions, and how it scales), see [PLATFORM.md](PLATFORM.md).
 
-Each is its own repo and consumes `@aidenjang/auth-client`:
+Each is its own repo. These resolve identity through `@aidenjang/auth-client`, so they are the
+list to check before changing the session contract:
 
 - [owewell](https://owewell.aidenjang.com): split bills, settle up
-- [wherever](https://wherever.aidenjang.com): group restaurant swiping
-- [iguess](https://iguess.aidenjang.com): multiplayer draw-and-guess versus an AI
 - [bloomnote](https://bloomnote.aidenjang.com): write a note, an LLM grows someone a garden
+- [coast](https://coast.aidenjang.com): nothing to win, nowhere to be
+- [offscript](https://offscript.aidenjang.com): go somewhere you did not plan
+- [mrrp](https://mrrp.aidenjang.com): one of you is the cat
+
+[wherever](https://wherever.aidenjang.com) (group restaurant voting) and
+[iguess](https://iguess.aidenjang.com) (draw-and-guess versus an AI) are on the platform but do not
+sign anyone in yet, so a change here cannot break them.
 
 Signing in is optional in all of them. It saves and syncs your data; nothing gates on an account.
 

@@ -11,13 +11,19 @@ the cross-cutting dashboard steps, and rollback.
 ```bash
 nvm use            # Node 22
 pnpm install
-pnpm typecheck && pnpm lint && pnpm test && pnpm build   # green before shipping
+pnpm verify        # typecheck, lint, knip, comments, formatting, build, tests, browser suite
 ```
 
 ## 2. Deploy
 
+Merging to `main` deploys. CI runs the same checks and then ships, so the normal path is a merge
+and nothing typed here.
+
+Deploy by hand only when CI cannot: it applies pending D1 migrations and then publishes, in that
+order, which is why a Workers-only API token is not enough.
+
 ```bash
-pnpm --filter @aidenjang/auth-api run deploy   # builds auth-web, then wrangler deploy
+pnpm --filter @aidenjang/auth-api run deploy   # builds auth-web, migrates D1, then wrangler deploy
 ```
 
 Verify: `curl -sI https://accounts.aidenjang.com/health` shows the security headers (CSP, HSTS,

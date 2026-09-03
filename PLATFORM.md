@@ -7,9 +7,10 @@ zoomed-out view: how the pieces fit, where the trust boundaries are, and how it 
 constraints it was built against. For app-internal depth, each app has its own README (and, for the
 more involved ones, its own `ARCHITECTURE.md`).
 
-The apps: **auth** (this repo, the shared sign-in), **iguess** (realtime draw-and-guess vs an AI),
-**owewell** (bill splitting), **wherever** (group restaurant voting), and **bloomnote** (an LLM
-grows you a garden).
+The apps: **auth** (this repo, the shared sign-in), **owewell** (bill splitting), **bloomnote** (an
+LLM grows you a garden), **coast**, **offscript**, **mrrp**, **iguess** (realtime draw-and-guess vs
+an AI) and **wherever** (group restaurant voting). The first five sign people in through auth; the
+last two do not yet.
 
 ## 1. The constraints that shaped everything
 

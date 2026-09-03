@@ -28,7 +28,8 @@ apps trust, so owewell, bloomnote, and friends don't each reinvent accounts.
 
 ```
    accounts.aidenjang.com — auth Worker (Hono), one origin
-        │  /auth/register, /auth/login, /auth/logout, /auth/me, /auth/verify, /auth/reset
+        │  /auth/register, /auth/login, /auth/logout, /auth/me,
+        │  /auth/verify-email, /auth/reset-password
         │       │
         │       ├─ password.ts        hash + verify (never store plaintext)
         │       ├─ session.ts         create / validate / revoke sessions
@@ -82,17 +83,24 @@ duplicates.
 
 ```
 api/                     auth Worker (Hono)
-  src/index.ts           routes + CORS allowlist + harden() headers
+  src/index.ts           bindings, middleware, and the route groups mounted under them
+  src/routes/            one module per concern: signup, password, google, passkeys,
+                         sessions, account, misc
+  src/http/context.ts    what every route shares: rate limiting, step-up, credential mail
   src/auth/password.ts   hash + verify
   src/auth/session.ts    create / validate / revoke
   src/auth/cookie.ts     platform_session cookie helpers
   src/auth/verification.ts  email-verify + password-reset tokens
+  src/auth/stepUp.ts     the freshness window sensitive changes sit behind
   src/turnstile.ts       bot check; src/email.ts  delivery
   src/rateLimiter.ts     RateLimiter Durable Object (per-IP)
   src/db/                Drizzle schema (users, sessions) + client; migrations/
 web/                     React + Vite SPA
   src/pages/             Login, Signup, ForgotPassword, ResetPassword, VerifyEmail,
                          Account, Logout, Privacy, Terms
+  src/components/        the account page's sections: sessions, password, passkeys,
+                         connected accounts, export, deletion
+  e2e/                   the browser journey and the /auth/me contract (Playwright)
 ```
 
 ## Running locally
