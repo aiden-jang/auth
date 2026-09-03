@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "R=\"$(git rev-parse --show-toplevel 2>/dev/null)\"; cd \"$R\" || exit 0; git status --porcelain | grep -q . || exit 0; OUT=$(pnpm verify:fast 2>&1) || printf '%s' \"$OUT\" | tail -25 | python3 -c \"import json,sys; json.dump({'decision':'block','reason':'pnpm verify:fast failed. Fix it before finishing:\\n\\n' + sys.stdin.read()}, sys.stdout)\"",
+            "timeout": 120,
+            "statusMessage": "Running the fast gates..."
+          }
+        ]
+      }
+    ]
+  }
+}
