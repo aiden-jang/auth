@@ -52,7 +52,9 @@ export default [
    * and reads as perfectly ordinary code in review.
    */
   {
-    files: ['packages/web/**/*.{ts,tsx}'],
+    // src only: e2e/ is Playwright, whose fixture callbacks take a `use` argument that the
+    // rules-of-hooks check reads as a React hook called from the wrong place.
+    files: ['packages/web/src/**/*.{ts,tsx}'],
     plugins: { react, 'react-hooks': reactHooks },
     languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
     settings: { react: { version: 'detect' } },
