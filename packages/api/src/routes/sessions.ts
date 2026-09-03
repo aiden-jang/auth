@@ -103,11 +103,8 @@ app.post('/auth/sessions/revoke', async (c) => {
 
 // Revoke every session except the current one ("sign out everywhere else").
 /*
- * Sign out everything except this device.
- *
- * Deliberately NOT behind step-up. This is the button someone reaches for when they think another
- * device is not theirs, so putting a password prompt in front of it would slow down exactly the
- * person we want moving fast. Step-up guards changing how you sign in, not defending yourself.
+ * Deliberately not behind step-up: this is the button for someone who thinks another device is not
+ * theirs. Step-up guards changing how you sign in, not defending yourself.
  */
 app.post('/auth/sessions/revoke-others', async (c) => {
   const cookie = getCookie(c, SESSION_COOKIE);

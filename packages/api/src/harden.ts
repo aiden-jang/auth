@@ -55,17 +55,12 @@ export function applySecurityHeaders(headers: Headers, opts: SecurityHeaderOptio
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 /**
- * Defense-in-depth CSRF guard. The primary defense is already the `platform_session` cookie's
- * SameSite=Lax attribute, which stops the browser from attaching it to cross-site POSTs. This
- * adds a second gate: for a state-changing method, if the request carries an Origin header whose
- * host differs from the request's own host, reject it.
+ * Second gate behind SameSite=Lax: a state-changing request whose Origin host differs from its own.
+ * A *missing* Origin is left to SameSite rather than hard-blocked.
  *
- * Only a *present, mismatched* Origin is rejected. A missing one is left to the SameSite gate
- * rather than hard-blocked.
- *
- * Localhost is always allowed: under `wrangler dev` a Worker with a custom-domain route sees every
- * request as that production host, so a genuine call from the local web app would never match. A
- * browser only sends a localhost Origin from a page actually on localhost, so it cannot be forged.
+ * Localhost always passes: under `wrangler dev` a custom-domain Worker sees every request as the
+ * production host, so a real local call never matches. Only a page on localhost can send that
+ * Origin, so it cannot be forged.
  */
 export function enforceSameOrigin(request: Request): Response | null {
   if (SAFE_METHODS.has(request.method)) return null;

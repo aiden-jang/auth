@@ -2,16 +2,11 @@ import type { SessionMeta } from './auth/session.js';
 import { escapeHtml, readableTime, renderEmail, type RenderedEmail } from './emailLayout.js';
 
 /*
- * "Your sign-in method changed" mail.
+ * The safety net that does not depend on reasoning correctly about attack paths, so it is sent for
+ * every credential change and never gated on one looking suspicious.
  *
- * This is the safety net that does not depend on us reasoning correctly about attack paths. Every
- * other control here is a guess about what an attacker can reach; a message in the owner's inbox is
- * the one thing that still works when a guess is wrong. So it is sent for every credential change,
- * unconditionally, and never gated on the change looking suspicious.
- *
- * It is also why the send is best-effort at the call site. A mail provider being down must not stop
- * someone changing their password, especially not when they are changing it because they think
- * somebody else has it.
+ * Best-effort at the call site for the same reason: a mail outage must not stop someone changing a
+ * password they think somebody else has.
  */
 
 export type CredentialChange =
