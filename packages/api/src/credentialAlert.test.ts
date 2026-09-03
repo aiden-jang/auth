@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { credentialAlertEmail, credentialAlertSubject } from './credentialAlert.js';
+import {
+  CREDENTIAL_CHANGES,
+  credentialAlertEmail,
+  credentialAlertSubject,
+} from './credentialAlert.js';
 
 const AT = new Date('2026-08-11T09:30:00.000Z');
 const META = { device: 'iPhone', location: 'Jersey City, US' };
@@ -91,11 +95,28 @@ describe('credential change alerts', () => {
     expect(html).not.toContain('<script>');
   });
 
+  /*
+   * Walked over the whole set rather than a listed few. This mail is the safety net for changes we
+   * may have reasoned about wrongly, so a change added without its own copy -- landing on another
+   * change's wording, or on nothing -- is the failure that matters most here.
+   */
   it('gives each change its own subject line', async () => {
-    const subjects = (['password_added', 'password_changed', 'google_disconnected'] as const).map(
-      credentialAlertSubject,
-    );
-    expect(new Set(subjects).size).toBe(3);
+    const subjects = CREDENTIAL_CHANGES.map(credentialAlertSubject);
+    expect(new Set(subjects).size).toBe(CREDENTIAL_CHANGES.length);
     for (const s of subjects) expect(s.length).toBeGreaterThan(10);
+  });
+
+  it('describes each change in its own words, and says what to do about it', async () => {
+    const bodies = CREDENTIAL_CHANGES.map(
+      (kind) => credentialAlertEmail(kind, META, 'https://a.test/account', AT).text,
+    );
+    expect(new Set(bodies).size).toBe(CREDENTIAL_CHANGES.length);
+  });
+
+  // A passkey signs in without the password, so its alert has to say that rather than read as a
+  // routine settings change.
+  it('warns that a new passkey signs in on its own', async () => {
+    const { text } = credentialAlertEmail('passkey_added', META, 'https://a.test/account', AT);
+    expect(text).toContain('without your password');
   });
 });
