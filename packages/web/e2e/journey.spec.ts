@@ -90,3 +90,10 @@ test('a spent or bogus verification link fails plainly', async ({ page }) => {
   await page.goto('/verify-email?token=nothing-like-a-real-token');
   await expect(page.getByText('That verification link is invalid or expired.')).toBeVisible();
 });
+
+/* Every test runs in a fresh context, so this is the never-held-a-passkey case. */
+test('a fresh browser is never asked for a passkey or a security key', async ({ page }) => {
+  await page.goto('/login');
+  await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /passkey/i })).toHaveCount(0);
+});

@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { returnAppFor, safeReturnTo } from '../lib/returnTo';
@@ -8,6 +8,7 @@ import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { useTurnstile } from '../lib/useTurnstile';
 import { GoogleSignIn } from '../components/GoogleSignIn';
 import { PasskeySignIn } from '../components/PasskeySignIn';
+import { passkeyAutofillAvailable, signInWithPasskey } from '../lib/passkeys';
 import { reassurance } from '../lib/reassurance';
 import { welcomeLine } from '../lib/welcome';
 import { EmailSuggestion } from '../components/EmailSuggestion';
@@ -37,6 +38,20 @@ export function LoginPage(): ReactNode {
   );
   const [loading, setLoading] = useState(false);
   const turnstile = useTurnstile();
+
+  /* Silent: a browser holding no passkey for this origin shows nothing, which is the difference
+     between being offered your own key and being asked for a security key you do not own. */
+  useEffect(() => {
+    const abort = new AbortController();
+    void passkeyAutofillAvailable().then((available) => {
+      if (!available || abort.signal.aborted) return;
+      void signInWithPasskey({ autofill: true }).then((outcome) => {
+        if (outcome.kind !== 'ok' || abort.signal.aborted) return;
+        window.location.replace(safeReturnTo(returnTo) ?? '/account');
+      });
+    });
+    return () => abort.abort();
+  }, [returnTo]);
 
   const withReturn = (p: string) =>
     returnTo ? `${p}?return_to=${encodeURIComponent(returnTo)}` : p;
@@ -163,7 +178,7 @@ export function LoginPage(): ReactNode {
               name="email"
               className={inputClass}
               type="email"
-              autoComplete="email"
+              autoComplete="email webauthn"
               inputMode="email"
               autoCapitalize="none"
               autoCorrect="off"

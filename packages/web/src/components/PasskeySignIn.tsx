@@ -1,11 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { passkeysLikely, signInWithPasskey } from '../lib/passkeys';
+import { passkeyUsedOnThisDevice, passkeysLikely, signInWithPasskey } from '../lib/passkeys';
 import { safeReturnTo } from '../lib/returnTo';
 import { reassurance } from '../lib/reassurance';
 
 /*
- * Cancelling shows no error. WebAuthn reports cancel, no-matching-key and timeout identically so a site
- * cannot probe which credentials exist, so there is genuinely nothing to distinguish.
+ * Offered only where a passkey has been used, not merely where one could exist -- otherwise this
+ * asks people who have none for a security key. Everyone else gets it from the email field instead.
+ *
+ * Cancelling shows no error: cancel, no-match and timeout are reported identically.
  */
 export function PasskeySignIn({ returnTo }: { returnTo?: string | null }): ReactNode {
   const [offer, setOffer] = useState(false);
@@ -14,6 +16,7 @@ export function PasskeySignIn({ returnTo }: { returnTo?: string | null }): React
 
   useEffect(() => {
     let live = true;
+    if (!passkeyUsedOnThisDevice()) return;
     void passkeysLikely().then((yes) => {
       if (live) setOffer(yes);
     });
