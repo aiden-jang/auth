@@ -17,12 +17,13 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r test",
-    "verify": "pnpm typecheck && pnpm lint && pnpm knip && pnpm comments && pnpm docs && pnpm migrations && pnpm format:check && pnpm build && pnpm -r test && pnpm --filter @aidenjang/auth-web e2e",
+    "verify": "pnpm typecheck && pnpm lint && pnpm knip && pnpm comments && pnpm size && pnpm docs && pnpm migrations && pnpm format:check && pnpm build && pnpm -r test && pnpm --filter @aidenjang/auth-web e2e",
     "deploy:only": "pnpm --filter @aidenjang/auth-api run deploy",
     "knip": "knip",
     "comments": "node scripts/check-comments.mjs",
     "docs": "node scripts/check-docs.mjs",
-    "migrations": "node scripts/check-migrations.mjs"
+    "migrations": "node scripts/check-migrations.mjs",
+    "size": "node scripts/check-size.mjs"
   },
   "devDependencies": {
     "@aidenjang/config": "workspace:*",
