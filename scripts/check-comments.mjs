@@ -18,23 +18,28 @@ import { globSync, readFileSync } from 'node:fs';
  * 865 -> 870 for the passkey offer: three functions and an autofill path, trimmed twice first.
  * 870 -> 858 after trimming http/context.ts, which had been repeating credentialAlert.ts.
  * 858 -> 820 after index.ts and harden.ts, the last two files that were more prose than code.
- * 820 -> 737 after a pass over every block longer than four lines.
+ * 820 -> 718 after a pass over every block longer than four lines, and after the scanner stopped
+ * counting route paths as comments.
  */
-const SRC_BUDGET = 737;
+const SRC_BUDGET = 718;
 const DUP_MIN_CHARS = 45;
 
 /**
  * Comment spans in one file.
  *
- * `//` is skipped when the character before it is `:`, or the whole of `http://…` inside a string
- * reads as a comment.
+ * Strings are blanked first, because the source is full of things that look like comment openers:
+ * `http://…` in a URL, and `'/auth/*'` as a route path, which opened a block comment that swallowed
+ * sixteen lines of middleware and counted them as prose.
  */
 function comments(source, isCss) {
+  const masked = source.replace(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g, (m) =>
+    ' '.repeat(m.length),
+  );
   const out = [];
   const re = isCss ? /\/\*[\s\S]*?\*\//g : /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
-  for (const m of source.matchAll(re)) {
-    if (m[0].startsWith('//') && source[m.index - 1] === ':') continue;
-    out.push({ text: m[0], lines: m[0].split('\n').length });
+  for (const m of masked.matchAll(re)) {
+    const text = source.slice(m.index, m.index + m[0].length);
+    out.push({ text, lines: text.split('\n').length });
   }
   return out;
 }
