@@ -9,7 +9,10 @@
 import { existsSync, globSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+// Test files are excluded: they mount their own throwaway routes on a local Hono instance, and a
+// test that registered a real-looking path would otherwise be demanded of docs/API.md.
 const code = globSync('packages/api/src/**/*.ts')
+  .filter((f) => !/\.test\.ts$/.test(f))
   .map((f) => readFileSync(f, 'utf8'))
   .join('\n');
 
