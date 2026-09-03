@@ -166,13 +166,8 @@ app.post('/auth/change-password', async (c) => {
 });
 
 /*
- * Add a password to a passwordless (Google-only) account, so it can also sign in with email.
- *
- * There is no current password to verify here, which is exactly what made this the soft spot: a
- * live cookie used to be the whole proof. Paired with disconnect-google that was a lockout chain
- * (give the account a password the thief knows, then cut the Google link the owner uses), so this
- * now needs a session that proved itself recently, revokes every other session, and mails the owner.
- * See auth/stepUp.ts.
+ * Add a password to a Google-only account. No current password exists to verify, so a fresh session
+ * stands in for it -- see the chain this closes in auth/stepUp.ts.
  */
 app.post('/auth/set-password', async (c) => {
   if (await overLimit(c, 'set-password', 10, 5 * MIN)) return rateLimited(c);
