@@ -12,6 +12,26 @@ What's in place across the platform, and the deliberate gaps.
   not absent: treat `unavailable` as "keep them as they were", never as signed out.
 - Per-IP rate limiting on auth actions (login/register/verify) via a Durable Object.
 
+## Step-up re-authentication
+
+A session cookie proves who you were when you signed in, not that you are still at the keyboard.
+Anything that changes how the account can be signed into afterwards needs a session that proved
+itself within the last 10 minutes (`SUDO_WINDOW_MS`), and answers `403 REAUTH_REQUIRED` otherwise.
+The window runs from the last proof, never extended by activity — a window that ordinary use
+extended would never close for a stolen cookie either.
+
+Behind the gate: adding a passkey, removing a passkey, setting a password on a passwordless
+account, unlinking Google, and deleting a passwordless account.
+
+Adding a passkey belongs there for a reason worth stating: changing a password revokes every
+session but does not remove credentials, so a passkey registered by somebody else keeps working
+after the owner has done everything they were told to do.
+
+Changing a password is not gated — it asks for the current password, which is the same proof.
+Deleting an account that has a password asks for that password. Reading, renaming and signing
+other devices out are not gated; gating ordinary use would make the window a nuisance rather than
+a defence.
+
 ## Transport & response headers
 
 Every web-facing Worker sets a common set of headers via `@aidenjang/http` (`harden()` for the
@@ -49,3 +69,9 @@ override rather than loosening the shared default.
 - Security headers are wired into each app's Worker via the inlined `harden()` middleware.
 - No secret scanning beyond git hygiene; secrets live only in `wrangler secret` / `.dev.vars`
   (gitignored), never committed.
+- Registration answers `409 EMAIL_TAKEN`, which does tell a caller whether an address has an
+  account. Accepted deliberately: the alternative makes sign-up unusable. `forgot-password` is
+  always `200` and does not enumerate.
+- The passkey ceremonies have no test that completes one. Doing so needs a software authenticator
+  to sign a real attestation, so `finishRegistration` and `finishLogin` are covered up to the point
+  of verification and no further — including the clone check on a regressed signature counter.
