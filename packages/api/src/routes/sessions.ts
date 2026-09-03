@@ -19,6 +19,7 @@ app.post('/auth/logout', async (c) => {
   return c.json({ ok: true });
 });
 
+// The signed-in user's active sessions ("signed in on these devices"), newest activity first.
 app.get('/auth/sessions', async (c) => {
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
@@ -122,15 +123,5 @@ app.post('/auth/sessions/revoke-others', async (c) => {
     await recordSecurityEvent(db, me.id, 'other_devices_signed_out', sessionMeta(c));
   return c.json({ ok: true });
 });
-
-// Permanently delete the account and everything attached (sessions + tokens cascade). Re-auth
-// required: the password if the account has one, else typing the exact email (Google-only).
-/*
- * Also not behind step-up, because it already carries its own proof: a password account has to type
- * the password, and a Google-only account has to type its own email address. Adding the freshness
- * gate on top would make an account with no password permanently undeletable, since there would be
- * nothing it could ever re-authenticate with. A wall you cannot climb is not security, it is a bug
- * with a good excuse.
- */
 
 export default app;

@@ -35,7 +35,6 @@ const forgotBody = z.object({
 });
 
 // Always 200, whether or not the email exists (no account enumeration).
-
 app.post('/auth/forgot-password', async (c) => {
   if (await overLimit(c, 'forgot', 5, 60 * MIN)) return rateLimited(c);
   const parsed = forgotBody.safeParse(await c.req.json().catch(() => null));
@@ -120,6 +119,10 @@ app.post('/auth/reauth', async (c) => {
   return c.json({ ok: true, sudoUntil: (await sudoUntil(db, cookie))?.toISOString() ?? null });
 });
 
+// Change the password for the signed-in user. Requires the current password
+// (so a hijacked-but-idle session can't silently lock the owner out), then
+// rotates every session and re-establishes this device — signing the user out
+// everywhere else, same as a reset.
 app.post('/auth/change-password', async (c) => {
   if (await overLimit(c, 'change-password', 10, 5 * MIN)) return rateLimited(c);
   const cookie = getCookie(c, SESSION_COOKIE);
@@ -212,8 +215,5 @@ app.post('/auth/set-password', async (c) => {
   deliverCredentialAlert(c, row.email, 'password_added', meta);
   return c.json({ ok: true });
 });
-
-// Unlink Google from the signed-in account. Refuse if it would leave no way to sign in (a
-// Google-only account must set a password first), so the user can never lock themselves out.
 
 export default app;

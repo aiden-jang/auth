@@ -28,14 +28,15 @@ app.get('/auth/me', async (c) => {
   const db = createDb(c.env);
   const user = await validateSession(db, token);
   if (!user) return unauthenticated(c);
-  // When the step-up window closes, so the account page can say "confirmed for another 8 minutes"
-  // instead of springing a password prompt on someone mid-action. Null once it has lapsed.
+  // When the step-up window closes, so the account page can count down to it instead of springing
+  // a password prompt on someone mid-action. Null once it has lapsed.
   const until = await sudoUntil(db, token);
   return c.json({ user: publicUser(user), sudoUntil: until?.toISOString() ?? null });
 });
 
-// Always 200, whether or not the email exists (no account enumeration).
-
+// Update the signed-in user's profile. Only the display name is editable
+// today (email/password have their own dedicated flows), but the endpoint
+// is shaped as a general profile update so more fields can be added here.
 app.post('/auth/update-profile', async (c) => {
   const db = createDb(c.env);
   const user = await signedIn(c, db);
@@ -50,11 +51,9 @@ app.post('/auth/update-profile', async (c) => {
   return c.json({ user: publicUser({ ...user, displayName }) });
 });
 
-// Change the password for the signed-in user. Requires the current password
-// (so a hijacked-but-idle session can't silently lock the owner out), then
-// rotates every session and re-establishes this device — signing the user out
-// everywhere else, same as a reset.
-
+// A portable copy of the account data this identity service keeps. Credentials, provider ids,
+// session hashes, raw user agents and IP addresses are deliberately absent from both the query and
+// the response shape, so an export is useful without becoming a bag of reusable secrets.
 app.get('/auth/export', async (c) => {
   const db = createDb(c.env);
   const me = await signedIn(c, db);
@@ -134,8 +133,15 @@ app.get('/auth/export', async (c) => {
   });
 });
 
-// The signed-in user's active sessions ("signed in on these devices"), newest activity first.
-
+/*
+ * Permanently delete the account and everything attached (sessions and tokens cascade).
+ *
+ * What it asks for depends on how the account signs in. A password account types the password. A
+ * passwordless one types its own email address, which is confirmation rather than proof -- anyone
+ * holding the cookie reads that address off /auth/me -- so it also has to prove the session is
+ * fresh. That does not strand anybody: proving a Google-only account means signing in with Google
+ * again, which is exactly how it got here.
+ */
 app.post('/auth/delete-account', async (c) => {
   if (await overLimit(c, 'delete-account', 5, 10 * MIN)) return rateLimited(c);
   const cookie = getCookie(c, SESSION_COOKIE);
@@ -172,7 +178,5 @@ app.post('/auth/delete-account', async (c) => {
   clearSessionCookie(c);
   return c.json({ ok: true });
 });
-
-// Everything that isn't an API route: serve the login/account UI (SPA fallback via assets).
 
 export default app;

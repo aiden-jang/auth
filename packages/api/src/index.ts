@@ -81,8 +81,8 @@ app.get('/health', (c) => c.json({ status: 'ok', service: 'auth' }));
 
 /*
  * Mounted rather than declared here, so a change to passkeys is not an edit to the same file as
- * password reset. Mounting keeps the middleware above -- request id, security headers, CORS and
- * the no-store rule -- applying to every route inside each group.
+ * password reset. The middleware above -- request id, security headers, CORS, no-store -- still
+ * applies to every route inside each group.
  */
 app.route('/', signupRoutes);
 app.route('/', googleRoutes);

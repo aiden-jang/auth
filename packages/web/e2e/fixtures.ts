@@ -6,11 +6,10 @@ import { test as base } from '@playwright/test';
  * Rate limits are keyed on cf-connecting-ip, which local dev never sets, so every test in the suite
  * would otherwise share one bucket: registration allows ten an hour and this suite registers more
  * than that, so tests began failing on "too many attempts" in whatever order they happened to run.
- * Two parts, and both are needed. The test's own name keeps tests independent of each other, and a
- * per-run byte keeps a run independent of the runs before it. Deriving from the name alone reads
- * tidier and is wrong: the address is then identical every run, so ten runs in an hour spend the
- * same registration budget and the suite starts failing on "too many attempts" with nothing about
- * it having changed.
+ * Two parts, and both are needed. The test's own name keeps tests independent of each other; the
+ * per-run byte keeps a run independent of the runs before it. Drop the run byte and every run
+ * reuses the same addresses, so ten runs in an hour spend one registration budget and the suite
+ * starts failing on "too many attempts".
  *
  * Local-only. In production Cloudflare sets this header itself and a caller cannot pick a bucket.
  */

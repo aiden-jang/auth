@@ -5,6 +5,7 @@ import { returnAppFor, safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
+import { useTurnstile } from '../lib/useTurnstile';
 import { GoogleSignIn } from '../components/GoogleSignIn';
 import { PasskeySignIn } from '../components/PasskeySignIn';
 import { reassurance } from '../lib/reassurance';
@@ -31,12 +32,11 @@ export function LoginPage(): ReactNode {
     typeof carriedEmail === 'string' ? carriedEmail : (recentEmail ?? ''),
   );
   const [password, setPassword] = useState('');
-  const [turnstileToken, setTurnstileToken] = useState('');
   const [error, setError] = useState<string | null>(
     params.get('error') === 'google_failed' ? 'Google sign-in failed. Please try again.' : null,
   );
   const [loading, setLoading] = useState(false);
-  const [resetSignal, setResetSignal] = useState(0);
+  const turnstile = useTurnstile();
 
   const withReturn = (p: string) =>
     returnTo ? `${p}?return_to=${encodeURIComponent(returnTo)}` : p;
@@ -46,16 +46,14 @@ export function LoginPage(): ReactNode {
     setError(null);
     setLoading(true);
     try {
-      await authApi.login(email, password, turnstileToken);
+      await authApi.login(email, password, turnstile.token);
       rememberRecentAccount(email);
       // replace: once signed in, back should not return to the login form.
       window.location.replace(safeReturnTo(returnTo) ?? '/account');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setLoading(false);
-      // The token was consumed server-side; drop it and re-solve so a retry uses a fresh one.
-      setTurnstileToken('');
-      setResetSignal((n) => n + 1);
+      turnstile.discard();
     }
   }
 
@@ -222,11 +220,11 @@ export function LoginPage(): ReactNode {
             </p>
           )}
 
-          <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />
+          <Turnstile onToken={turnstile.setToken} resetSignal={turnstile.resetSignal} />
 
           <button
             className={buttonClass}
-            disabled={loading || (turnstileEnabled && !turnstileToken)}
+            disabled={loading || (turnstileEnabled && !turnstile.token)}
           >
             {loading ? 'Signing in...' : 'Log in'}
           </button>

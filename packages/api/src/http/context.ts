@@ -21,10 +21,6 @@ import { verifyTurnstile } from '../turnstile.js';
 /*
  * What every route needs and no route owns: the bindings type, the rate limiter, the challenge,
  * and the two mails that go out when credentials change.
- *
- * These sat above thirty route handlers in one file, which meant a change to passkeys and a change
- * to password reset were edits to the same module. Splitting the routes by concern only works if
- * the pieces they share live somewhere neither of them owns.
  */
 
 export type Env2 = { Bindings: Env; Variables: { requestId: string } };
@@ -34,11 +30,9 @@ export type Env2 = { Bindings: Env; Variables: { requestId: string } };
 export type Ctx = Context<Env2>;
 
 /*
- * The two refusals every route can give, written once.
- *
- * They were repeated as object literals in thirty-nine places. Apps switch on `error`, so a typo in
- * one of them is not a compile error here and not a visible bug until some other app's error
- * handling quietly stops matching.
+ * The two refusals every route can give. Apps switch on `error`, so writing these out by hand at
+ * each route risks a typo that is not a compile error here and not a visible bug until some other
+ * app's error handling quietly stops matching.
  */
 export const unauthenticated = (c: Ctx) => c.json({ error: 'UNAUTHENTICATED' }, 401);
 

@@ -17,9 +17,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r test",
-    "verify": "pnpm typecheck && pnpm lint && pnpm knip && pnpm format:check && pnpm build && pnpm -r test && pnpm --filter @aidenjang/auth-web e2e",
+    "verify": "pnpm typecheck && pnpm lint && pnpm knip && pnpm comments && pnpm format:check && pnpm build && pnpm -r test && pnpm --filter @aidenjang/auth-web e2e",
     "deploy:only": "pnpm --filter @aidenjang/auth-api run deploy",
-    "knip": "knip"
+    "knip": "knip",
+    "comments": "node scripts/check-comments.mjs"
   },
   "devDependencies": {
     "@aidenjang/config": "workspace:*",
