@@ -1,11 +1,8 @@
 import { expect, test } from './fixtures';
 
 /*
- * The built SPA, served by the Worker from one origin, which is what production is.
- *
- * Every other browser test runs against the Vite dev server behind a proxy. That misses whatever
- * only differs once the bundle is built and the Worker is the thing serving it: inlined env, the
- * SPA fallback for unknown paths, and the assets binding.
+ * The built SPA served by the Worker from one origin, which production is and the dev server is
+ * not: inlined env, the SPA fallback, and the assets binding only exist on this path.
  */
 const ORIGIN = 'http://localhost:34100';
 

@@ -1,12 +1,8 @@
 import { expect, test, type Page } from './fixtures';
 
 /*
- * The account page's own features, none of which the journey suite touches.
- *
- * This is the safety net for splitting a 1151-line component apart: every one of these flows is
- * state and a handler that is about to move into a file of its own, and nothing else in the repo
- * would notice if one of them stopped working. They assert what a person sees and what survives a
- * reload, not how the component is built, so they keep meaning the same thing afterwards.
+ * The account page's own features, which the journey suite never touches. They assert what a person
+ * sees and what survives a reload, not how the components are built.
  */
 
 const password = 'correct horse battery staple';

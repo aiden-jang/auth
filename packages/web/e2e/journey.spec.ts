@@ -2,12 +2,8 @@ import { expect, test, type Page } from './fixtures';
 import { linkEmailedTo } from './mail';
 
 /*
- * Register, confirm the emailed link, sign out, sign back in.
- *
- * Everything under this suite proves the routes answer correctly. This one proves a person can
- * actually get through them in a browser: that the form posts what the API expects, that the link
- * in the email resolves to a page that verifies, and that signing out really ends the session
- * rather than only clearing the screen.
+ * Register, confirm the emailed link, sign out, sign back in. The unit suites know every route
+ * answers correctly; only this knows whether a person can get through them in a browser.
  */
 
 const password = 'correct horse battery staple';
