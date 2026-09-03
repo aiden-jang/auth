@@ -1,7 +1,5 @@
-/**
- * Every line must be a true, specific claim about this implementation, with the comment below it
- * naming where to check. Nothing that would survive being pasted into a different product.
- */
+/* Every line is a specific claim about this implementation, and the comment under it names where
+   to check. Nothing that would survive being pasted into a different product. */
 
 export type WaitingOn =
   | 'password-login'

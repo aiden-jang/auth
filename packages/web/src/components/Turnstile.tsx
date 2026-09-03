@@ -3,9 +3,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
 
-// True when a site key is configured at build time. Pages use this to require a
-// solved token before enabling submit; when false, Turnstile is off entirely
-// (and the backend's turnstileOk() skips the check to match).
+// When false Turnstile is off entirely, and the backend's turnstileOk() skips the check to match.
 export const turnstileEnabled = Boolean(SITE_KEY);
 
 interface TurnstileApi {
@@ -49,10 +47,8 @@ function loadScript(): Promise<void> {
 }
 
 /**
- * Cloudflare Turnstile widget. Renders only when VITE_TURNSTILE_SITE_KEY is set;
- * otherwise it renders nothing so unconfigured/dev environments work unchanged.
- * Calls onToken with the solved token, and with '' when it expires or errors so
- * the form re-requires a solve.
+ * Renders nothing without a site key, so dev works unchanged. Calls onToken with '' on expiry or
+ * error, so the form re-requires a solve.
  */
 export function Turnstile({
   onToken,

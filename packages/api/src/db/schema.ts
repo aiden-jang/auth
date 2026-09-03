@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-// Shared identity: one account per person across every app. App-specific data
-// (owewell's placeholder members, etc.) lives in each app's own D1, not here.
+// Shared identity: one account per person across every app. App-specific data lives in each app's
+// own D1, never here.
 export const users = sqliteTable('users', {
   id: text('id').primaryKey(),
   // Stored already lowercased + trimmed by the app layer.
