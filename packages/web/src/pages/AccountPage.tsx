@@ -1077,14 +1077,21 @@ export function AccountPage(): ReactNode {
                 undone.
               </p>
               {user.hasPassword ? (
-                <PasswordInput
-                  id="delete-password"
-                  autoComplete="current-password"
-                  placeholder="Your password"
-                  value={deletePw}
-                  onChange={setDeletePw}
-                  required
-                />
+                <div>
+                  {/* Labelled, not just placeheld: a placeholder disappears on the first keystroke
+                      and is the only name a screen reader had for the field guarding this. */}
+                  <label htmlFor="delete-password" className={labelClass}>
+                    Your password
+                  </label>
+                  <PasswordInput
+                    id="delete-password"
+                    autoComplete="current-password"
+                    placeholder="Your password"
+                    value={deletePw}
+                    onChange={setDeletePw}
+                    required
+                  />
+                </div>
               ) : (
                 <div>
                   <label htmlFor="delete-confirm" className={labelClass}>
