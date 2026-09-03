@@ -625,6 +625,8 @@ app.post('/auth/verify-email', async (c) => {
 });
 
 app.post('/auth/resend-verification', async (c) => {
+  if (await overLimit(c, 'resend-verify', 5, 60 * MIN))
+    return c.json({ error: 'RATE_LIMITED', message: 'Too many attempts. Try again later.' }, 429);
   const cookie = getCookie(c, SESSION_COOKIE);
   const db = createDb(c.env);
   const user = cookie ? await validateSession(db, cookie) : null;
@@ -701,6 +703,8 @@ app.post('/auth/passkeys/register/options', async (c) => {
   const db = createDb(c.env);
   const me = cookie ? await validateSession(db, cookie) : null;
   if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+  const stale = await needsStepUp(c, db, cookie!, me.hasPassword);
+  if (stale) return stale;
 
   const { options, challengeId } = await startRegistration(db, rp(c), {
     id: me.id,
@@ -716,6 +720,9 @@ app.post('/auth/passkeys/register/verify', async (c) => {
   const db = createDb(c.env);
   const me = cookie ? await validateSession(db, cookie) : null;
   if (!me) return c.json({ error: 'UNAUTHENTICATED' }, 401);
+
+  const stale = await needsStepUp(c, db, cookie!, me.hasPassword);
+  if (stale) return stale;
 
   const body = (await c.req.json().catch(() => null)) as {
     response?: unknown;
@@ -734,6 +741,7 @@ app.post('/auth/passkeys/register/verify', async (c) => {
   );
   clearChallengeCookie(c, CHALLENGE_COOKIE);
   await recordSecurityEvent(db, me.id, 'passkey_added', meta);
+  deliverCredentialAlert(c, me.email, 'passkey_added', meta);
   return c.json({ passkey }, 201);
 });
 
@@ -1192,11 +1200,18 @@ app.post('/auth/delete-account', async (c) => {
   if (row.passwordHash) {
     if (!parsed.data.password || !(await verifyPassword(row.passwordHash, parsed.data.password)))
       return c.json({ error: 'INVALID_CREDENTIALS', message: 'Wrong password.' }, 400);
-  } else if ((parsed.data.confirm ?? '').trim().toLowerCase() !== row.email.toLowerCase()) {
-    return c.json(
-      { error: 'CONFIRM_MISMATCH', message: 'Type your email address to confirm.' },
-      400,
-    );
+  } else {
+    if ((parsed.data.confirm ?? '').trim().toLowerCase() !== row.email.toLowerCase()) {
+      return c.json(
+        { error: 'CONFIRM_MISMATCH', message: 'Type your email address to confirm.' },
+        400,
+      );
+    }
+    // The typed address is confirmation, not proof: anyone holding the cookie reads it off
+    // /auth/me. Setting a password and unlinking Google both already ask; deleting outright
+    // cannot ask for less.
+    const stale = await needsStepUp(c, db, cookie!, false);
+    if (stale) return stale;
   }
 
   await db.delete(users).where(eq(users.id, row.id)); // sessions + tokens cascade

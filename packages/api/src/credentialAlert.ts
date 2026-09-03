@@ -18,7 +18,17 @@ export type CredentialChange =
   | 'password_added'
   | 'password_changed'
   | 'google_disconnected'
+  | 'passkey_added'
   | 'passkey_removed';
+
+/** Every change that must reach the owner's inbox, so a test can walk the whole set. */
+export const CREDENTIAL_CHANGES = [
+  'password_added',
+  'password_changed',
+  'google_disconnected',
+  'passkey_added',
+  'passkey_removed',
+] as const satisfies readonly CredentialChange[];
 
 interface Copy {
   subject: string;
@@ -44,6 +54,12 @@ const COPY: Record<CredentialChange, Copy> = {
     happened:
       'unlinked Google from your aidenjang account, so it now signs in with a password only',
     ifNotYou: 'reset your password from the sign-in page, then link Google again.',
+  },
+  passkey_added: {
+    subject: 'A passkey was added to your account',
+    happened: 'added a passkey to your aidenjang account, which can sign in without your password',
+    ifNotYou:
+      'remove any passkey you do not recognise, then change your password and sign out every other device.',
   },
   passkey_removed: {
     subject: 'A passkey was removed from your account',
