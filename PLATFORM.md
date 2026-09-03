@@ -8,9 +8,9 @@ constraints it was built against. For app-internal depth, each app has its own R
 more involved ones, its own `ARCHITECTURE.md`).
 
 The apps: **auth** (this repo, the shared sign-in), **owewell** (bill splitting), **bloomnote** (an
-LLM grows you a garden), **coast**, **offscript**, **mrrp**, **iguess** (realtime draw-and-guess vs
-an AI) and **wherever** (group restaurant voting). The first five sign people in through auth; the
-last two do not yet.
+LLM grows you a garden), **coast**, **mrrp**, **iguess** (realtime draw-and-guess vs an AI) and
+**wherever** (group restaurant voting). The first four sign people in through auth; the last two do
+not yet.
 
 ## 1. The constraints that shaped everything
 

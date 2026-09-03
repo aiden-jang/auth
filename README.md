@@ -171,7 +171,6 @@ list to check before changing the session contract:
 - [owewell](https://owewell.aidenjang.com): split bills, settle up
 - [bloomnote](https://bloomnote.aidenjang.com): write a note, an LLM grows someone a garden
 - [coast](https://coast.aidenjang.com): nothing to win, nowhere to be
-- [offscript](https://offscript.aidenjang.com): go somewhere you did not plan
 - [mrrp](https://mrrp.aidenjang.com): one of you is the cat
 
 [wherever](https://wherever.aidenjang.com) (group restaurant voting) and
