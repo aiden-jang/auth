@@ -39,8 +39,6 @@ export const APPS: AppLink[] = [
     accent: '#d7ff3e',
   },
   {
-    // Listed although it has no accounts: the launcher answers "what lives here", not "what reads
-    // your session". Silently omitting an app is the more confusing of the two.
     name: 'mrrp',
     tagline: "she's the cat, you look after her",
     url: 'https://mrrp.aidenjang.com',
