@@ -1,6 +1,5 @@
-import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from './fixtures';
-import { WORKER_LOG } from '../playwright.config';
+import { linkEmailedTo } from './mail';
 
 /*
  * Register, confirm the emailed link, sign out, sign back in.
@@ -24,27 +23,6 @@ function freshEmail(): string {
  * no RESEND_API_KEY the worker prints it instead of sending, which is the only way for a test to
  * follow the link a real person clicks.
  */
-async function verificationLinkFor(email: string): Promise<string> {
-  const find = (): string | null => {
-    // Split on the log's own prefix and read only the block addressed to this account. Scanning the
-    // whole file with one expression picked up a neighbouring test's token, and a wrong token looks
-    // exactly like an expired one.
-    for (const block of readFileSync(WORKER_LOG, 'utf8').split('[email:dev] ')) {
-      if (!block.startsWith(`to=${email} `)) continue;
-      const link = /(http:\/\/localhost:34110\/verify-email\?token=[\w-]+)/.exec(block);
-      if (link) return link[1] ?? null;
-    }
-    return null;
-  };
-  await expect
-    .poll(find, {
-      message: `no verification mail for ${email} appeared in the worker log`,
-      timeout: 15_000,
-    })
-    .not.toBeNull();
-  return find()!;
-}
-
 async function signUp(page: Page, email: string): Promise<void> {
   await page.goto('/signup');
   await page.getByLabel('Name').fill('E2E Person');
@@ -65,7 +43,7 @@ test('register, verify by the emailed link, sign out and back in', async ({ page
   // A brand-new account has not proved its address yet, and the page says so.
   await expect(page.getByText('unverified')).toBeVisible();
 
-  await page.goto(await verificationLinkFor(email));
+  await page.goto(await linkEmailedTo(email, '/verify-email'));
   await expect(page.getByText('Your email is verified. Nothing else to do.')).toBeVisible();
 
   await page.goto('/account');
