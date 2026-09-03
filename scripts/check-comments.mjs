@@ -10,20 +10,12 @@
 import { globSync, readFileSync } from 'node:fs';
 
 /*
- * Raise this only when a phase adds a module, never to fit prose into it. If the number has to move
- * to accommodate an explanation you are rewriting rather than a module you are adding, trim the
- * explanation instead. It was set at 910 once and had crept to 907 within a day, entirely on
- * paragraphs restating what the file below already showed.
- *
- * 865 -> 870 for the passkey offer: three functions and an autofill path, trimmed twice first.
- * 870 -> 858 after trimming http/context.ts, which had been repeating credentialAlert.ts.
- * 858 -> 820 after index.ts and harden.ts, the last two files that were more prose than code.
- * 820 -> 718 after a pass over every block longer than four lines, and after the scanner stopped
- * counting route paths as comments.
- * 718 -> 675: the lockout chain had been explained in three files at once, and no block anywhere
- * is longer than eight lines now.
+ * Raise this only for a module you are adding, never to fit prose. If the number has to move to
+ * accommodate an explanation you are rewriting, trim the explanation instead.
  */
 const SRC_BUDGET = 699;
+// The gates' own source counts too, on the same budget.
+const SCRIPTS_BUDGET = 74;
 const DUP_MIN_CHARS = 45;
 
 /**
@@ -46,10 +38,16 @@ function comments(source, isCss) {
   return out;
 }
 
-const files = globSync('packages/*/{src,test,e2e}/**/*.{ts,tsx,css}');
+// scripts/ included: the checks were not checking themselves, and the budget comment in this very
+// file had grown into an inaccurate changelog nobody was keeping true.
+const files = [
+  ...globSync('packages/*/{src,test,e2e}/**/*.{ts,tsx,css}'),
+  ...globSync('scripts/*.mjs'),
+];
 const isSrc = (f) => f.includes('/src/') && !/\.test\.tsx?$/.test(f);
 
 let srcLines = 0;
+let scriptLines = 0;
 const seen = new Map();
 const stranded = [];
 
@@ -58,6 +56,7 @@ for (const file of files) {
 
   for (const c of comments(source, file.endsWith('.css'))) {
     if (isSrc(file)) srcLines += c.lines;
+    else if (file.startsWith('scripts/')) scriptLines += c.lines;
     const flat = c.text.replace(/\s+/g, ' ').trim();
     if (flat.length < DUP_MIN_CHARS) continue;
     // Directives are meant to repeat: two files suppressing the same rule is not duplication.
@@ -95,6 +94,10 @@ if (srcLines > SRC_BUDGET) {
   problems.push(`src carries ${srcLines} comment lines, over the ${SRC_BUDGET} budget.`);
 }
 
+if (scriptLines > SCRIPTS_BUDGET) {
+  problems.push(`scripts carry ${scriptLines} comment lines, over the ${SCRIPTS_BUDGET} budget.`);
+}
+
 for (const [text, where] of seen) {
   if (where.length < 2) continue;
   problems.push(
@@ -110,4 +113,7 @@ if (problems.length > 0) {
   process.exit(1);
 }
 
-console.log(`comments ok: ${srcLines}/${SRC_BUDGET} lines in src, no duplicates, none stranded`);
+console.log(
+  `comments ok: ${srcLines}/${SRC_BUDGET} in src, ${scriptLines}/${SCRIPTS_BUDGET} in scripts, ` +
+    `no duplicates, none stranded`,
+);
