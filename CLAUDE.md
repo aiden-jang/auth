@@ -10,7 +10,8 @@ catch what judgment did not.
 pnpm verify
 ```
 
-Eleven gates. `pnpm verify:fast` is the same list without build, tests and the browser suite — that
+Twelve gates, and always `pnpm run <name>` — bare `pnpm docs` resolves to npm's own command
+and exits 0 without running anything. `pnpm verify:fast` is the same list without build, tests and the browser suite — that
 is what the pre-commit hook and the Stop hook in `.claude/settings.json` run, in about 13 seconds.
 Neither replaces `pnpm verify`; they only stop obviously-broken work from being committed or
 declared finished. The deploy job is gated on them, so a red gate means nothing ships.

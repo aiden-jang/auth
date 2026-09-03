@@ -16,27 +16,30 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm lint
+      # Every gate below must actually run: `pnpm docs` silently resolved to npm's own docs
+      # command and reported green while never executing.
+      - run: pnpm run gates
+      - run: pnpm run typecheck
+      - run: pnpm run lint
       # Fails on an export nothing imports, so a refactor that orphans code says so here rather
       # than leaving it to be found by someone wondering whether it is still load-bearing.
-      - run: pnpm knip
+      - run: pnpm run knip
       # Comment budget, duplicates, and comments a move left behind describing something that is no
       # longer under them. The last one caught a route claiming a defence it did not have.
-      - run: pnpm comments
+      - run: pnpm run comments
       # Ceilings on file length and component state. index.ts once reached 1225 lines and
       # AccountPage 1151, both passing every other gate the whole way up.
-      - run: pnpm size
+      - run: pnpm run size
       # Every route documented, every path in the docs real. API.md had fallen twenty routes behind.
-      - run: pnpm docs
+      - run: pnpm run docs
       # The deploy applies migrations before it publishes, so a migration that cannot apply is a
       # deploy that does not happen. Catches both a schema change with no migration and a migration
       # committed without its snapshot.
-      - run: pnpm migrations
+      - run: pnpm run migrations
       # Generated drizzle snapshots and the lockfile are in .prettierignore; everything a person
       # writes is checked.
-      - run: pnpm format:check
-      - run: pnpm build
+      - run: pnpm run format:check
+      - run: pnpm run build
       # Every suite runs in-process: the SPA and the client under Node, the API against a real
       # in-memory D1 via the Workers pool. No external database needed.
       - run: pnpm -r test
