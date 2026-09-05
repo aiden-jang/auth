@@ -30,6 +30,7 @@ jobs:
       # Ceilings on file length and component state. index.ts once reached 1225 lines and
       # AccountPage 1151, both passing every other gate the whole way up.
       - run: pnpm run size
+      - run: pnpm run css-vars
       # Every route documented, every path in the docs real. API.md had fallen twenty routes behind.
       - run: pnpm run check:docs
       # The deploy applies migrations before it publishes, so a migration that cannot apply is a
