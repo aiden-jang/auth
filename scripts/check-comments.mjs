@@ -14,9 +14,13 @@ import { globSync, readFileSync } from 'node:fs';
  * accommodate an explanation you are rewriting, trim the explanation instead.
  */
 const SRC_BUDGET = 699;
-// The gates' own source counts too, on the same budget. Raised from 74 when the size gate grew a
-// ratchet: a budget moves for a branch that needs explaining, never to make room for padding.
-const SCRIPTS_BUDGET = 78;
+/*
+ * The gates' own source counts too, but as a share rather than a count. A count charges every new
+ * gate for its own header, so adding one meant raising the number: it went 74, then 78, then would
+ * have gone again. A share lets a gate arrive documented and still catches prose piling onto gates
+ * that already exist.
+ */
+const SCRIPTS_CEILING = 0.25;
 const DUP_MIN_CHARS = 45;
 
 /**
@@ -49,11 +53,14 @@ const isSrc = (f) => f.includes('/src/') && !/\.test\.tsx?$/.test(f);
 
 let srcLines = 0;
 let scriptLines = 0;
+let scriptTotal = 0;
 const seen = new Map();
 const stranded = [];
 
 for (const file of files) {
   const source = readFileSync(file, 'utf8');
+  if (file.startsWith('scripts/'))
+    scriptTotal += source.split('\n').filter((line) => line.trim() !== '').length;
 
   for (const c of comments(source, file.endsWith('.css'))) {
     if (isSrc(file)) srcLines += c.lines;
@@ -95,8 +102,12 @@ if (srcLines > SRC_BUDGET) {
   problems.push(`src carries ${srcLines} comment lines, over the ${SRC_BUDGET} budget.`);
 }
 
-if (scriptLines > SCRIPTS_BUDGET) {
-  problems.push(`scripts carry ${scriptLines} comment lines, over the ${SCRIPTS_BUDGET} budget.`);
+const scriptsAllowed = Math.floor(scriptTotal * SCRIPTS_CEILING);
+if (scriptLines > scriptsAllowed) {
+  problems.push(
+    `scripts are ${((scriptLines / scriptTotal) * 100).toFixed(1)}% comments, over the ` +
+      `${(SCRIPTS_CEILING * 100).toFixed(0)}% ceiling (${scriptLines} lines, ${scriptsAllowed} allowed).`,
+  );
 }
 
 for (const [text, where] of seen) {
@@ -115,6 +126,6 @@ if (problems.length > 0) {
 }
 
 console.log(
-  `comments ok: ${srcLines}/${SRC_BUDGET} in src, ${scriptLines}/${SCRIPTS_BUDGET} in scripts, ` +
+  `comments ok: ${srcLines}/${SRC_BUDGET} in src, ${((scriptLines / scriptTotal) * 100).toFixed(1)}% in scripts, ` +
     `no duplicates, none stranded`,
 );
