@@ -10,8 +10,17 @@
  */
 import { globSync, readFileSync } from 'node:fs';
 
-const MAX_LINES = 500;
-const MAX_STATE = 20;
+const MAX_LINES = 400;
+const MAX_STATE = 12;
+
+/*
+ * Already over, and being decomposed. Listed at its own size rather than the ceiling being raised for
+ * everyone, so nothing else can grow past it meanwhile.
+ * An entry sitting above its file fails too, so nobody has to remember to shrink one.
+ */
+const ALREADY_OVER = {
+  'packages/web/src/pages/AccountPage.tsx': { lines: 483, state: 16 },
+};
 
 const files = globSync('packages/*/src/**/*.{ts,tsx}').filter((f) => !/\.test\.tsx?$/.test(f));
 const problems = [];
@@ -27,16 +36,39 @@ for (const file of files) {
   if (lines > widest.lines) widest = { file, lines };
   if (state > busiest.state) busiest = { file, state };
 
-  if (lines > MAX_LINES) {
+  const allowed = ALREADY_OVER[file] ?? {};
+  const lineCap = allowed.lines ?? MAX_LINES;
+  const stateCap = allowed.state ?? MAX_STATE;
+
+  if (lines > lineCap) {
+    problems.push(`${file} is ${lines} lines, over ${lineCap}. Split it rather than raising this.`);
+  }
+  if (state > stateCap) {
     problems.push(
-      `${file} is ${lines} lines, over ${MAX_LINES}. Split it rather than raising this.`,
+      `${file} holds ${state} pieces of state, over ${stateCap}. Extract a component or a hook.`,
     );
   }
-  if (state > MAX_STATE) {
-    problems.push(
-      `${file} holds ${state} pieces of state, over ${MAX_STATE}. Extract a component or a hook.`,
-    );
+  if (ALREADY_OVER[file]) {
+    if (lines <= MAX_LINES && state <= MAX_STATE) {
+      problems.push(`${file} is under the ceiling now: drop it from ALREADY_OVER`);
+    } else {
+      if (allowed.lines !== undefined && lines < allowed.lines) {
+        problems.push(
+          `${file} is down to ${lines} lines: lower its ALREADY_OVER entry from ${allowed.lines}`,
+        );
+      }
+      if (allowed.state !== undefined && state < allowed.state) {
+        problems.push(
+          `${file} is down to ${state} state: lower its ALREADY_OVER entry from ${allowed.state}`,
+        );
+      }
+    }
   }
+}
+
+for (const file of Object.keys(ALREADY_OVER)) {
+  if (!files.includes(file))
+    problems.push(`${file} is listed as being decomposed but does not exist`);
 }
 
 if (problems.length > 0) {

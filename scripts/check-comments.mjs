@@ -14,8 +14,9 @@ import { globSync, readFileSync } from 'node:fs';
  * accommodate an explanation you are rewriting, trim the explanation instead.
  */
 const SRC_BUDGET = 699;
-// The gates' own source counts too, on the same budget.
-const SCRIPTS_BUDGET = 74;
+// The gates' own source counts too, on the same budget. Raised from 74 when the size gate grew a
+// ratchet: a budget moves for a branch that needs explaining, never to make room for padding.
+const SCRIPTS_BUDGET = 78;
 const DUP_MIN_CHARS = 45;
 
 /**
