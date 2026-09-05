@@ -23,12 +23,10 @@ export function LegalLayout({
         aidenjang
       </Link>
 
-      <div className="surface rounded-3xl border border-line bg-card p-6 sm:p-8">
-        <h1 className="font-display text-3xl font-semibold tracking-tight">{title}</h1>
+      <div className="rounded-3xl border border-line bg-card p-6 sm:p-8">
+        <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
         <p className="mt-1 text-sm text-muted">Last updated: {updated}</p>
-        <div className="legal-prose mt-6 space-y-6 text-sm leading-relaxed text-ink/90">
-          {children}
-        </div>
+        <div className="mt-6 space-y-6 text-sm leading-relaxed text-ink/90">{children}</div>
       </div>
 
       <nav className="mt-6 flex justify-center gap-5 text-sm text-muted">
@@ -56,7 +54,7 @@ export function Section({
 }): ReactNode {
   return (
     <section className="space-y-2">
-      <h2 className="font-display text-lg font-semibold tracking-tight text-ink">{heading}</h2>
+      <h2 className="text-lg font-semibold tracking-tight text-ink">{heading}</h2>
       {children}
     </section>
   );

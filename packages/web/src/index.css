@@ -201,3 +201,8 @@ button:not(:disabled) {
 :focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Tabular figures, so a column of session percentages lines up instead of shifting per digit. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
