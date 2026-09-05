@@ -121,3 +121,65 @@ PR, which is the right trade for a set of products that ship on different cadenc
 - **wherever**: Durable-Object voting, pure decision core, swappable data source
 - **owewell**: money-as-integer-cents, split/settlement math, live group sessions
 - **bloomnote**: LLM output validation and a KV-metered budget cap
+
+# Design decisions, moved out of the README
+
+_Moved out of the README, which is the front door and was carrying the whole house._
+
+## The interesting bits (design decisions and trade-offs)
+
+**`http` behind Cloudflare broke `redirect_uri` matching.** Behind Cloudflare's TLS termination the
+Worker can see a request as `http` even though the public URL is `https`. Building the OAuth
+`redirect_uri` from the request URL therefore produced `http://...`, which failed Google's
+exact-string match. The fix forces `https` for any non-localhost host and runs the same helper for
+both the auth request and the token exchange, so the two are byte-identical. The same quirk was
+silently dropping the `Secure` flag on cookies in production, fixed the same way.
+
+**CSRF protection is intentionally left to `SameSite=Lax`, not an Origin check.** The session cookie
+is `SameSite=Lax`, so it is not attached to cross-site POSTs at all: a forged cross-origin request to
+`/auth/delete-account` arrives with no session and just 401s. Because the API is deliberately
+cross-origin-callable (a credentialed CORS allowlist for app frontends), turning on a same-origin
+Origin guard would add nothing and could break that intended capability. The one state-changing GET
+(`/auth/google/callback`) is safe because it requires an unforgeable token.
+This was a reasoned "leave it off", not an oversight.
+
+**Account linking is written to be un-takeover-able.** Linking Google to an existing account only
+happens by _verified_ email, refuses if that Google identity is already attached to a different
+account, and only lets Google vouch for an email when it matches the account's. Disconnecting Google
+refuses if it would leave the account with no way to sign in, and a Google-only account can set a
+password first, so no one can lock themselves out.
+
+**No account enumeration, including timing.** `forgot-password` always returns the
+same 200 whether or not the email exists, and a login for a missing email still runs a dummy PBKDF2
+verify so it costs the same as a real one. (The one accepted leak: telling a Google-account holder to
+"use Google" reveals that account exists. It is rate-limited, and the usability win was judged worth
+it.)
+
+**Four account-page features were deleted rather than improved.** A world map of session
+locations, a scored security check-up, a recovery rehearsal, and a security activity feed. Each one
+looked like security and gave you nothing to act on: the map redrew a list that already said
+"Chrome on macOS, Boston", and the score moved when you did things without ever naming what was at
+risk. Deleting them took 1,595 lines out against 503 added. The event _recording_ stayed, because
+two things still read it that nobody sees: the "was that you?" alert emails, and the data export.
+Collecting rows nobody can read would have been worse than either keeping or dropping the feature.
+
+**Magic-link sign-in was removed without usage data, but not without evidence.** Nobody could say
+how many people used it, because until recently every sign-in path recorded the same `signed_in`
+event with no method attached. What _could_ be settled from the code was the thing that actually
+mattered: whether removing it would lock anyone out. `passwordHash` is set to null in exactly one
+place, Google account creation, which sets `googleId` in the same insert; `googleId` is set to null
+in exactly one place, disconnect, which refuses unless a password exists. So every account
+permanently holds a password or a Google link, and the emailed link was never anyone's only way in.
+Sign-ins now record their method, so the next decision of this kind gets numbers instead.
+
+**Rules the code states about itself are tested, not trusted.** `lib/reassurance.ts` opens by
+demanding every line be "a true, specific claim about this implementation". Six of its eight lines
+had quietly stopped being rendered anywhere, so they could not drift visibly and nothing would ever
+have caught it. There is now a test that walks `src/`, collects every `reassurance('...')` call
+site, and fails on any line without one. `lib/apps.ts` gets the same treatment for the launcher:
+names must be lower case, hosts and dev ports unique, accents valid hex clearing a contrast floor,
+because a duplicated host silently makes `returnAppFor` show the wrong app's name and colour.
+
+**Everything is enforced server-side.** The UI hints (password strength, "set a password first")
+are conveniences; every invariant, from lockout prevention to session ownership on revoke, is
+enforced in the Worker, and there are tests that prove a user cannot revoke another user's session.
