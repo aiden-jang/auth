@@ -41,6 +41,9 @@ jobs:
       # writes is checked.
       - run: pnpm run format:check
       - run: pnpm run build
+      # After the build, because most classes here are Tailwind utilities that only exist in the
+      # output once Tailwind has seen them used. Four dead ones were live when this was added.
+      - run: pnpm run dead-classes
       # Every suite runs in-process: the SPA and the client under Node, the API against a real
       # in-memory D1 via the Workers pool. No external database needed.
       - run: pnpm -r test
