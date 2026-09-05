@@ -84,6 +84,22 @@ for (const file of files) {
   let afterDeclaration = false;
   for (let i = 1; i < lines.length - 2; i++) {
     if (/^\}\)?;?$/.test(lines[i])) afterDeclaration = true;
+    /*
+     * A doc block with nothing under it but a closing brace. `/**` exists to describe the next
+     * declaration, so one describing a brace documents a prop or a field that has been removed.
+     * Ungated: the first interface in a file is where this happens.
+     */
+    if (/\*\/\s*$/.test(lines[i])) {
+      let open = i;
+      while (open >= 0 && !lines[open].includes('/*')) open--;
+      const under = lines.slice(i + 1).find((l) => l.trim()) ?? '';
+      if (open >= 0 && lines[open].includes('/**') && /^[)}\]]/.test(under.trim())) {
+        const quoted = (open === i ? lines[open] : lines[open + 1]) ?? '';
+        stranded.push(
+          `${file}:${open + 1} — a doc block with nothing under it: "${quoted.trim().slice(0, 60)}…"`,
+        );
+      }
+    }
     if (!afterDeclaration) continue;
     const isComment = /^\s*(\/\/|\*\/)/.test(lines[i]);
     const gap = lines[i + 1]?.trim() === '';
