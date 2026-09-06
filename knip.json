@@ -11,7 +11,7 @@
     },
     "packages/web": {
       "entry": ["test/**/*.test.ts"],
-      "project": ["src/**/*.{ts,tsx}", "test/**/*.ts"]
+      "project": ["src/**/*.{ts,tsx,css}", "test/**/*.ts"]
     },
     "packages/client": {
       "entry": ["src/index.ts", "src/**/*.test.ts"],
