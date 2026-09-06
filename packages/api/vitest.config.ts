@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { defineWorkersConfig, readD1Migrations } from '@cloudflare/vitest-pool-workers/config';
 
 // Runs tests inside the real Workers runtime with the bindings from wrangler.toml
@@ -5,7 +6,9 @@ import { defineWorkersConfig, readD1Migrations } from '@cloudflare/vitest-pool-w
 // read the app's migrations at config time and hand them to the test worker; a
 // setup file applies them to the isolated test database before each test file.
 export default defineWorkersConfig(async () => {
-  const migrations = await readD1Migrations('./migrations');
+  // Absolute, not './migrations': knip loads this config from the repo root, and a relative
+  // path resolves against the caller's directory rather than this one.
+  const migrations = await readD1Migrations(join(import.meta.dirname, 'migrations'));
   return {
     test: {
       setupFiles: ['./test/apply-migrations.ts'],
