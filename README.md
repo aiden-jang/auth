@@ -50,7 +50,7 @@ the API, the SPA's shared logic, and the published client.
 
 Above them, a Playwright suite walks the journey none of them can see: register, follow the link
 from the verification email, sign out, sign back in. It reads the token out of the dev worker's own
-log, because the database stores only a hash and the raw token exists nowhere else — so the link it
+log, because the database stores only a hash and the raw token exists nowhere else, so the link it
 follows is the one a real person would click. `pnpm --filter @aidenjang/auth-web e2e`.
 
 ## Repo layout

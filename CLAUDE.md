@@ -48,7 +48,7 @@ not from misreading code:
 
 So: an empty or suspiciously clean result means suspect the scan first. A count next to a green
 suite that looks impossible (0% coverage, 68 untested files) is the tool being wrong. And **green is
-not proof unless you have seen that check fail** — break the thing it guards, watch it go red, then
+not proof unless you have seen that check fail**: break the thing it guards, watch it go red, then
 believe it.
 
 ## Writing a new gate
@@ -63,7 +63,7 @@ believe it.
 ## Numbers in prose
 
 Do not write live counts into docs: test totals, gate totals, file lengths. Nothing checks them and
-they go stale silently — three were already wrong when this file was written. Say what a thing is
+they go stale silently, and three were already wrong when this file was written. Say what a thing is
 and let the gate print the number. Describing a past change is different, and fine.
 
 ## Follow the patterns already here
@@ -73,7 +73,7 @@ neighbours. What this repo settled on:
 
 - **Routes** are one module per concern in `src/routes/`, each its own Hono instance mounted in
   `index.ts`. A new route joins an existing group; it does not go in `index.ts`.
-- **What routes share** lives in `src/http/context.ts` — rate limiting, the step-up gate, the two
+- **What routes share** lives in `src/http/context.ts`: rate limiting, the step-up gate, the two
   refusal helpers. Nothing route-specific goes there.
 - **Refusals** use `unauthenticated(c)` and `rateLimited(c)`, never a fresh object literal. Apps
   switch on `error`, so a typo is invisible here and breaks them.
@@ -131,18 +131,18 @@ however brief. Write what a colleague would say over your shoulder:
   who did not just write it.
 
 Keep, at any length: silent-failure traps, security reasoning, incident postmortems, cache and
-immutability constraints. `auth/stepUp.ts` is the model — two real outages, written down.
+immutability constraints. `auth/stepUp.ts` is the model: two real outages, written down.
 
 ## Size
 
 A god-file accretes twenty lines at a time and no single diff looks wrong, so the ceiling is the
-gate rather than a review habit. `AccountPage.tsx` sits at 483 of 500 — the next feature there means
-extracting something first, which is the intent. Split rather than raising a ceiling.
+gate rather than a review habit. `AccountPage.tsx` sits just under its ceiling, so the next feature
+there means extracting something first, which is the intent. Split rather than raising a ceiling.
 
 ## Tests
 
 - Prove a new test bites: break the code it covers and watch it fail. Tests here have passed while
-  measuring nothing — a rate-limit test that never tripped, an assertion that held by coincidence.
+  measuring nothing: a rate-limit test that never tripped, an assertion that held by coincidence.
 - DB-backed tests go in `packages/api/test/` (they need `cloudflare:test`); pure ones sit next to
   their module in `src/`. Both are typechecked.
 - The browser suite starts its own worker and vite. It reads verification and reset links out of
@@ -152,7 +152,7 @@ extracting something first, which is the intent. Split rather than raising a cei
 
 Never hand-write one. `pnpm --filter @aidenjang/auth-api db:generate`, then commit the SQL **and**
 the snapshot under `migrations/meta/`. A missing snapshot leaves drizzle diffing an older schema, so
-the next generate re-creates tables that already exist and the deploy fails on apply — the deploy
+the next generate re-creates tables that already exist and the deploy fails on apply, and the deploy
 runs migrations before it publishes.
 
 ## Publishing `@aidenjang/auth-client`
