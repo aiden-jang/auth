@@ -1,5 +1,6 @@
 /* Everything that turns on knowing a password: forgetting it, resetting it, proving it. */
 import { Hono } from 'hono';
+import { writeEvent } from '../events.js';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createDb } from '../db/client.js';
@@ -160,6 +161,7 @@ app.post('/auth/change-password', async (c) => {
   const meta = sessionMeta(c);
   const { token, expiresAt } = await createSession(db, row.id, meta); // ...then keep this device
   await recordSecurityEvent(db, row.id, 'password_changed', meta);
+  writeEvent(c.env, 'password_changed');
   setSessionCookie(c, token, expiresAt);
   deliverCredentialAlert(c, row.email, 'password_changed', meta);
   return c.json({ ok: true });
@@ -207,6 +209,7 @@ app.post('/auth/set-password', async (c) => {
   const { token, expiresAt } = await createSession(db, row.id, meta);
   setSessionCookie(c, token, expiresAt);
   await recordSecurityEvent(db, row.id, 'password_added', meta);
+  writeEvent(c.env, 'password_added');
   deliverCredentialAlert(c, row.email, 'password_added', meta);
   return c.json({ ok: true });
 });

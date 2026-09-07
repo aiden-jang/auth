@@ -1,5 +1,6 @@
 /* Sign in with Google, and linking a Google account to an existing one. */
 import { Hono } from 'hono';
+import { writeEvent } from '../events.js';
 import { eq } from 'drizzle-orm';
 import { setCookie, deleteCookie } from 'hono/cookie';
 import { createDb } from '../db/client.js';
@@ -144,6 +145,7 @@ app.get('/auth/google/callback', async (c) => {
       'google',
     );
     const { token, expiresAt } = await createSession(db, user.id, meta);
+    writeEvent(c.env, 'signed_in', 'google');
     await recordSecurityEvent(db, user.id, 'signed_in', meta, 'google');
     deliverSignInAlert(c, user.email, alert);
     setSessionCookie(c, token, expiresAt);

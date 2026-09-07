@@ -1,5 +1,6 @@
 /* Getting in for the first time, and proving the address afterwards. */
 import { Hono } from 'hono';
+import { writeEvent } from '../events.js';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createDb } from '../db/client.js';
@@ -71,6 +72,7 @@ app.post('/auth/register', async (c) => {
   const meta = sessionMeta(c);
   const { token, expiresAt } = await createSession(db, id, meta);
   await recordSecurityEvent(db, id, 'account_created', meta);
+  writeEvent(c.env, 'account_created', 'password');
   setSessionCookie(c, token, expiresAt);
 
   const verifyToken = await issueToken(db, id, 'verify');
@@ -144,6 +146,7 @@ app.post('/auth/login', async (c) => {
   );
   const { token, expiresAt } = await createSession(db, user.id, meta);
   await recordSecurityEvent(db, user.id, 'signed_in', meta, 'password');
+  writeEvent(c.env, 'signed_in', 'password');
   deliverSignInAlert(c, user.email, alert);
   setSessionCookie(c, token, expiresAt);
   return c.json({

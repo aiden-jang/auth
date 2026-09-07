@@ -70,7 +70,9 @@ export function PrivacyPage(): ReactNode {
       <Section heading="Cookies and analytics">
         One essential cookie holds your login session so you are not asked to sign in on every
         click. That is the only one. Analytics are cookieless (Cloudflare Web Analytics counts
-        visits without following you across sites), so there is no consent banner to dismiss.
+        visits without following you across sites), so there is no consent banner to dismiss. We
+        also count how often each sign-in method is used and when a password is changed or added,
+        with no account, email or address attached.
       </Section>
 
       <Section heading="Who else sees your data">

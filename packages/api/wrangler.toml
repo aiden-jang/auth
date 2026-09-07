@@ -18,6 +18,12 @@ database_id = "26bcf1d8-ac6a-421f-bd8d-442115284ede"
 migrations_dir = "migrations"
 
 # Fixed-window rate limiter, one Durable Object instance per action:ip.
+# Product events, written fire-and-forget from the routes. One dataset across every app, with the
+# app name in index1 and blob1, so a single query can compare them.
+[[analytics_engine_datasets]]
+binding = "EVENTS"
+dataset = "aidenjang_events"
+
 [[durable_objects.bindings]]
 name = "RATE_LIMITER"
 class_name = "RateLimiter"

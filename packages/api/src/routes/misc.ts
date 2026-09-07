@@ -1,5 +1,6 @@
 /* Unlinking Google. Its own file only because it belongs to neither side cleanly. */
 import { Hono } from 'hono';
+import { writeEvent } from '../events.js';
 import { eq } from 'drizzle-orm';
 import { createDb } from '../db/client.js';
 import { users } from '../db/schema.js';
@@ -43,6 +44,7 @@ app.post('/auth/disconnect-google', async (c) => {
   const meta = sessionMeta(c);
   await revokeAllSessions(db, row.id);
   const { token, expiresAt } = await createSession(db, row.id, meta);
+  writeEvent(c.env, 'signed_in', 'password');
   setSessionCookie(c, token, expiresAt);
   await recordSecurityEvent(db, row.id, 'google_disconnected', meta);
   deliverCredentialAlert(c, row.email, 'google_disconnected', meta);
