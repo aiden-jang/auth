@@ -103,11 +103,16 @@ Each of these shipped and was found later. They are the ones to look for:
 
 ## Comments
 
-Countable rules first, because "don't add unnecessary comments" needs judgment that is worst right
-after writing the code:
+The countable rule first, because "don't add unnecessary comments" needs judgment that is worst
+right after writing the code:
 
-- No comment block over four lines. If one seems necessary, ask.
 - **Never raise `SRC_BUDGET` to fit prose.** Trim instead. No script can enforce this about itself.
+- Keep an inline comment to a line or two. A longer block has to earn it by recording something a
+  reader would otherwise rediscover the hard way: a trap that has bitten, a real outage written
+  down, a constraint that fails silently. A couple of dozen blocks here run longer than that and
+  they are mostly the good ones, so length is not the test. "Why, not what" is. The gates are
+  scored the same way: `scripts/` is a share of its own source rather than a count, precisely so a
+  gate can arrive documented.
 - Never explain a refactor, or what the code used to do. A reader never saw that version.
 - A comment that logs successive changes is a changelog. Git has it, and the log will drift out of
   step with the value it describes -- this file's own budget comment did.
