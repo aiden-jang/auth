@@ -1,6 +1,6 @@
 # Platform Architecture
 
-This repo (`platform`) holds the identity service that anchors a small constellation of my own
+This repo (`auth`) holds the identity service that anchors a small constellation of my own
 products. They are separate apps in separate repos, but they behave like one platform because they
 share a single sign-on and a single set of infrastructure conventions. This document is the
 zoomed-out view: how the pieces fit, where the trust boundaries are, and how it holds up under the
