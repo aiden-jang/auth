@@ -24,6 +24,7 @@
     "migrations": "node scripts/check-migrations.mjs",
     "size": "node scripts/check-size.mjs",
     "verify:fast": "pnpm run gates && pnpm run typecheck && pnpm run lint && pnpm run knip && pnpm run comments && pnpm run size && pnpm run css-vars && pnpm run check:docs && pnpm run migrations && pnpm run format:check",
+    "events": "node scripts/events.mjs",
     "gates": "node scripts/check-gates.mjs",
     "check:docs": "node scripts/check-docs.mjs",
     "css-vars": "node scripts/check-css-vars.mjs",
