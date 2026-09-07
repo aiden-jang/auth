@@ -1,5 +1,6 @@
 /* The WebAuthn ceremonies, and managing the keys they produce. */
 import { Hono } from 'hono';
+import { writeEvent } from '../events.js';
 import { z } from 'zod';
 import { createDb } from '../db/client.js';
 import { createSession, validateSession } from '../auth/session.js';
@@ -134,6 +135,7 @@ app.post('/auth/passkeys/login/verify', async (c) => {
     'passkey',
   );
   const { token, expiresAt } = await createSession(db, login.userId, meta);
+  writeEvent(c.env, 'signed_in', 'passkey');
   await recordSecurityEvent(db, login.userId, 'signed_in', meta, 'passkey');
   deliverSignInAlert(c, login.email, alert);
   setSessionCookie(c, token, expiresAt);

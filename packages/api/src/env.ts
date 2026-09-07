@@ -24,4 +24,6 @@ export interface Env {
   // Google OAuth. Both unset = "Continue with Google" is disabled (the route errors out).
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
+  // Optional so local dev and the test worker run without it: an absent binding drops events.
+  EVENTS?: AnalyticsEngineDataset;
 }
