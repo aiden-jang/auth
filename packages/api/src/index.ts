@@ -26,8 +26,8 @@ app.onError(onUnhandledError);
 const TURNSTILE_ORIGIN = 'https://challenges.cloudflare.com';
 const AUTH_CSP =
   DEFAULT_CSP.replace("script-src 'self'", `script-src 'self' ${TURNSTILE_ORIGIN}`).replace(
-    "connect-src 'self' https://static.cloudflareinsights.com",
-    `connect-src 'self' https://static.cloudflareinsights.com ${TURNSTILE_ORIGIN}`,
+    "connect-src 'self' https://static.cloudflareinsights.com https://cloudflareinsights.com",
+    `connect-src 'self' https://static.cloudflareinsights.com https://cloudflareinsights.com ${TURNSTILE_ORIGIN}`,
   ) + `; frame-src ${TURNSTILE_ORIGIN}`;
 app.use('*', async (c, next) => {
   const requestId = requestIdFrom(c.req.raw);
