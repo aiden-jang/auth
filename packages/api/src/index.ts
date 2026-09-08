@@ -39,6 +39,14 @@ app.use('*', async (c, next) => {
 
 app.use('*', harden({ csrf: false, csp: AUTH_CSP }));
 
+// Only /assets: a hashed name cannot change, while index.html keeps its name across deploys.
+app.use('*', async (c, next) => {
+  await next();
+  if (/^\/assets\//.test(c.req.path)) {
+    c.header('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+});
+
 app.use('/auth/*', (c, next) =>
   cors({
     origin: (origin) => {
