@@ -9,8 +9,9 @@ export interface AppLink {
   url: string;
   /** Used instead of `url` when the account UI is itself on localhost. */
   devUrl: string;
-  /** Accent colour: the launcher dot, and the panel tint after ?return_to. Take it from the app's
-   *  own icon; theme.test.ts enforces the contrast floor. */
+  /** Accent colour: the launcher dot, and the panel tint after ?return_to. Take the app's own hue
+   *  but a tint light enough to read on the dark card here, which several apps' UI accents are not
+   *  (owewell's #4f46e5 lands at 2.94:1). theme.test.ts enforces the floor. */
   accent: string;
 }
 
@@ -21,7 +22,7 @@ export const APPS: AppLink[] = [
     url: 'https://owewell.aidenjang.com',
     devUrl: 'http://localhost:30001',
     // Don't "correct" this to owewell's own tile #1f6f4f. It reaches 3.04 here and fails the test.
-    accent: '#34d399',
+    accent: '#a78bfa',
   },
   {
     name: 'bloomnote',
@@ -43,14 +44,14 @@ export const APPS: AppLink[] = [
     tagline: "she's the cat, you look after her",
     url: 'https://mrrp.aidenjang.com',
     devUrl: 'http://localhost:30005',
-    accent: '#e8963f',
+    accent: '#e0a03f',
   },
   {
     name: 'iguess',
     tagline: 'draw it, an AI guesses',
     url: 'https://iguess.aidenjang.com',
     devUrl: 'http://localhost:33100',
-    accent: '#818cf8',
+    accent: '#a855f7',
   },
   {
     name: 'everything is fine',
@@ -58,7 +59,7 @@ export const APPS: AppLink[] = [
     url: 'https://everythingisfine.aidenjang.com',
     devUrl: 'http://localhost:31600',
     // Nearly grey on purpose. The app's whole palette is desaturated; there is no brighter hue.
-    accent: '#c8d2e2',
+    accent: '#5b8fb0',
   },
 ];
 
