@@ -32,8 +32,8 @@ the session; `/login` still works.
 
 ## 3. Cross-cutting (dashboard / one-time)
 
-- **Web Analytics:** dashboard → Web Analytics → add `accounts.aidenjang.com` (cookieless; see
-  [OBSERVABILITY.md](OBSERVABILITY.md)).
+- **Web Analytics:** nothing to add. The zone's site covers every hostname automatically; filter by
+  hostname for one app (cookieless; see [OBSERVABILITY.md](OBSERVABILITY.md)).
 - **Uptime:** point a free external monitor at `/health` (see OBSERVABILITY.md).
 - **Workers Logs:** confirm with `wrangler tail aidenjang-auth`; browse in the dashboard.
 - **Security headers:** `curl -sI https://accounts.aidenjang.com/health | grep -i content-security-policy`.
