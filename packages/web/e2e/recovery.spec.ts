@@ -29,6 +29,10 @@ async function askForReset(page: Page, email: string): Promise<void> {
   await page.goto('/forgot-password');
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByRole('button', { name: 'Send reset link' }).click();
+  // Wait for the confirmation itself, not `role="status"`: the reassurance line under the form
+  // carries that role too, so it resolves while the request is still in flight and a caller can
+  // read "Sending..." as though it were the answer.
+  await expect(page.getByText('check that inbox')).toBeVisible();
 }
 
 test('reset a forgotten password and sign in with the new one', async ({ page }) => {
@@ -96,12 +100,18 @@ test('a reset link cannot be used twice', async ({ page }) => {
  */
 test('says the same thing whether or not the address has an account', async ({ page }) => {
   const real = await register(page);
+  const unknown = `nobody-${Date.now()}@test.dev`;
+
+  // The page echoes the address back, so that one span differs by construction. Mask it and
+  // compare the wording around it, which is the part that must not reveal whether the account
+  // exists. Comparing raw text passed for years by catching both pages mid-request instead.
+  const wording = (text: string, email: string) => text.replaceAll(email, '{address}');
 
   await askForReset(page, real);
-  const forKnown = await page.locator('main').innerText();
+  const forKnown = wording(await page.locator('main').innerText(), real);
 
-  await askForReset(page, `nobody-${Date.now()}@test.dev`);
-  const forUnknown = await page.locator('main').innerText();
+  await askForReset(page, unknown);
+  const forUnknown = wording(await page.locator('main').innerText(), unknown);
 
   expect(forUnknown).toBe(forKnown);
 });
