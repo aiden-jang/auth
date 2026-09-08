@@ -37,14 +37,28 @@ second copy no-ops and its site sits at zero, which reads exactly like broken an
 The CSP still has to allow `https://static.cloudflareinsights.com` in `script-src`, since the
 injected script is what does the reporting.
 
-## 3. Uptime — external monitor on `/health`
+## 3. Uptime — external keyword monitors
 
-Every worker exposes `GET /health` returning `{ status/ok, service }`. Cloudflare Health Checks
-are a paid add-on, so point a **free external monitor** (e.g. UptimeRobot, 5-min interval) at:
+Cloudflare Health Checks are a paid add-on, so point a **free external monitor** (e.g.
+UptimeRobot, 5-min interval) at each app. Use keyword monitors: every URL below answers 200 even
+when the thing behind it is broken, so a status-code check would sit green through an outage.
 
-| App  | Health URL                              |
-| ---- | --------------------------------------- |
-| auth | `https://accounts.aidenjang.com/health` |
+| App              | Monitor URL                                 | Keyword                 |
+| ---------------- | ------------------------------------------- | ----------------------- |
+| auth             | `https://accounts.aidenjang.com/health`     | `"service":"auth"`      |
+| bloomnote        | `https://bloomnote.aidenjang.com/health`    | `"service":"bloomnote"` |
+| iguess           | `https://iguess.aidenjang.com/health`       | `"service":"iguess"`    |
+| owewell          | `https://owewell.aidenjang.com/health`      | `"service":"owewell"`   |
+| wherever         | `https://wherever.aidenjang.com/api/health` | `"source":"google"`     |
+| mrrp             | `https://mrrp.aidenjang.com/api/health`     | `"ok":true`             |
+| everythingisfine | `https://everythingisfine.aidenjang.com/`   | `Everything Is Fine`    |
 
-A green `/health` proves the worker is reachable and its runtime is up; it does not exercise D1/KV
-/DO, which surface via Workers Logs instead.
+The path is not uniform, and that is not an oversight: wherever and mrrp serve everything under
+`/api/*` and their health sits there, while `/health` at the root would be answered by the SPA
+fallback. everythingisfine has no Worker at all, so its page is the only thing to check.
+
+wherever's keyword is deliberately `"source":"google"` rather than `"ok":true`. It reports `mock`
+when the Places key is missing, so the monitor covers the key as well as the worker.
+
+A green health check proves the worker is reachable and its runtime is up; it does not exercise
+D1/KV/DO, which surface via Workers Logs instead.

@@ -34,7 +34,8 @@ the session; `/login` still works.
 
 - **Web Analytics:** nothing to add. The zone's site covers every hostname automatically; filter by
   hostname for one app (cookieless; see [OBSERVABILITY.md](OBSERVABILITY.md)).
-- **Uptime:** point a free external monitor at `/health` (see OBSERVABILITY.md).
+- **Uptime:** point a free external keyword monitor at each app's health URL; the paths differ per
+  app (see [OBSERVABILITY.md](OBSERVABILITY.md)).
 - **Workers Logs:** confirm with `wrangler tail aidenjang-auth`; browse in the dashboard.
 - **Security headers:** `curl -sI https://accounts.aidenjang.com/health | grep -i content-security-policy`.
 - **Login 403 after a bad-deploy window:** dashboard → Caching → Purge Everything, retest incognito.
