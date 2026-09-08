@@ -27,17 +27,15 @@ head_sampling_rate = 1
 Cloudflare **Web Analytics** is cookieless (hashes IP+UA at the edge) and free — so **no cookie
 banner** is required (disclosed in the privacy policy, step 5.5).
 
-Setup: dashboard → Web Analytics → add `accounts.aidenjang.com` (the apps in their own repos set up
-their own sites). For CF-proxied hostnames it auto-injects the beacon; if a Worker-served response
-isn't auto-instrumented, paste the site's beacon into the app's `index.html`:
+Setup is done: the `aidenjang.com` zone has one site, and Cloudflare injects its beacon into every
+proxied HTML response, Worker-served ones included. That single site collects every hostname under
+the zone, so each app's numbers come from its hostname filter rather than a site of its own.
 
-```html
-<script
-  defer
-  src="https://static.cloudflareinsights.com/beacon.min.js"
-  data-cf-beacon='{"token":"<site-token-from-dashboard>"}'
-></script>
-```
+Do not paste a manual beacon snippet in as well. `beacon.min.js` initialises once per page, so a
+second copy no-ops and its site sits at zero, which reads exactly like broken analytics.
+
+The CSP still has to allow `https://static.cloudflareinsights.com` in `script-src`, since the
+injected script is what does the reporting.
 
 ## 3. Uptime — external monitor on `/health`
 
