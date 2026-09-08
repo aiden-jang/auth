@@ -9,9 +9,8 @@ export interface AppLink {
   url: string;
   /** Used instead of `url` when the account UI is itself on localhost. */
   devUrl: string;
-  /** Accent colour: the launcher dot, and the panel tint after ?return_to. Take the app's own hue
-   *  but a tint light enough to read on the dark card here, which several apps' UI accents are not
-   *  (owewell's #4f46e5 lands at 2.94:1). theme.test.ts enforces the floor. */
+  /** Accent colour: the launcher dot and the panel tint after ?return_to. The app's own hue, but a
+   *  tint that reads on this dark card (owewell's #4f46e5 is 2.94:1). theme.test.ts holds the floor. */
   accent: string;
 }
 
