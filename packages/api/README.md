@@ -15,8 +15,8 @@ apps trust, so owewell, bloomnote, and friends don't each reinvent accounts.
 ## What it does
 
 - **Register / log in / log out**, with password reset and email verification.
-- **Issues the shared session.** On login it sets `platform_session` — an httpOnly, `Secure`,
-  `SameSite=Lax` cookie scoped to `.aidenjang.com` — so every subdomain app is signed in at once.
+- **Issues the shared session.** On login it sets `platform_session`, an httpOnly, `Secure`,
+  `SameSite=Lax` cookie scoped to `.aidenjang.com`, so every subdomain app is signed in at once.
 - **Validates sessions for the apps.** Each app forwards the incoming cookie to `GET /auth/me`
   from its own Worker (never the browser) and gets back the user or `null`.
 - **Stops bots and abuse.** Cloudflare Turnstile gates sign-up; a per-IP rate limiter (a Durable
@@ -27,7 +27,7 @@ apps trust, so owewell, bloomnote, and friends don't each reinvent accounts.
 ## Architecture
 
 ```
-   accounts.aidenjang.com — auth Worker (Hono), one origin
+   accounts.aidenjang.com : auth Worker (Hono), one origin
         │  /auth/register, /auth/login, /auth/logout, /auth/me,
         │  /auth/verify-email, /auth/reset-password
         │       │
@@ -46,12 +46,12 @@ apps trust, so owewell, bloomnote, and friends don't each reinvent accounts.
 ## Decisions worth explaining
 
 **One cookie on the parent domain, not per-app accounts.** The session cookie is scoped to
-`.aidenjang.com`, so a login on any subdomain signs you into all of them — real single sign-on
+`.aidenjang.com`, so a login on any subdomain signs you into all of them: real single sign-on
 without OAuth ceremony between my own apps. The apps share _identity_ while keeping their own data
 in their own D1/KV; auth owns only users and sessions.
 
 **Apps validate server-side; the session never touches app JavaScript.** The cookie is httpOnly,
-so app frontends can't read it, and they don't try — they forward it to `/auth/me` from their
+so app frontends can't read it, and they don't try; they forward it to `/auth/me` from their
 Worker. The token stays server-to-server, and a compromised app frontend can't exfiltrate a
 session. `login`/`logout` are full-page redirects here (built by `@aidenjang/auth-client`), not
 cross-origin fetches, which keeps the flow inside first-party navigation.
@@ -76,7 +76,7 @@ duplicates.
 - **No social login / MFA yet.** Password + email verification is the current bar. The session and
   D1 schema leave room to add providers or a second factor without changing the cookie contract.
 - **Sessions are opaque rows in D1, not stateless JWTs.** That makes revocation instant (delete
-  the row) at the cost of a lookup per validation — the right trade for "log out everywhere" to
+  the row) at the cost of a lookup per validation, the right trade for "log out everywhere" to
   actually mean it.
 
 ## Project layout
@@ -110,10 +110,10 @@ Requires **Node 22** (repo `.nvmrc`) and pnpm.
 ```bash
 pnpm install
 
-# API Worker (Hono + local D1/DO via Miniflare) — the other apps point AUTH_URL here
+# API Worker (Hono + local D1/DO via Miniflare): the other apps point AUTH_URL here
 pnpm --filter @aidenjang/auth-api dev        # http://localhost:34100
 
-# web SPA — http://localhost:34110
+# web SPA: http://localhost:34110
 pnpm --filter @aidenjang/auth-web dev
 ```
 

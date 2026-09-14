@@ -30,7 +30,7 @@ below for the integration pattern.
 
 ---
 
-## Auth service — `packages/api`
+## Auth service: `packages/api`
 
 | Method | Path                        | Auth    | Rate | Notes                                               |
 | ------ | --------------------------- | ------- | ---- | --------------------------------------------------- |

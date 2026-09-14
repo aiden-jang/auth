@@ -98,8 +98,8 @@ function StepUpDialog({
   return createPortal(
     <div
       className="fixed inset-0 z-50 grid place-items-center bg-canvas/80 p-4 backdrop-blur-sm"
-      // A click on the backdrop closes, but only when it started there: dragging to select text
-      // inside the dialog and releasing outside used to count as "clicked away".
+      // A click on the backdrop closes, but only when it started there, or dragging to select text
+      // inside the dialog and releasing outside counts as "clicked away".
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

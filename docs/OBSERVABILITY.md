@@ -3,7 +3,7 @@
 Three legs, all $0 on Cloudflare's free tier. One is code (Workers Logs, already enabled); the
 other two are dashboard/external setup, documented here.
 
-## 1. Workers Logs (error + request tracking) — enabled in code
+## 1. Workers Logs (error + request tracking): enabled in code
 
 `packages/api/wrangler.toml` has:
 
@@ -22,9 +22,9 @@ head_sampling_rate = 1
   (filter by status, exception, invocation). Retention is on the free tier.
 - Drop `head_sampling_rate` below `1` only if a worker gets high enough traffic to matter (none do).
 
-## 2. Web Analytics (traffic) — dashboard
+## 2. Web Analytics (traffic): dashboard
 
-Cloudflare **Web Analytics** is cookieless (hashes IP+UA at the edge) and free — so **no cookie
+Cloudflare **Web Analytics** is cookieless (hashes IP+UA at the edge) and free, so **no cookie
 banner** is required (disclosed in the privacy policy, step 5.5).
 
 Setup is done: the `aidenjang.com` zone has one site, and Cloudflare injects its beacon into every
@@ -37,7 +37,7 @@ second copy no-ops and its site sits at zero, which reads exactly like broken an
 The CSP still has to allow `https://static.cloudflareinsights.com` in `script-src`, since the
 injected script is what does the reporting.
 
-## 3. Uptime — external keyword monitors
+## 3. Uptime: external keyword monitors
 
 Cloudflare Health Checks are a paid add-on, so point a **free external monitor** (e.g.
 UptimeRobot, 5-min interval) at each app. Use keyword monitors: every URL below answers 200 even
