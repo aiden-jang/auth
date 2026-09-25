@@ -32,13 +32,13 @@
   },
   "devDependencies": {
     "@aidenjang/config": "workspace:*",
-    "@types/node": "^22.7.0",
+    "@types/node": "^22.20.4",
     "eslint": "^9.12.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "knip": "^6.34.0",
-    "prettier": "^3.3.3",
+    "knip": "^6.37.0",
+    "prettier": "^3.9.8",
     "typescript": "^5.6.2",
-    "typescript-eslint": "^8.8.0"
+    "typescript-eslint": "^8.70.1"
   }
 }
