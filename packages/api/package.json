@@ -13,18 +13,18 @@
     "db:migrate:local": "wrangler d1 migrations apply aidenjang-identity --local"
   },
   "dependencies": {
-    "@simplewebauthn/server": "^13.3.2",
-    "drizzle-orm": "^0.45.2",
-    "hono": "^4.13.5",
+    "@simplewebauthn/server": "^13.3.3",
+    "drizzle-orm": "^0.45.3",
+    "hono": "^4.13.13",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@aidenjang/config": "workspace:*",
     "@cloudflare/vitest-pool-workers": "0.8.24",
     "@cloudflare/workers-types": "^4.20241230.0",
-    "drizzle-kit": "^0.30.1",
+    "drizzle-kit": "^0.31.11",
     "typescript": "^5.6.2",
     "vitest": "^2.1.8",
-    "wrangler": "^4.122.0"
+    "wrangler": "^4.147.0"
   }
 }
