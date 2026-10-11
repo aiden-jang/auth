@@ -3,7 +3,7 @@ import type { ReturnApp } from './returnTo';
 
 /*
  * Take the colour from APPS via `returnAppFor` only, never from a query parameter. A theme an attacker
- * can set is a login page that can wear any brand. Unrecognised return target gets the house butter.
+ * can set is a login page that can wear any brand. Unrecognised return target gets the house blue.
  */
 
 export type Hex = `#${string}`;
@@ -31,11 +31,11 @@ export function contrast(a: Hex, b: Hex): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-export const CANVAS: Hex = '#181915';
-export const CARD: Hex = '#20211c';
-const HOUSE_ACCENT: Hex = '#e8dc9d';
+export const CANVAS: Hex = '#14171c';
+export const CARD: Hex = '#1d222a';
+const HOUSE_ACCENT: Hex = '#aacbfa';
 
-const INK: Hex = '#181915';
+const INK: Hex = '#14171c';
 const PAPER: Hex = '#ffffff';
 
 export function readableOn(background: Hex): Hex {

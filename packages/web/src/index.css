@@ -25,20 +25,20 @@
 }
 
 @theme {
-  --color-canvas: #181915;
-  --color-card: #20211c;
-  --color-ink: #f0ecdf;
-  --color-muted: #aaa99b;
-  --color-line: #3c3e33;
-  --color-accent: #e8dc9d;
-  --color-field: #20211c;
+  --color-canvas: #14171c;
+  --color-card: #1d222a;
+  --color-ink: #edf1f7;
+  --color-muted: #a7b0bd;
+  --color-line: #353d49;
+  --color-accent: #aacbfa;
+  --color-field: #1d222a;
   --color-neg: #fb7185;
-  --color-pos: #c5d6aa;
+  --color-pos: #a7dbc2;
   --font-sans: 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 html {
-  background-color: #181915;
+  background-color: #14171c;
 }
 
 body {
@@ -57,7 +57,7 @@ body {
 
 .btn-primary {
   background: var(--color-accent);
-  color: var(--color-accent-ink, #181915);
+  color: var(--color-accent-ink, #14171c);
 }
 
 /* Tailwind v4's preflight no longer sets a pointer cursor on buttons, so
@@ -163,7 +163,7 @@ button:not(:disabled) {
  * UA draws, so without the companion a mouse click still leaves a rectangle behind.
  */
 :focus-visible {
-  outline: 2px solid var(--color-accent, #e8dc9d);
+  outline: 2px solid var(--color-accent, #aacbfa);
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -178,7 +178,7 @@ button:not(:disabled) {
 }
 
 .account-eyebrow {
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-sans);
   font-size: 10px;
   font-weight: 400;
   letter-spacing: 0.1em;
@@ -213,8 +213,8 @@ button:not(:disabled) {
   margin-top: 20px;
 }
 .account-key-card {
-  background: #eae5d5;
-  color: #34362c;
+  background: #e5ebf4;
+  color: #2d3c53;
   border-radius: 22px;
   padding: 22px 26px;
   margin-top: 32px;
@@ -222,7 +222,7 @@ button:not(:disabled) {
 .account-key-card span,
 .account-key-card small {
   font-size: 10px;
-  font-family: ui-monospace, monospace;
+  font-family: var(--font-sans);
 }
 .account-key-card span {
   letter-spacing: 0.08em;
@@ -234,7 +234,7 @@ button:not(:disabled) {
 }
 .account-key-card small {
   display: block;
-  color: #67695b;
+  color: #607088;
 }
 .brand-panel-apps {
   max-width: 420px;
@@ -288,7 +288,7 @@ button:not(:disabled) {
   max-width: 400px;
 }
 .auth-title {
-  font-size: 42px;
+  font-size: 36px;
   font-weight: 500;
   line-height: 1.1;
   letter-spacing: -0.045em;
@@ -303,7 +303,7 @@ button:not(:disabled) {
   max-width: 760px;
 }
 .account-title {
-  font-size: 64px;
+  font-size: 48px;
   font-weight: 500;
   line-height: 1.1;
   letter-spacing: -0.05em;
@@ -317,7 +317,7 @@ button:not(:disabled) {
   border-radius: 16px;
 }
 .account-content > section[aria-label='Apps'] a:hover {
-  background: #292a23;
+  background: #252d38;
 }
 .account-content hr {
   margin-top: 32px;
@@ -350,10 +350,10 @@ button:not(:disabled) {
     justify-content: flex-start;
   }
   .auth-title {
-    font-size: 38px;
+    font-size: 34px;
   }
   .account-title {
-    font-size: 48px;
+    font-size: 40px;
   }
   .account-shell {
     padding: 32px 20px;
@@ -371,7 +371,7 @@ button:not(:disabled) {
 .auth-form-panel input,
 .account-shell input,
 .account-shell select {
-  border-color: #686b5d;
+  border-color: #647184;
 }
 .auth-form-panel input:focus,
 .account-shell input:focus,

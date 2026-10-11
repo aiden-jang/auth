@@ -37,7 +37,7 @@ describe('the contrast maths', () => {
   });
 
   it('picks the readable foreground rather than always white', () => {
-    expect(readableOn('#fbbf24')).toBe('#181915'); // amber wants dark ink
+    expect(readableOn('#fbbf24')).toBe('#14171c'); // amber wants dark ink
     expect(readableOn('#1f2937')).toBe('#ffffff'); // slate wants white
   });
 });

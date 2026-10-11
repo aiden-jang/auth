@@ -8,7 +8,7 @@ export const inputClass =
   'w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20';
 
 export const buttonClass =
-  'btn-primary w-full cursor-pointer rounded-full px-5 py-3 font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
+  'btn-primary w-full cursor-pointer rounded-xl px-5 py-3 font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
 
 export const labelClass = 'mb-1.5 block text-sm font-medium text-muted';
 
@@ -62,7 +62,7 @@ function BrandPanel(): ReactNode {
               width="96"
               height="124"
               rx="18"
-              fill="#c5cdb7"
+              fill="#bccbdd"
               transform="rotate(9 166 14)"
             />
             <rect
@@ -71,26 +71,26 @@ function BrandPanel(): ReactNode {
               width="96"
               height="124"
               rx="18"
-              fill="#e8dc9d"
+              fill="#aacbfa"
               transform="rotate(-8 164 25)"
             />
             <path
               d="M186 69h30m-30 12h23m-23 12h16"
-              stroke="#73765e"
+              stroke="#667f9f"
               strokeWidth="2"
               strokeLinecap="round"
             />
             <g
               transform="rotate(-24 105 80)"
-              stroke="#34362c"
+              stroke="#2d3c53"
               strokeWidth="3"
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <circle cx="97" cy="48" r="30" fill="#eae5d5" />
+              <circle cx="97" cy="48" r="30" fill="#e5ebf4" />
               <circle cx="97" cy="36" r="7" />
               <path d="M86 52h6m11 0h6m-14 8h4" />
-              <path d="M97 79v58h16v-13h12v-15h-15" fill="#eae5d5" />
+              <path d="M97 79v58h16v-13h12v-15h-15" fill="#e5ebf4" />
             </g>
           </svg>
           <small>Quite a few doors, actually.</small>

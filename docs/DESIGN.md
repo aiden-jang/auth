@@ -1,14 +1,16 @@
 # Accounts UI
 
-The account service uses the same matte dark olive, warm paper and butter family as Worth,
-with a key as its own identity. It serves several apps; it does not present itself as Worth.
+Accounts has its own slate, ice-blue and cool paper identity, with a key as its mark.
+It serves every registered app equally. Worth retains its butter accent only when it is the
+verified return destination or appears in the app directory.
 DM Sans is bundled locally under its included license. App-specific accents still come from
 verified return destinations and are adjusted for readable contrast.
 
 Sign-in and recovery use a split desktop layout with a quiet app directory and an illustrated
-cream key card. Phones show the wordmark and form first, without the desktop brand panel.
+cool paper key card. Phones show the wordmark and form first, without the desktop brand panel.
 Forms retain visible labels, password visibility controls, errors, status messages, passkeys,
-Google sign-in, Turnstile and the existing return-destination handling. Buttons use flat fills.
+Google sign-in, Turnstile and the existing return-destination handling. Buttons use flat fills and modest rounded corners. Form headings are compact; the larger
+illustrated panel provides personality without competing with the sign-in task.
 The account hub uses a wider single column, an app grid, separated settings sections and clear
 security/deletion controls. Policies use the existing readable document layout.
 
