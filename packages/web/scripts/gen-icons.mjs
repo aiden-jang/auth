@@ -13,6 +13,7 @@ const svg = readFileSync(resolve(pub, 'favicon.svg'), 'utf8');
 const fullBleed = svg.replace('rx="120"', 'rx="0"');
 
 const targets = [
+  ['icon-32.png', 32, svg],
   ['apple-touch-icon.png', 180, fullBleed],
   ['icon-192.png', 192, svg],
   ['icon-512.png', 512, fullBleed],

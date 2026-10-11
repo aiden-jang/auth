@@ -9,20 +9,15 @@ export function BrandMark(): ReactNode {
     <span
       aria-hidden
       className="inline-grid h-8 w-8 place-items-center rounded-[10px]"
-      style={{ background: '#aacbfa' }}
+      style={{ background: '#14171c' }}
     >
       <svg width="20" height="20" viewBox="0 0 512 512" fill="none" aria-hidden>
-        <g
-          transform="translate(256 256) scale(1.12) rotate(45) translate(-256 -256)"
-          fill="#14171c"
-        >
+        <g transform="rotate(-40 256 256)" fill="#aacbfa">
           <path
             fillRule="evenodd"
-            d="M256 68a84 84 0 1 1 0 168 84 84 0 0 1 0-168Zm0 54a30 30 0 1 0 0 60 30 30 0 0 0 0-60Z"
+            d="M256 76a100 100 0 1 1 0 200 100 100 0 0 1 0-200Zm0 62a38 38 0 1 0 0 76 38 38 0 0 0 0-76Z"
           />
-          <rect x="232" y="214" width="48" height="192" rx="10" />
-          <rect x="272" y="312" width="60" height="36" rx="7" />
-          <rect x="272" y="368" width="44" height="36" rx="7" />
+          <path d="M226 244h60v90h58v46h-58v46h-60Z" />
         </g>
       </svg>
     </span>
