@@ -194,6 +194,24 @@ export function AuthCard({
           )}
           <div className="mt-6">{children}</div>
 
+          <nav
+            aria-label="Legal"
+            className="mt-6 flex justify-center gap-6 border-t border-line pt-3 text-xs text-muted"
+          >
+            <a
+              href="/privacy"
+              className="inline-flex min-h-11 items-center hover:text-accent hover:underline"
+            >
+              Privacy
+            </a>
+            <a
+              href="/terms"
+              className="inline-flex min-h-11 items-center hover:text-accent hover:underline"
+            >
+              Terms
+            </a>
+          </nav>
+
           {/* The brand panel (which carries the credit) is hidden below md,
               so surface the credit under the form on mobile. */}
           <MadeBy className="mt-8 text-center text-xs text-muted md:hidden" />

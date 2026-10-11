@@ -81,6 +81,19 @@ const assert = require('node:assert/strict');
         });
         await page.locator('h1').waitFor();
         if (title) await page.getByRole('heading', { name: title, exact: true }).waitFor();
+        if (name === 'login' || name === 'signup') {
+          const legal = page.getByRole('navigation', { name: 'Legal', exact: true });
+          await legal.getByRole('link', { name: 'Privacy', exact: true }).waitFor();
+          await legal.getByRole('link', { name: 'Terms', exact: true }).waitFor();
+          assert.equal(
+            await legal.getByRole('link', { name: 'Privacy' }).getAttribute('href'),
+            '/privacy',
+          );
+          assert.equal(
+            await legal.getByRole('link', { name: 'Terms' }).getAttribute('href'),
+            '/terms',
+          );
+        }
         await page.evaluate(() => document.fonts.ready);
         assert.ok(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),

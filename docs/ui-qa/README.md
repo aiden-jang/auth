@@ -34,3 +34,5 @@ Screens were inspected after the independent Accounts palette and compact form h
 restored after the browser suite released its port.
 
 The October 10 account pass keeps all apps in a compact two-column phone launcher, names the Profile and Sign-in & security sections, and gives Log out an outlined treatment. Account captures were inspected at desktop and phone sizes; 320, 430 and 768px also passed overflow checks. The capture waits for app content and fonts rather than unrelated background loads.
+
+The October 11 legal-link fix adds Privacy and Terms beneath the shared authentication form, including sign-in, registration and recovery. Desktop and phone sign-in and registration captures were inspected; the width checks also confirm both links remain visible and point to the existing policy routes.
