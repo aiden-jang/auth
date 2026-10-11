@@ -22,3 +22,5 @@ Worth is now present in the app registry, which also makes its verified return d
 recognizable on sign-in. No auth API, cookie, password or session contract changes are needed.
 
 Desktop and phone evidence is in [UI captures](ui-qa/README.md).
+
+The account launcher keeps every app visible in two columns on phones, with taglines reserved for wider screens. Profile and sign-in security have explicit headings. Log out uses a quiet outlined control so passkey setup retains visual priority.

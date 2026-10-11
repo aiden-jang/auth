@@ -308,17 +308,6 @@ button:not(:disabled) {
   line-height: 1.1;
   letter-spacing: -0.05em;
 }
-.account-content > section[aria-label='Apps'] {
-  margin-bottom: 32px;
-}
-.account-content > section[aria-label='Apps'] a {
-  min-height: 84px;
-  padding: 20px;
-  border-radius: 16px;
-}
-.account-content > section[aria-label='Apps'] a:hover {
-  background: #252d38;
-}
 .account-content hr {
   margin-top: 32px;
   margin-bottom: 32px;

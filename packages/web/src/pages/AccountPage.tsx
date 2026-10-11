@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { authApi, googleEnabled, type AuthUser } from '../lib/api';
-import { AccountShell, buttonClass, inputClass } from '../components/AuthCard';
+import { AccountShell, inputClass } from '../components/AuthCard';
 import { Skeleton } from '../components/Skeleton';
-import { APPS, appHref } from '../lib/apps';
+import { AppLauncher } from '../components/AppLauncher';
 import { DeleteAccount } from '../components/DeleteAccount';
 import { useSessions } from '../lib/useSessions';
 import { ConnectedAccounts } from '../components/ConnectedAccounts';
@@ -282,48 +282,11 @@ export function AccountPage(): ReactNode {
         </section>
       )}
 
-      {/* App launcher — this is the landing when a visitor signs in at
-          aidenjang.com without being sent back to a specific app, so lead
-          with somewhere to go. Hidden while changing password so that flow
-          stays focused. Sourced from lib/apps.ts. */}
-      {!changingPw && (
-        <section aria-label="Apps">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
-            Jump into an app
-          </h2>
-          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-            {APPS.map((app) => (
-              <li key={app.name}>
-                <a
-                  href={appHref(app)}
-                  className="group flex items-center justify-between rounded-xl border border-line bg-field px-4 py-3 transition hover:border-accent"
-                >
-                  <span className="flex items-center gap-3">
-                    <span
-                      aria-hidden
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: app.accent }}
-                    />
-                    <span>
-                      <span className="font-medium text-ink">{app.name}</span>
-                      <span className="block text-xs text-muted">{app.tagline}</span>
-                    </span>
-                  </span>
-                  <span
-                    aria-hidden
-                    className="text-muted transition group-hover:translate-x-0.5 group-hover:text-accent"
-                  >
-                    &rarr;
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {!changingPw && <AppLauncher />}
 
       {!changingPw && <hr className="my-6 border-line" />}
 
+      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted">Profile</h2>
       <dl className="space-y-3 text-sm">
         {editingName ? (
           <div>
@@ -423,6 +386,10 @@ export function AccountPage(): ReactNode {
         </div>
       )}
 
+      <hr className="my-6 border-line" />
+      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted">
+        Sign-in & security
+      </h2>
       <PasswordSection
         user={user}
         changingPw={changingPw}
@@ -463,7 +430,11 @@ export function AccountPage(): ReactNode {
         </>
       )}
 
-      <button type="button" onClick={() => void logout()} className={`${buttonClass} mt-6`}>
+      <button
+        type="button"
+        onClick={() => void logout()}
+        className="mt-6 min-h-11 w-full rounded-xl border border-line px-4 py-3 text-sm font-medium text-muted transition hover:border-accent hover:text-ink"
+      >
         Log out
       </button>
 

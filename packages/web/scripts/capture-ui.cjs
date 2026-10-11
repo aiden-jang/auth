@@ -69,12 +69,16 @@ const assert = require('node:assert/strict');
       ['privacy', '/privacy', false, null],
       ['terms', '/terms', false, null],
     ]) {
+      if (process.env.AUTH_UI_CASE && process.env.AUTH_UI_CASE !== name) continue;
       signedIn = auth;
       console.log('Checking', name);
       for (const width of [1440, 390, 320, 430, 768]) {
         page = await context.newPage();
         await page.setViewportSize({ width, height: width === 1440 ? 900 : 780 });
-        await page.goto('http://127.0.0.1:34112' + url, { waitUntil: 'load' });
+        await page.goto('http://127.0.0.1:34112' + url, {
+          waitUntil: 'domcontentloaded',
+          timeout: 30000,
+        });
         await page.locator('h1').waitFor();
         if (title) await page.getByRole('heading', { name: title, exact: true }).waitFor();
         await page.evaluate(() => document.fonts.ready);

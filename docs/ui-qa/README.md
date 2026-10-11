@@ -32,3 +32,5 @@ The contrast suite checks all registered app accents against the new palette. Th
 reported 688/699 source comment lines; no duplicated or stranded comments were found.
 Screens were inspected after the independent Accounts palette and compact form headings. Worth’s local fake-auth service was
 restored after the browser suite released its port.
+
+The October 10 account pass keeps all apps in a compact two-column phone launcher, names the Profile and Sign-in & security sections, and gives Log out an outlined treatment. Account captures were inspected at desktop and phone sizes; 320, 430 and 768px also passed overflow checks. The capture waits for app content and fonts rather than unrelated background loads.
