@@ -1,24 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- The aidenjang accounts mark: a key on the purple→cyan gradient. Deliberately NOT the
-       receipt/document glyph the product apps use (owewell) so the sign-in service reads as its
-       own thing. Font-free shapes so it stays crisp at every favicon size.
-
-       Re-run `pnpm --filter @aidenjang/auth-web gen:icons` after editing, or the committed PNGs
-       keep showing whatever this used to be. -->
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#a78bfa" />
-      <stop offset="1" stop-color="#22d3ee" />
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="120" fill="url(#g)" />
+  <rect width="512" height="512" rx="120" fill="#e8dc9d" />
   <g transform="rotate(45 256 256)">
-    <g fill="#09090f" fill-opacity="0.92">
+    <g fill="#181915" fill-opacity="0.92">
       <circle cx="256" cy="152" r="80" />
       <rect x="240" y="210" width="32" height="200" rx="8" />
       <rect x="272" y="322" width="48" height="28" rx="6" />
       <rect x="272" y="368" width="34" height="26" rx="6" />
     </g>
-    <circle cx="256" cy="152" r="34" fill="url(#g)" />
+    <circle cx="256" cy="152" r="34" fill="#e8dc9d" />
   </g>
 </svg>

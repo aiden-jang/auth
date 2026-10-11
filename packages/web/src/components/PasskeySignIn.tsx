@@ -46,7 +46,7 @@ export function PasskeySignIn({ returnTo }: { returnTo?: string | null }): React
         type="button"
         onClick={() => void go()}
         disabled={busy}
-        className="btn-gradient flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition disabled:opacity-60"
+        className="btn-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition disabled:opacity-60"
       >
         <span aria-hidden>⚿</span>
         {busy ? 'Waiting for your device...' : 'Sign in with a passkey'}

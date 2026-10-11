@@ -37,7 +37,7 @@ describe('the contrast maths', () => {
   });
 
   it('picks the readable foreground rather than always white', () => {
-    expect(readableOn('#fbbf24')).toBe('#09090f'); // amber wants dark ink
+    expect(readableOn('#fbbf24')).toBe('#181915'); // amber wants dark ink
     expect(readableOn('#1f2937')).toBe('#ffffff'); // slate wants white
   });
 });
@@ -59,25 +59,15 @@ describe('every app in the launcher', () => {
     expect(contrast(theme.accent, accent)).toBeLessThan(contrast(theme.accent, '#ffffff'));
   });
 
-  // One label colour across two stops, so checking the accent alone misses the far end.
-  it.each(APP_ACCENTS)(
-    'gives $name a button label readable at both ends of the gradient',
-    ({ accent }) => {
-      const theme = themeFor({ name: 'x', accent });
-      expect(contrast(theme.buttonFrom, theme.accentInk)).toBeGreaterThanOrEqual(4.5);
-      expect(contrast(theme.buttonTo, theme.accentInk)).toBeGreaterThanOrEqual(4.5);
-    },
-  );
-
-  it.each(APP_ACCENTS)('keeps $name a gradient rather than two identical stops', ({ accent }) => {
+  it.each(APP_ACCENTS)('gives $name a readable button label', ({ accent }) => {
     const theme = themeFor({ name: 'x', accent });
-    expect(theme.buttonTo).not.toBe(theme.buttonFrom);
+    expect(contrast(theme.accent, theme.accentInk)).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('leaves the current accents alone, since they already read here', () => {
-    // Why the lightening path is tested with colours no app uses: today none needs it.
+  it('leaves accents alone when they already read on the card', () => {
     for (const { name, accent } of APP_ACCENTS) {
-      expect(themeFor({ name, accent }).accent, name).toBe(accent);
+      if (contrast(accent, CARD) >= 4.5)
+        expect(themeFor({ name, accent }).accent, name).toBe(accent);
     }
   });
 
@@ -150,8 +140,6 @@ describe('applying it', () => {
     expect(Object.keys(themeStyle(themeFor(null)))).toEqual([
       '--color-accent',
       '--color-accent-ink',
-      '--btn-from',
-      '--btn-to',
     ]);
   });
 });

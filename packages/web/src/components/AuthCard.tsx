@@ -8,7 +8,7 @@ export const inputClass =
   'w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20';
 
 export const buttonClass =
-  'btn-gradient w-full cursor-pointer rounded-full px-5 py-3 font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
+  'btn-primary w-full cursor-pointer rounded-full px-5 py-3 font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
 
 export const labelClass = 'mb-1.5 block text-sm font-medium text-muted';
 
@@ -41,51 +41,84 @@ function MadeBy({ className }: { className?: string }): ReactNode {
   );
 }
 
-// Branded panel shown on the left half at md+. Aurora background, a tagline,
-// and a showcase of the apps this login unlocks. Hidden on small screens,
-// where a compact wordmark sits above the form instead.
 function BrandPanel(): ReactNode {
   return (
-    <aside className="relative hidden overflow-hidden border-r border-line bg-canvas p-10 md:flex md:flex-col md:justify-between">
-      <div className="aurora" aria-hidden />
-      <div className="relative z-10">
-        <Wordmark />
-      </div>
-
-      <div className="relative z-10">
-        <h2 className="max-w-sm text-3xl font-medium leading-tight tracking-tight">
-          one login for everything I build.
+    <aside className="brand-panel">
+      <Wordmark />
+      <div className="brand-panel-story">
+        <p className="account-eyebrow">AIDENJANG / ACCOUNTS</p>
+        <h2>
+          One account.
+          <br />
+          Fewer keys.
         </h2>
-        <ul className="mt-8 space-y-3.5">
+        <p className="brand-panel-caption">The keyring was getting ridiculous.</p>
+        <div className="account-key-card" aria-hidden="true">
+          <span>ONE ACCOUNT / MANY DOORS</span>
+          <svg viewBox="0 0 320 160" fill="none">
+            <rect
+              x="166"
+              y="14"
+              width="96"
+              height="124"
+              rx="18"
+              fill="#c5cdb7"
+              transform="rotate(9 166 14)"
+            />
+            <rect
+              x="164"
+              y="25"
+              width="96"
+              height="124"
+              rx="18"
+              fill="#e8dc9d"
+              transform="rotate(-8 164 25)"
+            />
+            <path
+              d="M186 69h30m-30 12h23m-23 12h16"
+              stroke="#73765e"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <g
+              transform="rotate(-24 105 80)"
+              stroke="#34362c"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="97" cy="48" r="30" fill="#eae5d5" />
+              <circle cx="97" cy="36" r="7" />
+              <path d="M86 52h6m11 0h6m-14 8h4" />
+              <path d="M97 79v58h16v-13h12v-15h-15" fill="#eae5d5" />
+            </g>
+          </svg>
+          <small>Quite a few doors, actually.</small>
+        </div>
+      </div>
+      <div className="brand-panel-apps">
+        <p className="account-eyebrow">THE APPS</p>
+        <ul>
           {APPS.map((app) => (
             <li key={app.name}>
-              {/* Opens in a new tab so exploring an app never abandons a sign-in in progress
-                    (e.g. when the user was sent here with a return_to). */}
               <a
                 href={appHref(app)}
                 target="_blank"
                 rel="noreferrer"
-                className="group flex items-baseline gap-3"
                 style={{ '--app-accent': app.accent } as CSSProperties}
               >
-                <span
-                  aria-hidden
-                  className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: app.accent }}
-                />
+                <span className="app-dot" aria-hidden="true" />
                 <span>
-                  <span className="text-sm font-medium text-ink transition-colors group-hover:[color:var(--app-accent)]">
-                    {app.name}
-                  </span>
-                  <span className="ml-2 text-sm text-muted">{app.tagline}</span>
+                  <strong>{app.name}</strong>
+                  <small>{app.tagline}</small>
                 </span>
+                <span aria-hidden="true">↗</span>
               </a>
             </li>
           ))}
         </ul>
       </div>
-
-      <MadeBy className="relative z-10 text-xs text-muted" />
+      <MadeBy className="text-xs text-muted" />
     </aside>
   );
 }
@@ -105,12 +138,13 @@ export function AccountShell({
   children: ReactNode;
 }): ReactNode {
   return (
-    <main className="min-h-screen px-5 py-12 sm:px-10">
+    <main className="account-shell min-h-screen px-5 py-12 sm:px-10">
       <div className="animate-enter mx-auto w-full max-w-xl">
         <Wordmark />
-        <h1 className="mt-8 text-2xl font-semibold tracking-tight">{title}</h1>
+        <p className="account-eyebrow mt-10">ACCOUNT / SETTINGS</p>
+        <h1 className="account-title mt-3">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
-        <div className="mt-6">{children}</div>
+        <div className="account-content mt-8">{children}</div>
         <MadeBy className="mt-10 text-center text-xs text-muted" />
       </div>
     </main>
@@ -137,15 +171,16 @@ export function AuthCard({
   const theme = themeFor(returnApp ?? null);
 
   return (
-    <main className="grid min-h-screen md:grid-cols-2" style={themeStyle(theme)}>
+    <main className="auth-shell" style={themeStyle(theme)}>
       <BrandPanel />
 
-      <section className="flex flex-col justify-center px-5 py-12 sm:px-10">
+      <section className="auth-form-panel">
         <div className="animate-enter mx-auto w-full max-w-sm">
           <div className="mb-8 md:hidden">
             <Wordmark />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <p className="account-eyebrow mb-4">YOUR ACCOUNT</p>
+          <h1 className="auth-title">{title}</h1>
           {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
           {returnApp && (
             <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent">
@@ -154,7 +189,7 @@ export function AuthCard({
                 className="h-2 w-2 rounded-full"
                 style={{ background: returnApp.accent }}
               />
-              You&apos;ll go back to {returnApp.name} after this.
+              Then back to {returnApp.name} <span aria-hidden="true">↗</span>
             </p>
           )}
           <div className="mt-6">{children}</div>

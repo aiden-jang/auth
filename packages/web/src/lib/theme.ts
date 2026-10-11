@@ -3,7 +3,7 @@ import type { ReturnApp } from './returnTo';
 
 /*
  * Take the colour from APPS via `returnAppFor` only, never from a query parameter. A theme an attacker
- * can set is a login page that can wear any brand. Unrecognised return target gets the house purple.
+ * can set is a login page that can wear any brand. Unrecognised return target gets the house butter.
  */
 
 export type Hex = `#${string}`;
@@ -31,11 +31,11 @@ export function contrast(a: Hex, b: Hex): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-export const CANVAS: Hex = '#09090f';
-export const CARD: Hex = '#14121e';
-const HOUSE_ACCENT: Hex = '#8b7bff';
+export const CANVAS: Hex = '#181915';
+export const CARD: Hex = '#20211c';
+const HOUSE_ACCENT: Hex = '#e8dc9d';
 
-const INK: Hex = '#09090f';
+const INK: Hex = '#181915';
 const PAPER: Hex = '#ffffff';
 
 export function readableOn(background: Hex): Hex {
@@ -62,8 +62,6 @@ function legibleOnCard(accent: Hex): Hex {
 export interface Theme {
   accent: Hex;
   accentInk: Hex;
-  buttonFrom: Hex;
-  buttonTo: Hex;
   /** Null for the house theme. */
   app: string | null;
 }
@@ -78,14 +76,9 @@ export function themeFor(app: ReturnApp | null): Theme {
     // A malformed hex in APPS is a bug, not a reason to render an unstyled page.
     accent = HOUSE_ACCENT;
   }
-  // One ink for both gradient stops: an accent clearing AA on a near-black card is already light, and
-  // lightening it cannot flip the readable foreground. theme.test.ts checks both ends anyway.
-  const buttonTo = mix(accent, PAPER, 0.3);
   return {
     accent,
     accentInk: readableOn(accent),
-    buttonFrom: accent,
-    buttonTo,
     app: app?.name ?? null,
   };
 }
@@ -95,8 +88,6 @@ export function themeStyle(theme: Theme): Record<string, string> {
   return {
     '--color-accent': theme.accent,
     '--color-accent-ink': theme.accentInk,
-    '--btn-from': theme.buttonFrom,
-    '--btn-to': theme.buttonTo,
   };
 }
 

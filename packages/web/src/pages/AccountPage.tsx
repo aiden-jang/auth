@@ -265,7 +265,7 @@ export function AccountPage(): ReactNode {
                   type="button"
                   onClick={() => void secureAccount()}
                   disabled={securityReviewStatus === 'securing'}
-                  className="btn-gradient rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
+                  className="btn-primary rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
                 >
                   {securityReviewStatus === 'securing' ? 'Securing account…' : 'That was not me'}
                 </button>
@@ -338,7 +338,7 @@ export function AccountPage(): ReactNode {
                 aria-label="Display name"
               />
               <button
-                className="btn-gradient shrink-0 cursor-pointer rounded-lg px-3.5 py-2.5 text-sm font-semibold disabled:opacity-60"
+                className="btn-primary shrink-0 cursor-pointer rounded-lg px-3.5 py-2.5 text-sm font-semibold disabled:opacity-60"
                 disabled={savingName}
               >
                 {savingName ? 'Saving...' : 'Save'}

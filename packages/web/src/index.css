@@ -1,20 +1,44 @@
 @import 'tailwindcss';
 
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/dm-sans-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/dm-sans-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/dm-sans-700.woff2') format('woff2');
+}
+
 @theme {
-  --color-canvas: #09090f;
-  --color-card: #14121e;
-  --color-ink: #efedf7;
-  --color-muted: #918da8;
-  --color-line: #241f36;
-  --color-accent: #8b7bff;
-  --color-field: #100e1a;
+  --color-canvas: #181915;
+  --color-card: #20211c;
+  --color-ink: #f0ecdf;
+  --color-muted: #aaa99b;
+  --color-line: #3c3e33;
+  --color-accent: #e8dc9d;
+  --color-field: #20211c;
   --color-neg: #fb7185;
-  --color-pos: #34d399;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --color-pos: #c5d6aa;
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 html {
-  background-color: #09090f;
+  background-color: #181915;
 }
 
 body {
@@ -23,7 +47,7 @@ body {
      the layout jumps as the bar hides. Browsers that do not know dvh keep the line above. */
   min-height: 100vh;
   min-height: 100dvh;
-  background: radial-gradient(115% 70% at 50% -8%, #1a1633 0%, #0c0a16 46%, #09090f 100%) no-repeat;
+  background: var(--color-canvas);
   background-attachment: fixed;
   color: var(--color-ink);
   font-family: var(--font-sans);
@@ -31,11 +55,9 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* The stops fall back to the house colours, so anything not wrapped in a theme is unchanged. A page
-   arriving from one of the apps sets them to that app's accent (see lib/theme.ts). */
-.btn-gradient {
-  background: linear-gradient(115deg, var(--btn-from, #a78bfa) 0%, var(--btn-to, #6ee7f0) 100%);
-  color: var(--color-accent-ink, #09090f);
+.btn-primary {
+  background: var(--color-accent);
+  color: var(--color-accent-ink, #181915);
 }
 
 /* Tailwind v4's preflight no longer sets a pointer cursor on buttons, so
@@ -43,56 +65,6 @@ body {
    the default arrow (utilities like disabled:cursor-not-allowed still win). */
 button:not(:disabled) {
   cursor: pointer;
-}
-
-/* Aurora — two slow, blurred color blobs behind the branded auth panel.
-   Purely decorative; disabled for reduced-motion. */
-.aurora {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-.aurora::before,
-.aurora::after {
-  content: '';
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(72px);
-  opacity: 0.55;
-}
-.aurora::before {
-  width: 420px;
-  height: 420px;
-  background: #7c5cff;
-  top: -90px;
-  left: -70px;
-  animation: aurora-a 15s ease-in-out infinite;
-}
-.aurora::after {
-  width: 380px;
-  height: 380px;
-  background: #22d3ee;
-  bottom: -110px;
-  right: -50px;
-  animation: aurora-b 18s ease-in-out infinite;
-}
-@keyframes aurora-a {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(40px, -24px) scale(1.15);
-  }
-}
-@keyframes aurora-b {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(-30px, 26px) scale(1.12);
-  }
 }
 
 /* Content enter — a subtle fade + rise on mount, used by the auth card. */
@@ -165,8 +137,6 @@ button:not(:disabled) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aurora::before,
-  .aurora::after,
   .skeleton::after {
     animation: none;
   }
@@ -193,7 +163,7 @@ button:not(:disabled) {
  * UA draws, so without the companion a mouse click still leaves a rectangle behind.
  */
 :focus-visible {
-  outline: 2px solid var(--color-accent, #8b7bff);
+  outline: 2px solid var(--color-accent, #e8dc9d);
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -205,4 +175,206 @@ button:not(:disabled) {
 /* Tabular figures, so a column of session percentages lines up instead of shifting per digit. */
 .tnum {
   font-variant-numeric: tabular-nums;
+}
+
+.account-eyebrow {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: var(--color-muted);
+}
+.auth-shell {
+  display: grid;
+  min-height: 100dvh;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.brand-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 44px;
+  padding: 40px clamp(32px, 5vw, 80px);
+  border-right: 1px solid var(--color-line);
+}
+.brand-panel-story {
+  margin-top: 24px;
+  max-width: 420px;
+}
+.brand-panel-story h2 {
+  font-size: clamp(44px, 4.8vw, 68px);
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -0.055em;
+  margin-top: 16px;
+}
+.brand-panel-caption {
+  color: var(--color-muted);
+  font-size: 14px;
+  margin-top: 20px;
+}
+.account-key-card {
+  background: #eae5d5;
+  color: #34362c;
+  border-radius: 22px;
+  padding: 22px 26px;
+  margin-top: 32px;
+}
+.account-key-card span,
+.account-key-card small {
+  font-size: 10px;
+  font-family: ui-monospace, monospace;
+}
+.account-key-card span {
+  letter-spacing: 0.08em;
+}
+.account-key-card svg {
+  width: 100%;
+  height: 160px;
+  margin: 14px 0;
+}
+.account-key-card small {
+  display: block;
+  color: #67695b;
+}
+.brand-panel-apps {
+  max-width: 420px;
+}
+.brand-panel-apps ul {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 22px;
+}
+.brand-panel-apps a {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border-top: 1px solid var(--color-line);
+  padding: 14px 0;
+}
+.brand-panel-apps a > span:last-child {
+  margin-left: auto;
+  color: var(--color-muted);
+}
+.brand-panel-apps strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+.brand-panel-apps small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-muted);
+  margin-top: 3px;
+}
+.app-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--app-accent);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.brand-panel-apps a:hover strong {
+  color: var(--app-accent);
+}
+.auth-form-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 64px 40px;
+}
+.auth-form-panel > div {
+  max-width: 400px;
+}
+.auth-title {
+  font-size: 42px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+}
+.auth-form-panel label {
+  color: var(--color-ink);
+}
+.auth-form-panel input {
+  min-height: 48px;
+}
+.account-shell > div {
+  max-width: 760px;
+}
+.account-title {
+  font-size: 64px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.05em;
+}
+.account-content > section[aria-label='Apps'] {
+  margin-bottom: 32px;
+}
+.account-content > section[aria-label='Apps'] a {
+  min-height: 84px;
+  padding: 20px;
+  border-radius: 16px;
+}
+.account-content > section[aria-label='Apps'] a:hover {
+  background: #292a23;
+}
+.account-content hr {
+  margin-top: 32px;
+  margin-bottom: 32px;
+}
+.account-content button {
+  min-height: 36px;
+}
+@media (max-width: 900px) and (min-width: 768px) {
+  .brand-panel {
+    padding: 32px;
+  }
+  .brand-panel-apps ul {
+    grid-template-columns: 1fr;
+  }
+  .auth-form-panel {
+    padding: 40px 28px;
+  }
+}
+@media (max-width: 767px) {
+  .auth-shell {
+    display: block;
+  }
+  .brand-panel {
+    display: none;
+  }
+  .auth-form-panel {
+    min-height: 100dvh;
+    padding: 32px 20px;
+    justify-content: flex-start;
+  }
+  .auth-title {
+    font-size: 38px;
+  }
+  .account-title {
+    font-size: 48px;
+  }
+  .account-shell {
+    padding: 32px 20px;
+  }
+  button,
+  input,
+  select {
+    min-height: 44px;
+  }
+  .account-content button {
+    min-height: 44px;
+  }
+}
+
+.auth-form-panel input,
+.account-shell input,
+.account-shell select {
+  border-color: #686b5d;
+}
+.auth-form-panel input:focus,
+.account-shell input:focus,
+.account-shell select:focus {
+  border-color: var(--color-accent);
 }

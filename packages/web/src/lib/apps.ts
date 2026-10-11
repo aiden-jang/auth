@@ -16,6 +16,13 @@ export interface AppLink {
 
 export const APPS: AppLink[] = [
   {
+    name: 'worth',
+    tagline: 'the good, the meh, the not again',
+    url: 'https://worth.aidenjang.com',
+    devUrl: 'http://localhost:34300',
+    accent: '#e8dc9d',
+  },
+  {
     name: 'owewell',
     tagline: 'split bills, keep friends',
     url: 'https://owewell.aidenjang.com',

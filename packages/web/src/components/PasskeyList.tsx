@@ -90,7 +90,7 @@ export function PasskeyList({
           type="button"
           onClick={() => void add()}
           disabled={busy === 'add'}
-          className="btn-gradient shrink-0 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
+          className="btn-primary shrink-0 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
         >
           {busy === 'add' ? 'Waiting for your device...' : 'Add a passkey'}
         </button>

@@ -165,7 +165,7 @@ function StepUpDialog({
               <button
                 type="submit"
                 disabled={busy || password.length === 0}
-                className="btn-gradient flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50"
+                className="btn-primary flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50"
               >
                 {busy ? 'Checking...' : 'Confirm'}
               </button>
@@ -187,7 +187,7 @@ function StepUpDialog({
             </button>
             <a
               href="/forgot-password"
-              className="btn-gradient flex-1 rounded-xl px-4 py-2.5 text-center text-sm font-semibold"
+              className="btn-primary flex-1 rounded-xl px-4 py-2.5 text-center text-sm font-semibold"
             >
               Email me a link
             </a>

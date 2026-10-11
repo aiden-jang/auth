@@ -9,16 +9,16 @@ export function BrandMark(): ReactNode {
     <span
       aria-hidden
       className="inline-grid h-8 w-8 place-items-center rounded-[10px]"
-      style={{ background: 'linear-gradient(135deg, #a78bfa, #22d3ee)' }}
+      style={{ background: '#e8dc9d' }}
     >
       <svg width="20" height="20" viewBox="0 0 512 512" fill="none" aria-hidden>
-        <g transform="rotate(45 256 256)" fill="#09090f" fillOpacity="0.92">
+        <g transform="rotate(45 256 256)" fill="#181915" fillOpacity="0.92">
           <circle
             cx="256"
             cy="152"
             r="57"
             fill="none"
-            stroke="#09090f"
+            stroke="#181915"
             strokeOpacity="0.92"
             strokeWidth="46"
           />

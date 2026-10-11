@@ -148,7 +148,7 @@ export function PasswordSection({
           )}
           <div className="flex gap-2">
             <button
-              className="btn-gradient cursor-pointer rounded-full px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
+              className="btn-primary cursor-pointer rounded-full px-5 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
               disabled={pwSaving}
             >
               {pwSaving ? 'Saving...' : user.hasPassword ? 'Update password' : 'Set password'}
