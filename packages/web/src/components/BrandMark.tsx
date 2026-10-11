@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 /*
  * Keep in step with public/favicon.svg: same mark, and nothing fails if the two drift apart.
- * The bow is a stroked ring so its hole is really transparent and the tile shows through.
+ * The bow uses an even-odd path so its hole stays transparent.
  */
 export function BrandMark(): ReactNode {
   return (
@@ -12,19 +12,17 @@ export function BrandMark(): ReactNode {
       style={{ background: '#aacbfa' }}
     >
       <svg width="20" height="20" viewBox="0 0 512 512" fill="none" aria-hidden>
-        <g transform="rotate(45 256 256)" fill="#14171c" fillOpacity="0.92">
-          <circle
-            cx="256"
-            cy="152"
-            r="57"
-            fill="none"
-            stroke="#14171c"
-            strokeOpacity="0.92"
-            strokeWidth="46"
+        <g
+          transform="translate(256 256) scale(1.12) rotate(45) translate(-256 -256)"
+          fill="#14171c"
+        >
+          <path
+            fillRule="evenodd"
+            d="M256 68a84 84 0 1 1 0 168 84 84 0 0 1 0-168Zm0 54a30 30 0 1 0 0 60 30 30 0 0 0 0-60Z"
           />
-          <rect x="240" y="210" width="32" height="200" rx="8" />
-          <rect x="272" y="322" width="48" height="28" rx="6" />
-          <rect x="272" y="368" width="34" height="26" rx="6" />
+          <rect x="232" y="214" width="48" height="192" rx="10" />
+          <rect x="272" y="312" width="60" height="36" rx="7" />
+          <rect x="272" y="368" width="44" height="36" rx="7" />
         </g>
       </svg>
     </span>
