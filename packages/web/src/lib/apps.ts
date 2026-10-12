@@ -10,7 +10,7 @@ export interface AppLink {
   /** Used instead of `url` when the account UI is itself on localhost. */
   devUrl: string;
   /** Accent colour: the launcher dot and the panel tint after ?return_to. The app's own hue, but a
-   *  tint that reads on this dark card (owewell's #4f46e5 is 2.94:1). theme.test.ts holds the floor. */
+   *  tint that reads on this dark card. theme.test.ts holds the contrast floor. */
   accent: string;
 }
 
@@ -27,8 +27,8 @@ export const APPS: AppLink[] = [
     tagline: 'split bills, keep friends',
     url: 'https://owewell.aidenjang.com',
     devUrl: 'http://localhost:30001',
-    // Don't "correct" this to owewell's own tile #1f6f4f. It reaches 3.04 here and fails the test.
-    accent: '#a78bfa',
+    // A lighter teal keeps owewell recognizable on the shared dark sign-in surface.
+    accent: '#8ac8c5',
   },
   {
     name: 'bloomnote',

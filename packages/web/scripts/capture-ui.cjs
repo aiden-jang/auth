@@ -61,6 +61,12 @@ const assert = require('node:assert/strict');
     for (const [name, url, auth, title] of [
       ['login', '/login', false, 'Welcome back'],
       ['worth-login', '/login?return_to=https%3A%2F%2Fworth.aidenjang.com', false, 'Welcome back'],
+      [
+        'owewell-login',
+        '/login?return_to=https%3A%2F%2Fowewell.aidenjang.com',
+        false,
+        'Welcome back',
+      ],
       ['signup', '/signup', false, 'Create your account'],
       ['forgot', '/forgot-password', false, 'Reset your password'],
       ['reset', '/reset-password', false, null],
