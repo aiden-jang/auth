@@ -86,7 +86,10 @@ app.post('/auth/register', async (c) => {
       paragraphs: [
         'Your aidenjang account is made. One tap confirms this is your address, and then it works everywhere I build.',
       ],
-      action: { label: 'Confirm my email', url: link(c.env, '/verify-email', verifyToken) },
+      action: {
+        label: 'Confirm my email',
+        url: link(c.env, '/verify-email', verifyToken, parsed.data.returnTo),
+      },
       footnote:
         'This link lasts 24 hours. If you did not create an account, ignore this and nothing happens.',
       app: returnAppName(parsed.data.returnTo),

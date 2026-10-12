@@ -41,3 +41,13 @@ The October 12 owewell handoff fixes its stale lavender registry accent to light
 `owewell-login-1440.png` and `owewell-login-390.png` were inspected; the shared login also
 passed overflow checks at 320, 430 and 768px. Accounts keeps its house palette and other apps
 keep their own verified accents. The registered-accent contrast checks passed.
+
+The October 12 account handoff pass retains the validated return destination in registration
+and recovery emails, through password reset and its login link. Successful verification offers
+an explicit Continue to app action. Unsafe external and production loopback targets are omitted.
+The `owewell-signup`, `owewell-forgot`, `owewell-reset` and `owewell-verify` desktop and phone
+captures were inspected, with additional narrow-width overflow checks. Verification captures
+show the invalid-link state; the real-service journey checks the successful state and return link.
+Owewell’s existing cancelled sign-in, guest draft and expired-session browser journeys passed.
+The live Accounts sign-in still served the old lavender accent during the check; these local
+commits require deployment before that hosted page changes.

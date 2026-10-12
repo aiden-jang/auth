@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import type { Env } from '../src/env.js';
+import { link } from '../src/http/context.js';
 import { returnAppName } from '../src/returnApp.js';
 
 /*
@@ -56,5 +58,26 @@ describe('naming the app somebody was trying to reach', () => {
 
   it('ignores the case the client happened to send', () => {
     expect(returnAppName('https://OweWell.AidenJang.com')).toBe('owewell');
+  });
+});
+
+describe('email return destinations', () => {
+  const env = { APP_URL: 'https://accounts.aidenjang.com' } as Env;
+  it('preserves a valid app path and query without changing the email token', () => {
+    const target = 'https://owewell.aidenjang.com/g/3?tab=activity';
+    const url = new URL(link(env, '/reset-password', 'opaque-token', target));
+    expect(url.searchParams.get('token')).toBe('opaque-token');
+    expect(url.searchParams.get('return_to')).toBe(target);
+  });
+  it.each([
+    'https://evil.com',
+    'https://aidenjang.com.evil.com',
+    'http://owewell.aidenjang.com',
+    'http://localhost:30001',
+    'javascript:alert(1)',
+  ])('omits unsafe destination %s from a production email', (target) => {
+    expect(new URL(link(env, '/verify-email', 'token', target)).searchParams.has('return_to')).toBe(
+      false,
+    );
   });
 });

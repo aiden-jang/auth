@@ -1,4 +1,5 @@
 import type { Context } from 'hono';
+import { safeAppRedirect } from '../auth/google.js';
 import { and, desc, eq } from 'drizzle-orm';
 import { getCookie, SESSION_COOKIE } from '../auth/cookie.js';
 import type { Env } from '../env.js';
@@ -59,8 +60,13 @@ export async function turnstileOk(c: Ctx, token: string | undefined): Promise<bo
 }
 
 export const MIN = 60_000;
-export const link = (env: Env, path: string, token: string): string =>
-  `${env.APP_URL ?? ''}${path}?token=${token}`;
+export function link(env: Env, path: string, token: string, returnTo?: string): string {
+  const href = `${env.APP_URL ?? ''}${path}?token=${token}`;
+  if (!returnTo || !env.APP_URL) return href;
+  const target = safeAppRedirect(returnTo, env.APP_URL);
+  if (target === new URL('/account', env.APP_URL).toString()) return href;
+  return `${href}&return_to=${encodeURIComponent(target)}`;
+}
 
 // Capture who/where a session was created from, for the active-sessions list. Device is a parsed
 // label (not the raw UA); location is a coarse city/country from Cloudflare's edge (not the raw IP).

@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { returnAppFor, safeReturnTo } from '../lib/returnTo';
 import { authApi } from '../lib/api';
 import { AuthCard, buttonClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
@@ -8,6 +9,10 @@ import { PasswordStrength } from '../components/PasswordStrength';
 export function ResetPasswordPage(): ReactNode {
   const [params] = useSearchParams();
   const token = params.get('token');
+  const returnTo = safeReturnTo(params.get('return_to'));
+  const returnApp = returnAppFor(returnTo);
+  const withReturn = (path: string): string =>
+    returnTo ? `${path}?return_to=${encodeURIComponent(returnTo)}` : path;
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -34,12 +39,12 @@ export function ResetPasswordPage(): ReactNode {
 
   if (!token) {
     return (
-      <AuthCard title="Reset your password">
+      <AuthCard title="Reset your password" returnApp={returnApp}>
         <p className="text-sm text-muted">
           This reset link is missing its token. Request a new one from the login page.
         </p>
         <Link
-          to="/forgot-password"
+          to={withReturn('/forgot-password')}
           className="mt-4 inline-block font-medium text-accent hover:underline"
         >
           Request a new link
@@ -49,13 +54,13 @@ export function ResetPasswordPage(): ReactNode {
   }
 
   return (
-    <AuthCard title="Choose a new password">
+    <AuthCard title="Choose a new password" returnApp={returnApp}>
       {done ? (
         <div className="space-y-4">
           <p className="text-sm text-muted" role="status">
             Password updated. You've been signed out everywhere for safety.
           </p>
-          <Link to="/login" className="font-medium text-accent hover:underline">
+          <Link to={withReturn('/login')} className="font-medium text-accent hover:underline">
             Log in
           </Link>
         </div>

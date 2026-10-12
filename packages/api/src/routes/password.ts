@@ -59,7 +59,10 @@ app.post('/auth/forgot-password', async (c) => {
           'Somebody asked to reset the password on your aidenjang account.',
           'If that was not you, you can ignore this. Your password does not change until somebody opens this link and sets a new one.',
         ],
-        action: { label: 'Choose a new password', url: link(c.env, '/reset-password', token) },
+        action: {
+          label: 'Choose a new password',
+          url: link(c.env, '/reset-password', token, parsed.data.returnTo),
+        },
         // Named as a thing not to forward, because a reset link is a password until it is used.
         footnote:
           'This link lasts one hour and works once. Anybody who has it can set your password, so do not forward it.',

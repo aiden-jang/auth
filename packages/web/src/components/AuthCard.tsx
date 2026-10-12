@@ -189,7 +189,7 @@ export function AuthCard({
                 className="h-2 w-2 rounded-full"
                 style={{ background: returnApp.accent }}
               />
-              Then back to {returnApp.name} <span aria-hidden="true">↗</span>
+              You’re heading back to {returnApp.name} <span aria-hidden="true">↗</span>
             </p>
           )}
           <div className="mt-6">{children}</div>

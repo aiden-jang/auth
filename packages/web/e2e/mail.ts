@@ -10,8 +10,10 @@ export async function linkEmailedTo(email: string, path: string): Promise<string
     // whole file with one expression picked up a neighbouring test's token.
     for (const block of readFileSync(WORKER_LOG, 'utf8').split('[email:dev] ')) {
       if (!block.startsWith(`to=${email} `)) continue;
-      const link = new RegExp(`(http://localhost:34110${path}\\?token=[\\w-]+)`).exec(block);
-      if (link) return link[1] ?? null;
+      const link = new RegExp(
+        `(http://localhost:34110${path}\\?token=[\\w-]+(?:&(?:amp;)?return_to=[^\\s<"']+)?)`,
+      ).exec(block);
+      if (link) return link[1]?.replace(/&amp;/g, '&') ?? null;
     }
     return null;
   };
