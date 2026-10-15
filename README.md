@@ -1,126 +1,95 @@
-# auth
+# Accounts
 
-The shared identity service behind my apps: one login that every `*.aidenjang.com` app trusts,
-running on a Cloudflare-native stack under a hard **$0 hosting** budget with **no cold starts**. A
-small Worker at [accounts.aidenjang.com](https://accounts.aidenjang.com) issues the session cookie,
-and a published SDK (`@aidenjang/auth-client`) is the single place the session contract lives.
+The shared sign-in and account hub for Aiden Jang’s apps, at
+[accounts.aidenjang.com](https://accounts.aidenjang.com). Sign in with a password, Google, or a
+passkey; manage devices, recover access, and download or delete the identity account.
 
-## The constraints that shaped it
+![Accounts sign-in](docs/ui-qa/login-1440.png)
 
-- **$0 hosting.** Everything runs on Cloudflare's free tier: a Worker, D1 (SQLite), and a Durable
-  Object. No always-on server, no managed auth vendor.
-- **No cold starts.** Workers start per-request at the edge, so sign-in is fast from anywhere with
-  no warm-up.
-- **One login, many apps.** The session has to be valid across every app on a subdomain without each
-  app ever handling the session secret.
+A Cloudflare Worker serves the Hono API and React UI together. D1 stores identity and hashed
+sessions; a Durable Object limits abusive requests. Other apps resolve identity server-side through
+[`@aidenjang/auth-client`](packages/client), the separately published SDK.
 
-Those three constraints drove most of the decisions below.
+## Run locally
 
-## What it does
+Use Node 22 from `.nvmrc` and the pnpm version pinned in `package.json`.
 
-- **Email + password** with PBKDF2 hashing, email verification, and password reset.
-- **Google sign-in** (OIDC authorization-code flow), including linking Google to an existing
-  password account and disconnecting it later.
-- **Account hub**: active-session list with per-device revoke and "sign out everywhere", plus
-  self-serve account deletion.
-- **Abuse controls**: per-IP, per-action rate limiting and a Turnstile challenge on the sensitive
-  flows.
+```sh
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run build
+pnpm --filter @aidenjang/auth-api run db:migrate:local
+```
 
-## How it works
+Start the API and web UI in separate terminals:
 
-The Worker sets a `platform_session` cookie on `.aidenjang.com` (httpOnly, `SameSite=Lax`), so one
-sign-in covers every subdomain. The key move: **apps never read the cookie in the browser.** Each
-app forwards it to `/auth/me` from its own Worker via `@aidenjang/auth-client`, so the session secret
-never touches application JavaScript. Sign-in and sign-out are full-page redirects to the auth
-origin. The token stored in D1 is a SHA-256 hash of the cookie value, so a database leak never hands
-out live sessions.
+```sh
+pnpm --filter @aidenjang/auth-api run dev
+pnpm --filter @aidenjang/auth-web run dev
+```
 
-One Worker serves both the JSON API (`/auth/*`) and the built login/account SPA (Workers static
-assets), so the whole thing is a single origin with a single deploy.
+Open `http://localhost:34110`; the local Worker runs on port 34100. Apply migrations before using a
+fresh local D1. Local mail is printed to the Worker log when no email provider key is configured.
+Optional local secrets belong in the ignored `.dev.vars` file in `packages/api`; see
+[the API runbook](packages/api/DEPLOY.md). Never use production credentials for tests.
 
-## Testing
+## Verify
 
-Tests run inside the **real Workers runtime** via `@cloudflare/vitest-pool-workers`, against an
-isolated in-memory D1 with the app's migrations applied per file, plus the live rate-limiter Durable
-Object. Coverage includes registration, login and sessions, verification and reset tokens, password
-change, Google-only accounts, session listing and revocation, and account deletion. The
-suite is kept **hermetic** by neutralizing any secrets a local `.dev.vars` would otherwise leak into
-the test Worker (so Turnstile is treated as unconfigured and no real email is sent). Coverage spans
-the API, the SPA's shared logic, and the published client.
+```sh
+pnpm run verify
+```
 
-Above them, a Playwright suite walks the journey none of them can see: register, follow the link
-from the verification email, sign out, sign back in. It reads the token out of the dev worker's own
-log, because the database stores only a hash and the raw token exists nowhere else, so the link it
-follows is the one a real person would click. `pnpm --filter @aidenjang/auth-web e2e`.
+This runs types, lint, unused-code and size checks, docs/comments/migration guards, the full
+dependency audit, builds, unit suites, and browser journeys. `verify:fast` runs the repository gates;
+`verify:core` adds builds and unit tests. Browser tests own their local servers, database migrations,
+synthetic accounts, and dev-mail log. They test the built production configuration with a local
+security-widget stub, while actual account journeys use local challenge-free development mode.
+They do not contact Google, send email, or change production accounts.
+
+CI runs `verify:core` and browser journeys in parallel, retains the checked web bundle and browser
+evidence, and deploys only after both jobs pass. Merging to main triggers the existing automatic
+deployment: D1 migrations first, then the Worker with that checked bundle.
+
+## Repository map
+
+| Path               | Responsibility                                                             |
+| ------------------ | -------------------------------------------------------------------------- |
+| `packages/api/`    | Identity API, sessions, passkeys/OAuth, mail, D1 schema and migrations     |
+| `packages/web/`    | Sign-in, recovery, account management, legal pages and browser journeys    |
+| `packages/client/` | Published session resolver and redirect URL builders for consuming Workers |
+| `packages/config/` | Shared TypeScript and ESLint configuration                                 |
+| `scripts/`         | Repository guards and operational helpers                                  |
+| `docs/`            | API/security/runbooks and UI verification evidence                         |
+
+[Architecture](ARCHITECTURE.md) explains the internal boundaries. [PLATFORM.md](PLATFORM.md) covers
+the wider platform. The UI’s app registry owns visible launcher/return labels; consuming repositories
+own their own account adoption and data. A service deployment does not publish the SDK.
+
+## Security and data boundaries
+
+The shared `platform_session` cookie is HttpOnly; D1 stores a SHA-256 hash of its value. The cookie
+covers the parent domain in production, so sibling app origins are part of the platform’s trust
+boundary. Apps forward the cookie from their own Worker to `/auth/me`; frontend code cannot read it.
+An unavailable resolver must remain distinct from a signed-out user.
+
+Sensitive credential changes require recent proof. Registration deliberately reports a taken email;
+password-reset requests use the same successful response for known and unknown addresses. Transport
+failures remain visible so users can retry. Auth responses are never cached. Reset and verification
+links are credentials: do not paste them in issues, screenshots, or analytics.
+
+For vulnerabilities, use [private reporting](https://github.com/aiden-jang/auth/security/advisories/new),
+not public issues. See [security](docs/SECURITY.md) for the implemented controls and remaining limits.
+
+## Contribute and operate
+
+- [CONTRIBUTING.md](CONTRIBUTING.md): development, validation, migrations, and SDK publishing.
+- [API reference](docs/API.md): routes, response codes, and the shared session contract.
+- [Deployment](docs/DEPLOY-CHECKLIST.md): automatic deployment, recovery, and rollback.
+- [Observability](docs/OBSERVABILITY.md): request IDs, logs, events, and health checks.
+- [Design](docs/DESIGN.md) and [UI evidence](docs/ui-qa/README.md).
 
 ## Sharing preview
 
-Accounts has its own slate and ice-blue preview at `https://accounts.aidenjang.com/og.png`.
-It uses the shared key mark and bundled DM Sans, with static branding across sign-in and recovery
-links. The image contains no account or return-destination data.
-
-Regenerate the committed SVG and PNG after changing the mark or preview copy:
-
-```sh
-pnpm --filter @aidenjang/auth-web run gen:og
-```
-
-The same PNG can be uploaded under the GitHub repository's Settings → Social preview.
-
-## Repo layout
-
-- **`packages/api`** and **`packages/web`**: the service. `api` is a Hono Worker (D1
-  sessions, Turnstile, per-IP rate limiting via a Durable Object) that also serves the built
-  `web` SPA from one origin.
-- **`packages/client`**: `@aidenjang/auth-client`, **published to npm**. `loginUrl` / `logoutUrl`
-  builders plus the `AuthUser` session shape. Apps depend on this as a versioned package, so the
-  session contract has exactly one source of truth. Resolve a session with `resolveSession`, which
-  tells a signed-out visitor apart from an auth service it could not reach. `getSessionUser`
-  returns null for both and stays for the apps still on it.
-- **`packages/config`**: the strict shared tsconfig base (`noUncheckedIndexedAccess`,
-  `exactOptionalPropertyTypes`, `verbatimModuleSyntax`) and flat ESLint config.
-
-## The apps that use it
-
-For the zoomed-out view of how these fit together (the SSO trust flow, the shared Cloudflare
-conventions, and how it scales), see [PLATFORM.md](PLATFORM.md).
-
-Each is its own repo. These resolve identity through `@aidenjang/auth-client`, so they are the
-list to check before changing the session contract:
-
-- [owewell](https://owewell.aidenjang.com): split bills, settle up
-- [bloomnote](https://bloomnote.aidenjang.com): write a note, an LLM grows someone a garden
-- [coast](https://coast.aidenjang.com): nothing to win, nowhere to be
-- [mrrp](https://mrrp.aidenjang.com): one of you is the cat
-
-[wherever](https://wherever.aidenjang.com) (group restaurant voting) and
-[iguess](https://iguess.aidenjang.com) (draw-and-guess versus an AI) are on the platform but do not
-sign anyone in yet, so a change here cannot break them.
-
-Signing in is optional in all of them. It saves and syncs your data; nothing gates on an account.
-
-## Publishing `@aidenjang/auth-client`
-
-It builds to `dist` (`tsc`) and publishes to npm; the app repos install it as a versioned dep. After
-changing the session contract, bump the version and:
-
-```bash
-pnpm --filter @aidenjang/auth-client publish --access public
-```
-
-The account is on npm 2FA in `auth-and-writes` mode, so this needs a granular access token in
-`~/.npmrc` or it stops to ask for one in a browser. Two things about that token are easy to get
-wrong: it needs **read and write**, and it has to cover the `@aidenjang` _scope_ -- `@aidenjang` is
-an organization, so picking the package by name misses it and the publish fails with a 404 on PUT
-rather than a permission error. `npm whoami` returning 401 on such a token is normal.
-
-## Deploy
-
-Runs on Cloudflare's free tier (Worker + D1 + Durable Object). See
-[docs/DEPLOY-CHECKLIST.md](docs/DEPLOY-CHECKLIST.md).
-
-## Docs
-
-- [docs/API.md](docs/API.md): the `/auth/*` API and the session model
-- [docs/SECURITY.md](docs/SECURITY.md)
-- [docs/OBSERVABILITY.md](docs/OBSERVABILITY.md)
+The committed slate/ice-blue preview at `/og.png` contains static branding, with no account or return
+destination data. Regenerate its SVG and PNG with `pnpm --filter @aidenjang/auth-web run gen:og`.
+The same PNG is suitable for the repository’s optional GitHub social preview.

@@ -15,8 +15,7 @@ const db = () => createDb(testEnv);
 const BASE = 'https://auth.test';
 const json = { 'content-type': 'application/json' };
 
-// Unique email per call so tests never collide, even though isolatedStorage
-// already gives each test a clean database.
+// Unique emails keep multi-account cases independent within a test.
 let n = 0;
 const freshEmail = () => `user-${n++}-${crypto.randomUUID().slice(0, 8)}@test.dev`;
 

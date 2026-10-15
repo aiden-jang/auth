@@ -1,47 +1,35 @@
-# auth deploy checklist
+# Deployment and recovery
 
-Deploy mechanics live in [../packages/api/DEPLOY.md](../packages/api/DEPLOY.md); this is the pre-flight,
-the cross-cutting dashboard steps, and rollback.
+## Automatic deployment
 
-> You run every credential-touching command (`wrangler deploy`, `wrangler secret put`,
-> `d1 migrations apply --remote`). Nothing here needs my Cloudflare token.
+Merge a verified PR to main. CI runs repository/unit/build checks and browser journeys in parallel;
+both must pass. It retains the production web artifact and browser evidence. The deployment job
+uses that artifact, applies pending D1 migrations, and then publishes the Worker. It never publishes
+the SDK. Details of provider flags and bindings are in [the API runbook](../packages/api/DEPLOY.md).
 
-## 1. Pre-flight
+## Before merging
 
-```bash
-nvm use            # Node 22
-pnpm install
-pnpm verify        # typecheck, lint, knip, comments, formatting, build, tests, browser suite
-```
+- Run `pnpm run verify` using the pinned Node and pnpm versions.
+- Review any API/session-contract change against consuming apps and the published SDK.
+- Include generated migration SQL, snapshots and journal entries for schema changes.
+- Confirm required CI and security scans pass for the current PR head.
 
-## 2. Deploy
+## Verify after deployment
 
-Merging to `main` deploys. CI runs the same checks and then ships, so the normal path is a merge
-and nothing typed here.
+Check `/health`, the authentication screens and legal routes. Confirm the build’s Google option and
+security challenge are configured together with the Worker’s provider secrets. Use local synthetic
+accounts for automated sign-in/recovery/mutation tests; production account actions need a deliberate
+manual test plan. Correlate unexpected API failures with the returned `x-request-id`, without logging
+session cookies or email tokens.
 
-Deploy by hand only when CI cannot: it applies pending D1 migrations and then publishes, in that
-order, which is why a Workers-only API token is not enough.
+## Failed pipeline or manual recovery
 
-```bash
-pnpm --filter @aidenjang/auth-api run deploy   # builds auth-web, migrates D1, then wrangler deploy
-```
-
-Verify: `curl -sI https://accounts.aidenjang.com/health` shows the security headers (CSP, HSTS,
-`X-Content-Type-Options`); `/privacy` and `/terms` render; sign in, then sign out actually clears
-the session; `/login` still works.
-
-## 3. Cross-cutting (dashboard / one-time)
-
-- **Web Analytics:** nothing to add. The zone's site covers every hostname automatically; filter by
-  hostname for one app (cookieless; see [OBSERVABILITY.md](OBSERVABILITY.md)).
-- **Uptime:** point a free external keyword monitor at each app's health URL; the paths differ per
-  app (see [OBSERVABILITY.md](OBSERVABILITY.md)).
-- **Workers Logs:** confirm with `wrangler tail aidenjang-auth`; browse in the dashboard.
-- **Security headers:** `curl -sI https://accounts.aidenjang.com/health | grep -i content-security-policy`.
-- **Login 403 after a bad-deploy window:** dashboard → Caching → Purge Everything, retest incognito.
+Inspect the failed job before retrying. A migration failure blocks deployment on purpose. Use the
+API runbook’s manual procedure only when automatic deployment is unavailable; it preserves migration
+ordering. Do not bypass checks or run a bare deploy against a schema that has not migrated.
 
 ## Rollback
 
-The Worker keeps prior versions in the dashboard (Workers → `aidenjang-auth` → Deployments → roll
-back). D1 migrations are forward-only; keep them additive (new nullable columns) so a Worker
-rollback stays compatible with the migrated schema.
+Use the prior Worker version in Cloudflare’s deployment history. D1 migrations are forward-only:
+prefer additive changes and check that the previous Worker can run against the migrated schema.
+A Worker rollback does not restore deleted account data or undo a database migration.

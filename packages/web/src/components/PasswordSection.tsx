@@ -24,7 +24,7 @@ export function PasswordSection({
   pwDone: boolean;
   setPwDone: (done: boolean) => void;
   /** Runs an action behind the step-up prompt, for the half that has no old password to ask for. */
-  guard: (label: string, run: () => Promise<void>) => Promise<void>;
+  guard: (label: string, run: () => Promise<void>) => Promise<boolean>;
   onPasswordAdded: () => void;
   /** Lets the page retire the security-review banner once the password is dealt with. */
   onFinished: () => void;
@@ -57,11 +57,12 @@ export function PasswordSection({
         await authApi.changePassword(curPw, newPw);
         setPwWasSet(false);
       } else {
-        await guard('add a password', async () => {
+        const completed = await guard('add a password', async () => {
           await authApi.setPassword(newPw);
           onPasswordAdded();
           setPwWasSet(true);
         });
+        if (!completed) return;
       }
       setChangingPw(false);
       resetPwForm();
@@ -155,6 +156,7 @@ export function PasswordSection({
             </button>
             <button
               type="button"
+              disabled={pwSaving}
               onClick={() => {
                 setChangingPw(false);
                 resetPwForm();

@@ -2,13 +2,7 @@
    to check. Nothing that would survive being pasted into a different product. */
 
 export type WaitingOn =
-  | 'password-login'
-  | 'passkey'
-  | 'reset-link'
-  | 'verify-email'
-  | 'sessions'
-  | 'signup'
-  | 'reauth';
+  'password-login' | 'passkey' | 'reset-link' | 'verify-email' | 'sessions' | 'signup' | 'reauth';
 
 /** One line each, not a rotating set: cycling copy reads as filler rather than as a fact. */
 const LINES: Record<WaitingOn, string> = {

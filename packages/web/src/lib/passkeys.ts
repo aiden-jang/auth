@@ -62,9 +62,7 @@ function wasCancelled(err: unknown): boolean {
 }
 
 export type Outcome<T> =
-  | { kind: 'ok'; value: T }
-  | { kind: 'cancelled' }
-  | { kind: 'error'; message: string };
+  { kind: 'ok'; value: T } | { kind: 'cancelled' } | { kind: 'error'; message: string };
 
 function toOutcome(err: unknown): Outcome<never> {
   if (wasCancelled(err)) return { kind: 'cancelled' };

@@ -1,0 +1,18 @@
+name: Bug report
+description: Report an Accounts or auth-client problem.
+body:
+  - type: markdown
+    attributes:
+      value: Do not post passwords, cookies, verification/reset links, personal account exports, or security vulnerabilities here. Use private vulnerability reporting for security issues.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Include what you expected and the steps to reproduce with a test account.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Where did it happen?
+      description: Browser/device, page, app you came from, and relevant request ID. Remove private data from screenshots.

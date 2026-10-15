@@ -176,11 +176,17 @@ function stripTags(value: string): string {
   return value
     .replace(/<a [^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/g, '$2 ($1)')
     .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+    .replace(
+      /&(?:amp|lt|gt|quot|#39);/g,
+      (entity) =>
+        ({
+          '&amp;': '&',
+          '&lt;': '<',
+          '&gt;': '>',
+          '&quot;': '"',
+          '&#39;': "'",
+        })[entity] ?? entity,
+    );
 }
 
 /** UTC, named as such: the service knows the account's coarse location but not its timezone, and

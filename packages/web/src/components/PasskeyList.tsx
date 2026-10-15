@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { authApi, type Passkey } from '../lib/api';
 import { addPasskey, passkeysSupported } from '../lib/passkeys';
 import { Skeleton } from './Skeleton';
@@ -18,31 +18,45 @@ export function PasskeyList({
   guard,
 }: {
   /** Runs an action through the account page's step-up prompt, so a removal can ask for a password. */
-  guard: (label: string, run: () => Promise<void>) => Promise<void>;
+  guard: (label: string, run: () => Promise<void>) => Promise<boolean>;
 }): ReactNode {
   const [passkeys, setPasskeys] = useState<Passkey[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const mounted = useRef(false);
+  const latestLoad = useRef(0);
 
   const load = useCallback(async () => {
+    const id = ++latestLoad.current;
+    setLoading(true);
+    setLoadError(null);
     try {
-      setPasskeys((await authApi.listPasskeys()).passkeys);
+      const result = await authApi.listPasskeys();
+      if (mounted.current && id === latestLoad.current) setPasskeys(result.passkeys);
     } catch {
-      // A failed list is not worth an alarm on a security page; the retry is a reload.
-      setPasskeys([]);
+      if (mounted.current && id === latestLoad.current)
+        setLoadError('Couldn’t load your passkeys. Try again.');
+    } finally {
+      if (mounted.current && id === latestLoad.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    // load() only sets state after its await, so there is no synchronous cascade here. The rule
-    // cannot see past the promise.
+    mounted.current = true;
+    // Fetch on mount; loading and errors also belong to an explicit retry.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load();
+    if (passkeysSupported()) void load();
+    return () => {
+      mounted.current = false;
+    };
   }, [load]);
 
   if (!passkeysSupported()) return null;
 
   async function add(): Promise<void> {
+    if (busy) return;
     setBusy('add');
     setMessage(null);
     const outcome = await addPasskey();
@@ -57,6 +71,7 @@ export function PasskeyList({
   }
 
   async function remove(passkey: Passkey): Promise<void> {
+    if (busy) return;
     setBusy(passkey.id);
     setMessage(null);
     try {
@@ -89,26 +104,26 @@ export function PasskeyList({
         <button
           type="button"
           onClick={() => void add()}
-          disabled={busy === 'add'}
+          disabled={busy !== null}
           className="btn-primary shrink-0 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
         >
           {busy === 'add' ? 'Waiting for your device...' : 'Add a passkey'}
         </button>
       </div>
 
-      {passkeys === null ? (
-        <div className="mt-4 space-y-2">
+      {passkeys === null && loading ? (
+        <div className="mt-4 space-y-2" role="status" aria-label="Loading passkeys">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-12 w-full" />
         </div>
-      ) : passkeys.length === 0 ? (
+      ) : passkeys?.length === 0 ? (
         <p className="mt-4 rounded-xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
           None yet. Adding one on the device you use most is the single biggest upgrade to this
           account.
         </p>
       ) : (
         <ul className="mt-4 space-y-2">
-          {passkeys.map((passkey) => (
+          {passkeys?.map((passkey) => (
             <li
               key={passkey.id}
               className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl border border-line bg-field px-4 py-3"
@@ -128,7 +143,7 @@ export function PasskeyList({
               <button
                 type="button"
                 onClick={() => void remove(passkey)}
-                disabled={busy === passkey.id}
+                disabled={busy !== null}
                 className="shrink-0 rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition hover:border-neg/40 hover:text-neg disabled:opacity-50"
               >
                 {busy === passkey.id ? 'Removing...' : 'Remove'}
@@ -138,6 +153,21 @@ export function PasskeyList({
         </ul>
       )}
 
+      {loadError && (
+        <div className="mt-3">
+          <p role="alert" className="text-sm text-neg">
+            {loadError}
+          </p>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => void load()}
+            className="mt-2 min-h-11 text-sm font-medium text-accent"
+          >
+            {loading ? 'Loading…' : 'Try again'}
+          </button>
+        </div>
+      )}
       {message && (
         <p role="status" className="mt-3 text-sm text-muted">
           {message}

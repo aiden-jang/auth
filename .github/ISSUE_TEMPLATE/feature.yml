@@ -1,0 +1,14 @@
+name: Feature request
+description: Suggest an improvement to shared sign-in or account management.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would this help you do?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed improvement
+      description: Mention affected apps and any recovery or accessibility needs.

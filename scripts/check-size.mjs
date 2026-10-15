@@ -18,9 +18,7 @@ const MAX_STATE = 12;
  * everyone, so nothing else can grow past it meanwhile.
  * An entry sitting above its file fails too, so nobody has to remember to shrink one.
  */
-const ALREADY_OVER = {
-  'packages/web/src/pages/AccountPage.tsx': { lines: 454, state: 16 },
-};
+const ALREADY_OVER = {};
 
 const files = globSync('packages/*/src/**/*.{ts,tsx}').filter((f) => !/\.test\.tsx?$/.test(f));
 const problems = [];

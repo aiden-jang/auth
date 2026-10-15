@@ -11,8 +11,7 @@ export interface Env {
   // Shared parent domain for the session cookie (e.g. ".aidenjang.com"). Unset in local dev
   // (host-only cookie).
   COOKIE_DOMAIN?: string;
-  // Comma-separated app origins allowed to call auth with credentials. Unset in dev reflects
-  // the request origin.
+  // Explicit app origins allowed to use browser credentials, alongside the Accounts origin.
   CORS_ORIGINS?: string;
   // Base URL of the auth UI, used to build email links (e.g. https://accounts.aidenjang.com).
   APP_URL?: string;

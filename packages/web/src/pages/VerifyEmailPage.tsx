@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { returnAppFor, safeReturnTo } from '../lib/returnTo';
-import { authApi } from '../lib/api';
+import { ApiError, authApi } from '../lib/api';
 import { AuthCard } from '../components/AuthCard';
 import { reassurance } from '../lib/reassurance';
 
@@ -14,18 +14,35 @@ export function VerifyEmailPage(): ReactNode {
   // "Confirming your email..." at somebody whose link was truncated.
   const [status, setStatus] = useState<'pending' | 'ok' | 'error'>(token ? 'pending' : 'error');
 
-  /* The token is spent on first use, so send it once. An effect that runs twice verifies the
-     address and is then refused, and whichever settles last decides what the page says. */
-  const spent = useRef<string | null>(null);
-
+  const [attempt, setAttempt] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [retryable, setRetryable] = useState(false);
+  const request = useRef<{ token: string; attempt: number; promise: Promise<unknown> } | null>(
+    null,
+  );
   useEffect(() => {
-    if (!token || spent.current === token) return;
-    spent.current = token;
-    authApi
-      .verifyEmail(token)
-      .then(() => setStatus('ok'))
-      .catch(() => setStatus('error'));
-  }, [token]);
+    if (!token) return;
+    let active = true;
+    // Reuse the in-flight request across StrictMode subscriptions; verification spends its token.
+    if (request.current?.token !== token || request.current.attempt !== attempt) {
+      request.current = { token, attempt, promise: authApi.verifyEmail(token) };
+    }
+    void request.current.promise
+      .then(() => {
+        if (active) setStatus('ok');
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        const retry =
+          err instanceof ApiError && (err.status === 0 || err.status >= 500 || err.status === 429);
+        setRetryable(retry);
+        setError(retry && err instanceof Error ? err.message : null);
+        setStatus('error');
+      });
+    return () => {
+      active = false;
+    };
+  }, [token, attempt]);
 
   return (
     <AuthCard title="Verify your email" returnApp={returnApp}>
@@ -53,7 +70,21 @@ export function VerifyEmailPage(): ReactNode {
       )}
       {status === 'error' && (
         <div className="space-y-4">
-          <p className="text-sm text-neg">That verification link is invalid or expired.</p>
+          <p role="alert" className="text-sm text-neg">
+            {error ?? 'That verification link is invalid or expired.'}
+          </p>
+          {retryable && (
+            <button
+              type="button"
+              onClick={() => {
+                setStatus('pending');
+                setAttempt((value) => value + 1);
+              }}
+              className="btn-primary rounded-xl px-5 py-3 font-semibold"
+            >
+              Try again
+            </button>
+          )}
           <Link to="/account" className="font-medium text-accent hover:underline">
             Go to your account to resend it
           </Link>

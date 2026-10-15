@@ -1,17 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-/**
- * The journey a person actually takes: register, confirm the emailed link, sign out, sign back in.
- *
- * The 279 tests under it know every route answers correctly. None of them know whether somebody
- * can get from an empty form to a signed-in account page in a browser, which is where the bugs
- * that reach people live.
- *
- * The worker's output is teed to a file because that is the only place a verification token
- * exists: the emailed link carries the raw token and the database stores only its hash, so
- * without the log there is no way to follow the link a real person would click. In dev, with no
- * RESEND_API_KEY, the mail is written to stdout instead of sent.
- */
+// Dev mail is logged locally: verification/reset tokens are hashed before they enter D1.
 export const WORKER_LOG = '/tmp/aidenjang-auth-e2e-worker.log';
 
 /*
@@ -39,7 +28,9 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? [['github'], ['list']] : [['list']],
+  reporter: process.env.CI
+    ? [['github'], ['list'], ['json', { outputFile: 'test-results/results.json' }]]
+    : [['list']],
   use: {
     baseURL: 'http://localhost:34110',
     extraHTTPHeaders: { 'cf-connecting-ip': RUN_IP },
@@ -65,6 +56,7 @@ export default defineConfig({
         `pnpm --filter @aidenjang/auth-api exec wrangler dev ` +
         `--var APP_URL:http://localhost:34110 --var TURNSTILE_SECRET: --var RESEND_API_KEY: ` +
         `> ${WORKER_LOG} 2>&1`,
+      env: { VITE_GOOGLE_ENABLED: 'true', VITE_TURNSTILE_SITE_KEY: '0x4AAAAAADxBNTw4CP1ZhzK1' },
       url: 'http://localhost:34100/health',
       reuseExistingServer: false,
       timeout: 120_000,
@@ -75,6 +67,7 @@ export default defineConfig({
       // exec, not `dev -- --mode e2e`: pnpm swallows the flag and vite silently runs in
       // development mode, which puts the challenge back and leaves every submit disabled.
       command: 'pnpm --filter @aidenjang/auth-web exec vite --mode e2e',
+      env: { VITE_TURNSTILE_SITE_KEY: '', VITE_GOOGLE_ENABLED: 'true' },
       url: 'http://localhost:34110',
       // Never reused either. A vite server already running from `pnpm dev` was started without
       // --mode e2e, so reusing it silently puts the challenge back and every form stays disabled.

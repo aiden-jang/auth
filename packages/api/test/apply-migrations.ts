@@ -1,5 +1,14 @@
-import { applyD1Migrations, env } from 'cloudflare:test';
+import { applyD1Migrations, env, listDurableObjectIds, runInDurableObject } from 'cloudflare:test';
+import { beforeEach } from 'vitest';
 
-// Apply the app's D1 migrations to the isolated in-memory test database before
-// the suite runs. TEST_MIGRATIONS is injected by vitest.config.ts.
 await applyD1Migrations(env.DB, env.TEST_MIGRATIONS);
+
+// The maintained plugin shares storage; reset both account rows and rate-limit counters per test.
+beforeEach(async () => {
+  await env.DB.exec('DELETE FROM users');
+  for (const id of await listDurableObjectIds(env.RATE_LIMITER)) {
+    await runInDurableObject(env.RATE_LIMITER.get(id), async (_instance, state) => {
+      await state.storage.deleteAll();
+    });
+  }
+});

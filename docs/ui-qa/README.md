@@ -1,5 +1,8 @@
 # Accounts UI verification
 
+The [October 14 review](october-14/README.md) records the latest account, recovery, and keyboard checks.
+Earlier records below describe their historical revisions.
+
 The [design](../DESIGN.md) uses an independent slate and ice-blue identity with cool paper,
 a cute key illustration and locally bundled DM Sans. The account
 hub has a wider app grid and consistent section spacing. Worth is now in the app registry

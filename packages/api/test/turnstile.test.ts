@@ -1,29 +1,30 @@
-import { fetchMock } from 'cloudflare:test';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { verifyTurnstile } from '../src/turnstile.js';
 
 const SITEVERIFY = 'https://challenges.cloudflare.com';
 
 beforeEach(() => {
-  fetchMock.activate();
-  fetchMock.disableNetConnect();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      throw new Error('Unexpected outbound request');
+    }),
+  );
 });
-afterEach(() => fetchMock.assertNoPendingInterceptors());
+afterEach(() => vi.unstubAllGlobals());
 
 /** Intercept siteverify, capturing the form Cloudflare would have received. */
-function expectSiteverify(reply: object, status = 200): { body: () => string } {
-  let captured = '';
-  fetchMock
-    .get(SITEVERIFY)
-    .intercept({
-      path: '/turnstile/v0/siteverify',
-      method: 'POST',
-      body: (b) => {
-        captured = String(b);
-        return true;
-      },
-    })
-    .reply(status, reply);
+function expectSiteverify(reply: object, status = 200): { body: () => FormData } {
+  let captured = new FormData();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe(`${SITEVERIFY}/turnstile/v0/siteverify`);
+      expect(init?.method).toBe('POST');
+      captured = await new Request(input, init).formData();
+      return Response.json(reply, { status });
+    }),
+  );
   return { body: () => captured };
 }
 
@@ -57,8 +58,8 @@ describe('the bot challenge', () => {
   it('sends the secret and the token it was given', async () => {
     const form = expectSiteverify({ success: true });
     await verifyTurnstile('the-secret', 'the-token');
-    expect(form.body()).toContain('the-secret');
-    expect(form.body()).toContain('the-token');
+    expect(form.body().get('secret')).toBe('the-secret');
+    expect(form.body().get('response')).toBe('the-token');
   });
 
   /*
@@ -69,18 +70,18 @@ describe('the bot challenge', () => {
   it('forwards a real address', async () => {
     const form = expectSiteverify({ success: true });
     await verifyTurnstile('secret', 'token', '203.0.113.7');
-    expect(form.body()).toContain('203.0.113.7');
+    expect(form.body().get('remoteip')).toBe('203.0.113.7');
   });
 
   it('forwards an ipv6 address', async () => {
     const form = expectSiteverify({ success: true });
     await verifyTurnstile('secret', 'token', '2001:db8::1');
-    expect(form.body()).toContain('2001:db8::1');
+    expect(form.body().get('remoteip')).toBe('2001:db8::1');
   });
 
   it('leaves out a dev placeholder that is not an address', async () => {
     const form = expectSiteverify({ success: true });
     await verifyTurnstile('secret', 'token', 'local');
-    expect(form.body()).not.toContain('remoteip');
+    expect(form.body().has('remoteip')).toBe(false);
   });
 });

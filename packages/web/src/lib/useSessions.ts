@@ -44,12 +44,10 @@ export function useSessions(): Sessions {
       setList(result.sessions);
       if (manual) {
         setJustRefreshed(true);
-        window.setTimeout(() => setJustRefreshed(false), 1800);
       }
     } catch {
       // Preserve a previously loaded list. A refresh failure should not make every known session
       // disappear and falsely imply that no devices are signed in.
-      setList((current) => current ?? []);
       setError('Couldn’t refresh active devices. Try again.');
     } finally {
       if (manual) setRefreshing(false);
@@ -62,6 +60,12 @@ export function useSessions(): Sessions {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!justRefreshed) return;
+    const timer = window.setTimeout(() => setJustRefreshed(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [justRefreshed]);
 
   const revoke = useCallback(async (id: string): Promise<void> => {
     setRevokingId(id);

@@ -1,6 +1,6 @@
-import { createExecutionContext, env, fetchMock, waitOnExecutionContext } from 'cloudflare:test';
+import { createExecutionContext, env, waitOnExecutionContext } from 'cloudflare:test';
 import { eq } from 'drizzle-orm';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../src/index.js';
 import { createDb } from '../src/db/client.js';
 import { users } from '../src/db/schema.js';
@@ -24,11 +24,14 @@ const googleEnv = (): Env => ({
 });
 
 beforeEach(() => {
-  fetchMock.activate();
-  fetchMock.disableNetConnect();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      throw new Error('Unexpected outbound request');
+    }),
+  );
 });
-
-afterEach(() => fetchMock.assertNoPendingInterceptors());
+afterEach(() => vi.unstubAllGlobals());
 
 function b64url(value: object): string {
   return btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -40,10 +43,14 @@ function idToken(claims: Record<string, unknown>): string {
 }
 
 function expectTokenExchange(claims: Record<string, unknown>): void {
-  fetchMock
-    .get('https://oauth2.googleapis.com')
-    .intercept({ path: '/token', method: 'POST' })
-    .reply(200, { id_token: idToken(claims) });
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe('https://oauth2.googleapis.com/token');
+      expect(init?.method).toBe('POST');
+      return Response.json({ id_token: idToken(claims) });
+    }),
+  );
 }
 
 /** Drive the callback the way Google does: the state cookie the app set, plus code and state. */
@@ -136,17 +143,12 @@ describe('the Google callback', () => {
    * audience is the one thing proving it was minted for this client and not replayed from another.
    */
   it('refuses an id_token minted for a different client', async () => {
-    fetchMock
-      .get('https://oauth2.googleapis.com')
-      .intercept({ path: '/token', method: 'POST' })
-      .reply(200, {
-        id_token: `${b64url({ alg: 'RS256' })}.${b64url({
-          aud: 'someone-elses-client.apps.googleusercontent.com',
-          sub: 'g-3',
-          email: freshEmail(),
-          email_verified: true,
-        })}.sig`,
-      });
+    expectTokenExchange({
+      aud: 'someone-elses-client.apps.googleusercontent.com',
+      sub: 'g-3',
+      email: freshEmail(),
+      email_verified: true,
+    });
     const res = await callback();
     expect(signedIn(res)).toBe(false);
     expect(reason(res)).toBe('token_exchange');

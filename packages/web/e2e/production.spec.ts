@@ -6,6 +6,17 @@ import { expect, test } from './fixtures';
  */
 const ORIGIN = 'http://localhost:34100';
 
+const challengeScript = `window.turnstile = {
+  render(element, options) { element.textContent = 'Security check ready'; options.callback('local-test-token'); return 'local-widget'; },
+  remove() {}, reset() {}
+};`;
+
+test.beforeEach(async ({ page }) => {
+  await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js', (route) =>
+    route.fulfill({ contentType: 'application/javascript', body: challengeScript }),
+  );
+});
+
 test.describe('the built app, served the way production serves it', () => {
   test('renders the sign-in page from the bundle, with no console errors', async ({ page }) => {
     const errors: string[] = [];
@@ -14,6 +25,10 @@ test.describe('the built app, served the way production serves it', () => {
 
     await page.goto(`${ORIGIN}/login`);
     await expect(page.getByRole('button', { name: 'Log in' })).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Continue with Google', exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText('Security check ready', { exact: true })).toBeVisible();
     expect(errors).toEqual([]);
   });
 
@@ -37,4 +52,22 @@ test.describe('the built app, served the way production serves it', () => {
     expect(src).toMatch(/^\/assets\/.+\.js$/);
     expect((await request.get(`${ORIGIN}${src}`)).status()).toBe(200);
   });
+});
+
+test('a security-check script failure is recoverable without a full page reload', async ({
+  page,
+}) => {
+  let calls = 0;
+  await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js', (route) =>
+    ++calls === 1
+      ? route.abort()
+      : route.fulfill({ contentType: 'application/javascript', body: challengeScript }),
+  );
+  await page.goto(`${ORIGIN}/login`);
+  await expect(page.getByRole('alert')).toContainText('Couldn’t load the security check');
+  await expect(page.getByRole('button', { name: 'Log in', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Reload security check', exact: true }).click();
+  await expect(page.getByText('Security check ready', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Log in', exact: true })).toBeEnabled();
+  expect(calls).toBe(2);
 });

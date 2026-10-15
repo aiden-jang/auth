@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
@@ -27,23 +27,29 @@ declare global {
   }
 }
 
+let scriptLoad: Promise<void> | null = null;
 function loadScript(): Promise<void> {
   if (window.turnstile) return Promise.resolve();
-  const existing = document.querySelector<HTMLScriptElement>(`script[src="${SCRIPT_SRC}"]`);
-  if (existing) {
-    return new Promise((resolve) =>
-      existing.addEventListener('load', () => resolve(), { once: true }),
-    );
-  }
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = SCRIPT_SRC;
-    s.async = true;
-    s.defer = true;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error('turnstile failed to load'));
-    document.head.appendChild(s);
-  });
+  if (scriptLoad) return scriptLoad;
+  const script = document.createElement('script');
+  script.src = SCRIPT_SRC;
+  script.async = true;
+  script.defer = true;
+  let timer: number;
+  scriptLoad = new Promise<void>((resolve, reject) => {
+    script.onload = () =>
+      window.turnstile ? resolve() : reject(new Error('Security check unavailable'));
+    script.onerror = () => reject(new Error('Security check unavailable'));
+    timer = window.setTimeout(() => reject(new Error('Security check timed out')), 15_000);
+    document.head.appendChild(script);
+  })
+    .catch((error: unknown) => {
+      script.remove();
+      scriptLoad = null;
+      throw error;
+    })
+    .finally(() => window.clearTimeout(timer));
+  return scriptLoad;
 }
 
 /**
@@ -60,6 +66,8 @@ export function Turnstile({
 }): ReactNode {
   const ref = useRef<HTMLDivElement>(null);
   const widgetId = useRef<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   // Keep the latest callback without re-running the render effect on every parent render. Written
   // in an effect, not during render: a render can be thrown away, and this ref outlives it.
   const cb = useRef(onToken);
@@ -77,19 +85,23 @@ export function Turnstile({
           sitekey: SITE_KEY,
           callback: (token) => cb.current(token),
           'expired-callback': () => cb.current(''),
-          'error-callback': () => cb.current(''),
+          'error-callback': () => {
+            cb.current('');
+            setError('The security check failed. Try loading it again.');
+          },
           theme: 'auto',
         });
       })
       .catch(() => {
-        // Leave the form usable; the backend still gates when configured.
+        if (!cancelled)
+          setError('Couldn’t load the security check. Check your connection and try again.');
       });
     return () => {
       cancelled = true;
       if (widgetId.current && window.turnstile) window.turnstile.remove(widgetId.current);
       widgetId.current = null;
     };
-  }, []);
+  }, [attempt]);
 
   // Tokens are single-use; after a failed submit the parent bumps resetSignal to fetch a fresh
   // one. Reusing the spent token fails siteverify as `timeout-or-duplicate` (the "widget says
@@ -101,9 +113,26 @@ export function Turnstile({
   }, [resetSignal]);
 
   if (!SITE_KEY) return null;
-  // Centred, because turnstile.render() injects a fixed-width widget (300px) into whatever element
-  // it is handed. This div is the full form width, so the widget sat hard against the left edge with
-  // a ragged gap to the right of it — the only control on the sign-in page not lining up with the
-  // rest. Centring is version-proof: it stays right whatever width Cloudflare renders at.
-  return <div ref={ref} className="mt-1 flex justify-center" />;
+  return (
+    <div>
+      <div ref={ref} className="mt-1 flex justify-center" />
+      {error && (
+        <div className="mt-2 text-sm">
+          <p role="alert" className="text-neg">
+            {error}
+          </p>
+          <button
+            type="button"
+            className="mt-1 min-h-11 font-medium text-accent"
+            onClick={() => {
+              setError(null);
+              setAttempt((value) => value + 1);
+            }}
+          >
+            Reload security check
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
