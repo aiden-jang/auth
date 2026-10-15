@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 const { scripts } = JSON.parse(readFileSync('package.json', 'utf8'));
 const problems = [];
 
-for (const chain of ['verify', 'verify:fast']) {
+for (const chain of ['verify', 'verify:fast', 'verify:core']) {
   for (const step of scripts[chain].split('&&').map((s) => s.trim())) {
     // Workspace-wide and filtered invocations are not script-name lookups.
     if (

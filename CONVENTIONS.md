@@ -10,10 +10,10 @@ catch what judgment did not.
 pnpm verify
 ```
 
-Twelve gates. The deploy job is gated on them, so a red gate means nothing ships.
+The deploy job requires both repository checks and browser journeys, so a red gate means nothing ships.
 
-`pnpm verify:fast` is the same list without build, tests and the browser suite. That is what the
-pre-commit hook and the Stop hook in `.claude/settings.json` run, in about 13 seconds. Neither
+`pnpm run verify:fast` runs repository gates and guard tests; `verify:core` adds builds and unit tests. That is what the
+pre-commit hook and the Stop hook in `.claude/settings.json` run, without the browser journey. Neither
 replaces `pnpm verify`; they only stop obviously-broken work being committed or declared finished.
 
 Always `pnpm run <name>`, and never name a script after an npm command. A script called `docs` was
@@ -141,8 +141,7 @@ immutability constraints. `auth/stepUp.ts` is the model: two real outages, writt
 ## Size
 
 A god-file accretes twenty lines at a time and no single diff looks wrong, so the ceiling is the
-gate rather than a review habit. `AccountPage.tsx` sits just under its ceiling, so the next feature
-there means extracting something first, which is the intent. Split rather than raising a ceiling.
+gate rather than a review habit. Keep account sections cohesive and below the normal file/state ceilings. No source-size exceptions remain. Split rather than raising a ceiling.
 
 ## Tests
 
@@ -150,7 +149,8 @@ there means extracting something first, which is the intent. Split rather than r
   measuring nothing: a rate-limit test that never tripped, an assertion that held by coincidence.
 - DB-backed tests go in `packages/api/test/` (they need `cloudflare:test`); pure ones sit next to
   their module in `src/`. Both are typechecked.
-- The browser suite starts its own worker and vite. It reads verification and reset links out of
+- API tests use `@cloudflare/vitest-plugin` with explicit D1/counter resets between tests.
+  The browser suite starts its own worker and Vite. It reads verification and reset links out of
   the worker's dev log, because only the hash of a token is ever stored.
 
 ## Migrations
@@ -162,15 +162,14 @@ runs migrations before it publishes.
 
 ## Publishing `@aidenjang/auth-client`
 
-Four apps in other repos install this, so a change is a publish and a version bump, not a deploy.
-See the README for the npm token it needs.
+Other repositories install this as a versioned dependency. Public-contract changes need a version bump and an authorized publish; see CONTRIBUTING.md.
 
 ## Deliberate, do not "fix"
 
 - `harden.ts` is copied into each app rather than shared, so no Worker is unsafe because something
   else failed to deploy. This repo's copy is the reference.
 - Registration answers `409` on a taken email. That does enumerate, and it is the accepted price of
-  a usable sign-up. `forgot-password` is always `200` and must stay that way.
+  a usable sign-up. Successful `forgot-password` requests return the same `200` response for known and unknown addresses.
 - `/auth/me` must stay `no-store`: it depends on who is asking and the only `Vary` is Origin.
 - `getSessionUser` stays alongside `resolveSession` for the apps still on it.
 - Loopback redirects are allowed only when the app's own origin is loopback. Both

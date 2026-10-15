@@ -6,39 +6,47 @@
   "description": "Auth service (accounts.aidenjang.com) + the published @aidenjang/auth-client SDK and shared config, on Cloudflare.",
   "license": "MIT",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.17.0 <23"
   },
-  "packageManager": "pnpm@9.12.0",
+  "packageManager": "pnpm@9.15.0",
   "scripts": {
     "build": "pnpm -r build",
-    "deploy": "pnpm verify && pnpm deploy:only",
+    "deploy": "pnpm run verify && pnpm run deploy:only",
     "typecheck": "pnpm -r typecheck",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "pnpm -r test",
-    "verify": "pnpm run gates && pnpm run typecheck && pnpm run lint && pnpm run knip && pnpm run comments && pnpm run size && pnpm run css-vars && pnpm run check:docs && pnpm run migrations && pnpm run format:check && pnpm run build && pnpm run dead-classes && pnpm -r test && pnpm --filter @aidenjang/auth-web e2e",
+    "verify": "pnpm run verify:core && pnpm --filter @aidenjang/auth-web e2e",
     "deploy:only": "pnpm --filter @aidenjang/auth-api run deploy",
     "knip": "knip",
     "comments": "node scripts/check-comments.mjs",
     "migrations": "node scripts/check-migrations.mjs",
     "size": "node scripts/check-size.mjs",
-    "verify:fast": "pnpm run gates && pnpm run typecheck && pnpm run lint && pnpm run knip && pnpm run comments && pnpm run size && pnpm run css-vars && pnpm run check:docs && pnpm run migrations && pnpm run format:check",
+    "verify:fast": "pnpm run gates && pnpm run typecheck && pnpm run lint && pnpm run knip && pnpm run comments && pnpm run size && pnpm run css-vars && pnpm run check:docs && pnpm run migrations && pnpm run format:check && pnpm run security:check && pnpm run test:guards",
     "events": "node scripts/events.mjs",
     "gates": "node scripts/check-gates.mjs",
     "check:docs": "node scripts/check-docs.mjs",
     "css-vars": "node scripts/check-css-vars.mjs",
-    "dead-classes": "pnpm --filter @aidenjang/auth-web dead-classes"
+    "dead-classes": "pnpm --filter @aidenjang/auth-web dead-classes",
+    "security:check": "pnpm audit --audit-level=low",
+    "test:guards": "node --test scripts/*.test.mjs",
+    "verify:core": "pnpm run verify:fast && pnpm run build && pnpm run dead-classes && pnpm run test"
   },
   "devDependencies": {
     "@aidenjang/config": "workspace:*",
-    "@types/node": "^22.7.0",
-    "eslint": "^9.12.0",
+    "@types/node": "^22.20.5",
+    "eslint": "^9.39.5",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "knip": "^6.34.0",
-    "prettier": "^3.3.3",
-    "typescript": "^5.6.2",
-    "typescript-eslint": "^8.8.0"
+    "knip": "^6.41.0",
+    "prettier": "^3.9.10",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.71.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "@esbuild-kit/core-utils>esbuild": "^0.25.12"
+    }
   }
 }

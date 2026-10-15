@@ -11,7 +11,8 @@ import { reassurance } from '../lib/reassurance';
  */
 
 interface Pending {
-  run: () => Promise<void>;
+  resolve: (confirmed: boolean) => void;
+  trigger: HTMLElement | null;
   canUsePassword: boolean;
   /** What the person was trying to do, so the prompt can say why it is asking. */
   label: string;
@@ -22,31 +23,48 @@ export interface StepUp {
    * Run an action, and if the server wants re-confirmation, ask for it and run the action again.
    * Any other failure is rethrown so the caller's own error handling still owns it.
    */
-  guard: (label: string, run: () => Promise<void>) => Promise<void>;
+  guard: (label: string, run: () => Promise<void>) => Promise<boolean>;
   prompt: ReactNode;
 }
 
 export function useStepUp(): StepUp {
   const [pending, setPending] = useState<Pending | null>(null);
 
-  const guard = useCallback(async (label: string, run: () => Promise<void>) => {
+  const pendingRef = useRef<Pending | null>(null);
+  useEffect(() => () => pendingRef.current?.resolve(false), []);
+
+  const settle = useCallback((confirmed: boolean) => {
+    const current = pendingRef.current;
+    pendingRef.current = null;
+    current?.resolve(confirmed);
+    setPending(null);
+  }, []);
+
+  const guard = useCallback(async (label: string, run: () => Promise<void>): Promise<boolean> => {
+    if (pendingRef.current) return false;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     try {
       await run();
+      return true;
     } catch (err) {
       if (!isReauthRequired(err)) throw err;
-      setPending({ run, canUsePassword: reauthCanUsePassword(err), label });
+      const confirmed = await new Promise<boolean>((resolve) => {
+        const next = { resolve, trigger, canUsePassword: reauthCanUsePassword(err), label };
+        pendingRef.current = next;
+        setPending(next);
+      });
+      if (!confirmed) return false;
+      // Resume the original caller so its error handler owns a failed action after reauthentication.
+      await run();
+      return true;
     }
   }, []);
 
   const prompt = pending ? (
     <StepUpDialog
       pending={pending}
-      onClose={() => setPending(null)}
-      onConfirmed={async () => {
-        const { run } = pending;
-        setPending(null);
-        await run();
-      }}
+      onClose={() => settle(false)}
+      onConfirmed={() => settle(true)}
     />
   ) : null;
 
@@ -60,30 +78,54 @@ function StepUpDialog({
 }: {
   pending: Pending;
   onClose: () => void;
-  onConfirmed: () => Promise<void>;
+  onConfirmed: () => void;
 }): ReactNode {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
 
-  // Escape closes, and focus starts inside the dialog rather than wherever the page left it. Without
-  // the move, a keyboard or screen-reader user is told a dialog opened and then has to hunt for it.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') onClose();
+    const previous = pending.trigger;
+    const root = document.getElementById('root');
+    const wasInert = root?.inert ?? false;
+    if (root) root.inert = true;
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+      if (event.key !== 'Tab') return;
+      const controls = Array.from(
+        panel.current?.querySelectorAll<HTMLElement>('input, button, a[href]') ?? [],
+      ).filter((control) => !control.hasAttribute('disabled'));
+      const first = controls[0],
+        last = controls.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      }
+      if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
     };
     document.addEventListener('keydown', onKey);
     panel.current?.querySelector<HTMLElement>('input, button')?.focus();
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      if (root) root.inert = wasInert;
+      // The caller's pending button becomes enabled after its guard resumes.
+      window.requestAnimationFrame(() => previous?.isConnected && previous.focus());
+    };
+  }, [onClose, pending.trigger]);
 
   async function confirm(): Promise<void> {
     setBusy(true);
     setError(null);
     try {
       await authApi.reauth(password);
-      await onConfirmed();
+      if (panel.current?.isConnected) onConfirmed();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'That did not work.');
       setBusy(false);

@@ -17,14 +17,18 @@ const code = globSync('packages/api/src/**/*.ts')
   .join('\n');
 
 const routes = new Set(
-  [...code.matchAll(/app\.(?:get|post|all)\('([^']+)'/g)].map((m) => m[1]).filter((p) => p !== '*'),
+  [...code.matchAll(/app\.(?:get|post|put|patch|delete|options|head|all)\('([^']+)'/g)]
+    .map((m) => m[1])
+    .filter((p) => p !== '*'),
 );
 
 const apiDoc = readFileSync('docs/API.md', 'utf8');
 const documented = new Set(
-  [...apiDoc.matchAll(/`(\/(?:auth\/[a-z0-9/-]+|health|\.well-known\/[a-z0-9/-]+))`/g)].map(
-    (m) => m[1],
-  ),
+  [
+    ...apiDoc.matchAll(
+      /`(?:GET |POST |PUT |PATCH |DELETE |OPTIONS |HEAD )?(\/(?:auth\/[a-z0-9/-]+|health|\.well-known\/[a-z0-9/-]+))`/g,
+    ),
+  ].map((m) => m[1]),
 );
 
 const problems = [];
@@ -38,15 +42,17 @@ for (const route of [...documented].sort()) {
 
 // Paths the docs point a reader at. Bare names like `lib/api.ts` are prose, not links, so only
 // package-rooted ones are resolved.
-for (const doc of globSync('{*.md,docs/*.md,packages/*/*.md}')) {
+for (const doc of globSync('{*.md,.github/**/*.md,docs/**/*.md,packages/*/*.md}')) {
   const text = readFileSync(doc, 'utf8');
   for (const m of text.matchAll(/`(packages\/[A-Za-z0-9_./-]+\.[a-z]+)`/g)) {
     if (!existsSync(m[1])) problems.push(`${doc} points at ${m[1]}, which does not exist`);
   }
-  for (const m of text.matchAll(/\]\((\.{1,2}\/[A-Za-z0-9_./-]+\.md)\)/g)) {
-    if (!existsSync(join(dirname(doc), m[1]))) {
-      problems.push(`${doc} links to ${m[1]}, which does not exist`);
-    }
+  for (const m of text.matchAll(/\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
+    const target = m[1].replace(/^<|>$/g, '').split('#')[0];
+    if (!target || target.startsWith('/') || /^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
+    const file = decodeURIComponent(target);
+    if (!existsSync(join(dirname(doc), file)))
+      problems.push(`${doc} links to ${file}, which does not exist`);
   }
 }
 

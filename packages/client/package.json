@@ -19,13 +19,13 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepublishOnly": "pnpm build",
+    "prepublishOnly": "pnpm run build",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run"
   },
   "devDependencies": {
     "@aidenjang/config": "workspace:*",
-    "typescript": "^5.6.2",
-    "vitest": "^2.1.8"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   }
 }

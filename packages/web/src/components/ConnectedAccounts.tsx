@@ -14,7 +14,7 @@ export function ConnectedAccounts({
      render before this component is anywhere near it. */
   googleMsg: string | null;
   setGoogleMsg: (message: string | null) => void;
-  guard: (label: string, run: () => Promise<void>) => Promise<void>;
+  guard: (label: string, run: () => Promise<void>) => Promise<boolean>;
   onDisconnected: () => void;
 }): ReactNode {
   const [disconnecting, setDisconnecting] = useState(false);
@@ -37,7 +37,7 @@ export function ConnectedAccounts({
   return (
     <section aria-label="Connected accounts">
       <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Connected accounts</h2>
-      <div className="mt-3 flex items-center justify-between gap-4 rounded-xl border border-line bg-field px-4 py-3">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-field px-4 py-3">
         <span className="flex items-center gap-3">
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden className="shrink-0">
             <path

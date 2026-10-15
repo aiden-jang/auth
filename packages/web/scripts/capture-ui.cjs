@@ -4,7 +4,8 @@ const { chromium } = require(
 const fs = require('node:fs/promises');
 const assert = require('node:assert/strict');
 (async () => {
-  const dir = require('node:path').resolve(__dirname, '../../../docs/ui-qa');
+  const dir =
+    process.env.AUTH_UI_OUTPUT || require('node:path').resolve(__dirname, '../../../docs/ui-qa');
   await fs.mkdir(dir, { recursive: true });
   const browser = await chromium.launch({
     ...(process.env.AUTH_BROWSER_PATH ? { executablePath: process.env.AUTH_BROWSER_PATH } : {}),
@@ -14,11 +15,21 @@ const assert = require('node:assert/strict');
     context.setDefaultTimeout(10000);
     let page;
     let signedIn = false;
+    let scenario = '';
     const errors = [];
     context.on('page', (opened) => opened.on('pageerror', (e) => errors.push(e.message)));
     await context.route('**/auth/**', (r) => {
       const p = new URL(r.request().url()).pathname;
       if (!p.startsWith('/auth/')) return r.continue();
+      if (
+        (p === '/auth/me' && scenario === 'account-error') ||
+        (p === '/auth/passkeys' && scenario === 'passkey-error') ||
+        (p === '/auth/sessions' && scenario === 'device-error') ||
+        p === '/auth/logout' ||
+        p === '/auth/verify-email' ||
+        p === '/auth/forgot-password'
+      )
+        return r.fulfill({ status: 503, json: { error: 'UNAVAILABLE' } });
       if (p === '/auth/me')
         return r.fulfill({
           status: signedIn ? 200 : 401,
@@ -27,7 +38,10 @@ const assert = require('node:assert/strict');
                 user: {
                   id: 'visual-preview',
                   email: 'preview@example.test',
-                  displayName: 'Preview',
+                  displayName:
+                    scenario === 'profile-long'
+                      ? 'AReallyLongDisplayNameWithoutAnyNaturalBreaksToCheckThePhoneLayout'
+                      : 'Preview',
                   emailVerified: true,
                   hasPassword: true,
                   hasGoogle: false,
@@ -52,7 +66,25 @@ const assert = require('node:assert/strict');
             ],
           },
         });
-      if (p === '/auth/passkeys') return r.fulfill({ json: { passkeys: [] } });
+      if (p === '/auth/passkeys')
+        return r.fulfill({
+          json: {
+            passkeys:
+              scenario === 'security-dialog'
+                ? [
+                    {
+                      id: 'preview-key',
+                      label: 'Personal laptop',
+                      backedUp: true,
+                      createdAt: new Date().toISOString(),
+                      lastUsedAt: null,
+                    },
+                  ]
+                : [],
+          },
+        });
+      if (p === '/auth/passkeys/delete')
+        return r.fulfill({ status: 403, json: { error: 'REAUTH_REQUIRED', canUsePassword: true } });
       return r.fulfill({
         status: 400,
         json: { error: 'PREVIEW', message: 'This preview does not save changes.' },
@@ -96,16 +128,26 @@ const assert = require('node:assert/strict');
       ['reset', '/reset-password', false, null],
       ['verify', '/verify-email', false, null],
       ['account', '/account', true, 'Your account'],
+      ['account-error', '/account', true, 'Your account'],
+      ['passkey-error', '/account', true, 'Your account'],
+      ['device-error', '/account', true, 'Your account'],
+      ['profile-long', '/account', true, 'Your account'],
+      ['profile-edit', '/account', true, 'Your account'],
+      ['security-dialog', '/account', true, 'Your account'],
+      ['logout-error', '/logout', false, 'Sign-out didn’t finish'],
+      ['verify-outage', '/verify-email?token=synthetic-review', false, 'Verify your email'],
+      ['reset-outage', '/forgot-password', false, 'Reset your password'],
       ['privacy', '/privacy', false, null],
       ['terms', '/terms', false, null],
     ]) {
       if (process.env.AUTH_UI_CASE && process.env.AUTH_UI_CASE !== name) continue;
       signedIn = auth;
+      scenario = name;
       console.log('Checking', name);
       for (const width of [1440, 390, 320, 430, 768]) {
         page = await context.newPage();
         await page.setViewportSize({ width, height: width === 1440 ? 900 : 780 });
-        await page.goto('http://127.0.0.1:34112' + url, {
+        await page.goto((process.env.AUTH_UI_URL || 'http://localhost:34112') + url, {
           waitUntil: 'domcontentloaded',
           timeout: 30000,
         });
@@ -124,6 +166,35 @@ const assert = require('node:assert/strict');
             '/terms',
           );
         }
+        if (name === 'profile-long')
+          await page
+            .getByText('AReallyLongDisplayNameWithoutAnyNaturalBreaksToCheckThePhoneLayout', {
+              exact: true,
+            })
+            .waitFor();
+        if (name === 'profile-edit') {
+          await page.getByRole('button', { name: 'Edit', exact: true }).click();
+          await page.getByLabel('Display name').waitFor();
+        }
+        if (name === 'security-dialog') {
+          await page.getByRole('button', { name: 'Remove', exact: true }).click();
+          await page.getByRole('dialog').waitFor();
+        }
+        if (name === 'reset-outage') {
+          await page.getByLabel('Email', { exact: true }).fill('preview@example.test');
+          await page.getByRole('button', { name: 'Send reset link', exact: true }).click();
+        }
+        if (
+          [
+            'account-error',
+            'passkey-error',
+            'device-error',
+            'logout-error',
+            'verify-outage',
+            'reset-outage',
+          ].includes(name)
+        )
+          await page.getByRole('alert').waitFor();
         await page.evaluate(() => document.fonts.ready);
         assert.ok(
           await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),

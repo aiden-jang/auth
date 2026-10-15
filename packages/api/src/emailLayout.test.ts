@@ -242,3 +242,15 @@ describe('the time', () => {
     expect(readableTime(at)).toBe('31 December 2026 at 23:59 UTC');
   });
 });
+
+it('decodes the plain-text alternative once without interpreting a literal entity twice', () => {
+  const literal = '&lt;strong&gt;kept as text&lt;/strong&gt;';
+  const email = renderEmail({
+    reason: 'alert',
+    preheader: 'p',
+    heading: 'h',
+    paragraphs: [escapeHtml(literal)],
+  });
+  expect(email.text).toContain(literal);
+  expect(email.text).not.toContain('<strong>kept as text</strong>');
+});

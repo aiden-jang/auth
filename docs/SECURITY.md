@@ -1,6 +1,10 @@
 # Security posture
 
-What's in place across the platform, and the deliberate gaps.
+What Accounts enforces and where its trust boundary ends.
+
+Report vulnerabilities through [private reporting](https://github.com/aiden-jang/auth/security/advisories/new). Do not include session cookies, passwords, email links, or account exports in public issues.
+
+GitHub runs dependency, CodeQL, and secret scans, with push protection enabled. Full dependency auditing is also a required CI gate.
 
 ## Identity & sessions
 
@@ -57,22 +61,20 @@ override rather than loosening the shared default.
 - **Primary defense:** `SameSite=Lax` stops the browser from attaching the session cookie to
   cross-site state-changing requests, so a forged POST from another origin is unauthenticated.
 - **Defense-in-depth:** each app's inlined `enforceSameOrigin()` rejects any state-changing request
-  whose `Origin` header is present and points at a different host. Auth leaves this to SameSite +
-  Turnstile + its CORS allowlist because it is intentionally callable cross-origin.
+  whose `Origin` header is present and points at an unapproved host. Accounts accepts its own UI
+  origin and explicitly configured app origins; an absent allowlist never reflects an arbitrary
+  origin. Server-to-server calls without Origin remain supported.
 
 ## Dependencies
 
 - `.github/dependabot.yml`: weekly npm (workspace-wide) + GitHub Actions updates, minor/patch
-  grouped, majors individual.
-- CI (`.github/workflows/ci.yml`) runs typecheck + lint + build + tests on every push.
+  grouped; major upgrades are reviewed deliberately.
+- CI (`.github/workflows/ci.yml`) requires repository/unit/build checks and browser journeys; deployment reuses the verified web artifact after D1 migrations succeed.
 
 ## Known gaps / follow-ups
 
-- No secret scanning beyond git hygiene; secrets live only in `wrangler secret` / `.dev.vars`
-  (gitignored), never committed.
 - Registration answers `409 EMAIL_TAKEN`, which does tell a caller whether an address has an
-  account. Accepted deliberately: the alternative makes sign-up unusable. `forgot-password` is
-  always `200` and does not enumerate.
+  account. Accepted deliberately: the alternative makes sign-up unusable. Successful `forgot-password` requests return the same `200` response for known and unknown addresses.
 - The passkey ceremonies have no test that completes one. Doing so needs a software authenticator
   to sign a real attestation, so `finishRegistration` and `finishLogin` are covered up to the point
   of verification and no further, including the clone check on a regressed signature counter.

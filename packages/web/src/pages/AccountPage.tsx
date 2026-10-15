@@ -1,7 +1,8 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { authApi, googleEnabled, type AuthUser } from '../lib/api';
-import { AccountShell, inputClass } from '../components/AuthCard';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ApiError, authApi, googleEnabled, type AuthUser } from '../lib/api';
+import { AccountShell } from '../components/AuthCard';
 import { Skeleton } from '../components/Skeleton';
+import { AccountProfile } from '../components/AccountProfile';
 import { AppLauncher } from '../components/AppLauncher';
 import { DeleteAccount } from '../components/DeleteAccount';
 import { useSessions } from '../lib/useSessions';
@@ -57,13 +58,8 @@ export function AccountPage(): ReactNode {
   const sessions = useSessions();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [verificationStatus, setVerificationStatus] = useState<'sending' | 'sent' | null>(null);
-  const [verificationError, setVerificationError] = useState<string | null>(null);
-  const [emailCopied, setEmailCopied] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  const [nameDraft, setNameDraft] = useState('');
-  const [savingName, setSavingName] = useState(false);
-  const [nameError, setNameError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [changingPw, setChangingPw] = useState(
     () => new URLSearchParams(window.location.search).get('password') === 'change',
   );
@@ -104,103 +100,87 @@ export function AccountPage(): ReactNode {
     }
   }
 
-  async function resendVerification(): Promise<void> {
-    if (verificationStatus === 'sending') return;
-    setVerificationStatus('sending');
-    setVerificationError(null);
-    try {
-      await authApi.resendVerification();
-      setVerificationStatus('sent');
-      window.setTimeout(() => setVerificationStatus(null), 3000);
-    } catch (err) {
-      setVerificationStatus(null);
-      setVerificationError(
-        err instanceof Error ? err.message : 'Couldn’t send the verification email.',
-      );
-    }
-  }
-
-  async function copyEmail(): Promise<void> {
-    if (!user || emailCopied) return;
-    try {
-      await navigator.clipboard.writeText(user.email);
-      setEmailCopied(true);
-      window.setTimeout(() => setEmailCopied(false), 1800);
-    } catch {
-      // The address remains selectable as the no-fail fallback.
-    }
-  }
-
-  function startEditName(): void {
-    if (!user) return;
-    setNameDraft(user.displayName);
-    setNameError(null);
-    setEditingName(true);
-  }
-
-  async function saveName(e: FormEvent): Promise<void> {
-    e.preventDefault();
-    if (!user) return;
-    const next = nameDraft.trim();
-    if (!next) {
-      setNameError('Name cannot be empty.');
-      return;
-    }
-    if (next === user.displayName) {
-      setEditingName(false);
-      return;
-    }
-    setSavingName(true);
-    setNameError(null);
-    try {
-      const r = await authApi.updateProfile(next);
-      setUser(r.user);
-      setEditingName(false);
-    } catch (err) {
-      setNameError(err instanceof Error ? err.message : 'Could not save your name.');
-    } finally {
-      setSavingName(false);
-    }
-  }
-
   useEffect(() => {
+    let active = true;
     const checkAuth = (): void => {
       authApi
         .me()
-        .then((r) => setUser(r.user))
-        .catch(() => {
-          window.location.replace(`/login?return_to=${encodeURIComponent(window.location.href)}`);
+        .then((r) => {
+          if (active) {
+            setUser(r.user);
+            setLoadError(null);
+          }
         })
-        .finally(() => setLoading(false));
+        .catch((error: unknown) => {
+          if (!active) return;
+          if (error instanceof ApiError && error.status === 401) {
+            window.location.replace(`/login?return_to=${encodeURIComponent(window.location.href)}`);
+          } else {
+            setLoadError(
+              error instanceof Error ? error.message : 'Could not load your account. Try again.',
+            );
+          }
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
     };
     checkAuth();
-    // The back/forward cache can restore this page with its old (logged-in) React
-    // state after a sign-out — so hitting "back" post-logout looks still-logged-in.
-    // A bfcache restore fires pageshow with persisted=true and does NOT remount, so
-    // re-validate the session there and bounce a signed-out user to /login.
-    const onPageShow = (e: PageTransitionEvent): void => {
-      if (!e.persisted) return;
-      setLoading(true); // show the skeleton, not the stale account, while we re-check
-      checkAuth();
+    // A bfcache restore can bring back the account screen after logout; verify before showing it.
+    const onPageShow = (event: PageTransitionEvent): void => {
+      if (event.persisted) {
+        setLoading(true);
+        checkAuth();
+      }
     };
     window.addEventListener('pageshow', onPageShow);
-    return () => window.removeEventListener('pageshow', onPageShow);
-  }, []);
+    return () => {
+      active = false;
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, [loadAttempt]);
 
   // Drop the ?error from the address bar once it has been read, so a reload does not re-announce it.
   useEffect(() => {
-    if (googleLinkError) window.history.replaceState({}, '', '/account');
+    if (googleLinkError) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('error');
+      url.searchParams.delete('reason');
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    }
   }, [googleLinkError]);
 
-  async function logout(): Promise<void> {
-    await authApi.logout().catch(() => undefined);
-    window.location.replace(`/login?return_to=${encodeURIComponent(window.location.href)}`);
+  function logout(): void {
+    const login = `/login?return_to=${encodeURIComponent(window.location.href)}`;
+    window.location.assign(
+      `/logout?return_to=${encodeURIComponent(new URL(login, window.location.origin).href)}`,
+    );
+  }
+
+  if (loadError && !loading) {
+    return (
+      <AccountShell title="Your account" subtitle="One login for all of aidenjang's apps.">
+        <p role="alert" className="rounded-xl border border-neg/30 bg-neg/10 p-4 text-sm text-neg">
+          {loadError}
+        </p>
+        <button
+          type="button"
+          className="btn-primary mt-4 rounded-xl px-5 py-3 font-semibold"
+          onClick={() => {
+            setLoading(true);
+            setLoadAttempt((attempt) => attempt + 1);
+          }}
+        >
+          Try again
+        </button>
+      </AccountShell>
+    );
   }
 
   if (loading) {
     return (
       <AccountShell title="Your account" subtitle="One login for all of aidenjang's apps.">
-        <div className="space-y-3">
+        <div className="space-y-3" role="status" aria-label="Loading your account">
           <Skeleton className="h-16 w-full" />
           <Skeleton className="h-16 w-full" />
           <Skeleton className="h-16 w-full" />
@@ -286,105 +266,7 @@ export function AccountPage(): ReactNode {
 
       {!changingPw && <hr className="my-6 border-line" />}
 
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted">Profile</h2>
-      <dl className="space-y-3 text-sm">
-        {editingName ? (
-          <div>
-            <dt className="mb-1.5 text-muted">Name</dt>
-            <form onSubmit={(e) => void saveName(e)} className="flex items-center gap-2">
-              <input
-                className={inputClass}
-                value={nameDraft}
-                onChange={(e) => setNameDraft(e.target.value)}
-                maxLength={80}
-                autoFocus
-                aria-label="Display name"
-              />
-              <button
-                className="btn-primary shrink-0 cursor-pointer rounded-lg px-3.5 py-2.5 text-sm font-semibold disabled:opacity-60"
-                disabled={savingName}
-              >
-                {savingName ? 'Saving...' : 'Save'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditingName(false)}
-                className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2.5 text-sm text-muted transition hover:text-ink"
-              >
-                Cancel
-              </button>
-            </form>
-            {nameError && (
-              <p role="alert" className="mt-1.5 text-xs font-medium text-neg">
-                {nameError}
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="flex items-center justify-between gap-4">
-            <dt className="text-muted">Name</dt>
-            <dd className="flex items-center gap-2 font-medium">
-              {user.displayName}
-              <button
-                type="button"
-                onClick={startEditName}
-                className="cursor-pointer text-xs font-medium text-accent hover:underline"
-              >
-                Edit
-              </button>
-            </dd>
-          </div>
-        )}
-        <div className="flex items-center justify-between gap-4">
-          <dt className="text-muted">Email</dt>
-          <dd className="flex min-w-0 items-center gap-2 font-medium">
-            <span className="truncate">{user.email}</span>
-            <button
-              type="button"
-              onClick={() => void copyEmail()}
-              className="shrink-0 text-xs font-medium text-accent hover:underline"
-            >
-              {emailCopied ? 'Copied' : 'Copy'}
-            </button>
-          </dd>
-        </div>
-        <div className="flex items-center justify-between gap-4">
-          <dt className="text-muted">Email status</dt>
-          <dd>
-            {user.emailVerified ? (
-              <span className="rounded-full border border-pos/30 bg-pos/10 px-2.5 py-0.5 text-xs font-medium text-pos">
-                verified
-              </span>
-            ) : (
-              <span className="rounded-full border border-line px-2.5 py-0.5 text-xs font-medium text-muted">
-                unverified
-              </span>
-            )}
-          </dd>
-        </div>
-      </dl>
-
-      {!user.emailVerified && (
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={() => void resendVerification()}
-            disabled={verificationStatus !== null}
-            className="text-sm font-medium text-accent hover:underline disabled:cursor-default disabled:opacity-60"
-          >
-            {verificationStatus === 'sending'
-              ? 'Sending verification email…'
-              : verificationStatus === 'sent'
-                ? 'Verification email sent'
-                : 'Resend verification email'}
-          </button>
-          {verificationError && (
-            <p role="alert" className="mt-1.5 text-xs font-medium text-neg">
-              {verificationError}
-            </p>
-          )}
-        </div>
-      )}
+      <AccountProfile user={user} onUserChange={setUser} />
 
       <hr className="my-6 border-line" />
       <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted">
@@ -432,7 +314,7 @@ export function AccountPage(): ReactNode {
 
       <button
         type="button"
-        onClick={() => void logout()}
+        onClick={logout}
         className="mt-6 min-h-11 w-full rounded-xl border border-line px-4 py-3 text-sm font-medium text-muted transition hover:border-accent hover:text-ink"
       >
         Log out

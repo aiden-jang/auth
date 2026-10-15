@@ -126,7 +126,7 @@ function describeStatus(status: number): string {
 }
 
 async function req<T>(path: string, method: string, body?: unknown): Promise<T> {
-  const init: RequestInit = { method, credentials: 'include' };
+  const init: RequestInit = { method, credentials: 'include', signal: AbortSignal.timeout(15_000) };
   if (body !== undefined) {
     init.headers = { 'Content-Type': 'application/json' };
     init.body = JSON.stringify(body);
@@ -135,7 +135,14 @@ async function req<T>(path: string, method: string, body?: unknown): Promise<T> 
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, init);
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.name === 'TimeoutError') {
+      throw new ApiError(
+        'That took too long to confirm. Check your connection and try again.',
+        'TIMEOUT',
+        0,
+      );
+    }
     // `=== false`, not falsy: a missing property means we do not know, and a wrong "you are offline"
     // sends somebody to reboot their router over our outage.
     const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
@@ -157,6 +164,13 @@ async function req<T>(path: string, method: string, body?: unknown): Promise<T> 
     const message = typeof obj.message === 'string' ? obj.message : describeStatus(res.status);
     const code = typeof obj.error === 'string' ? obj.error : `HTTP_${res.status}`;
     throw new ApiError(message, code, res.status, obj);
+  }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new ApiError(
+      'The sign-in service sent an unexpected response. Try again shortly.',
+      'UNEXPECTED_RESPONSE',
+      502,
+    );
   }
   return data as T;
 }

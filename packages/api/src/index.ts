@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { DEFAULT_CSP, harden } from './harden.js';
 import { onUnhandledError, requestIdFrom } from './requestId.js';
+import { authOrigins } from './http/origins.js';
 import type { Env2 } from './http/context.js';
 import discoveryRoutes from './routes/discovery.js';
 import accountRoutes from './routes/account.js';
@@ -22,8 +23,7 @@ const app = new Hono<Env2>();
 // comes back as a generic 500.
 app.onError(onUnhandledError);
 
-// CSRF is left to SameSite=Lax, Turnstile and the CORS allowlist, because auth is deliberately
-// callable cross-origin. Turnstile needs its own origin in script-src, frame-src and connect-src.
+// Auth accepts configured app origins; Turnstile also needs script, frame, and connection access.
 const TURNSTILE_ORIGIN = 'https://challenges.cloudflare.com';
 const AUTH_CSP =
   DEFAULT_CSP.replace("script-src 'self'", `script-src 'self' ${TURNSTILE_ORIGIN}`).replace(
@@ -48,26 +48,23 @@ app.use('*', async (c, next) => {
   }
 });
 
-app.use('/auth/*', (c, next) =>
-  cors({
-    origin: (origin) => {
-      const allowed = c.env.CORS_ORIGINS?.split(',').map((o) => o.trim());
-      if (!allowed || allowed.length === 0) return origin;
-      return allowed.includes(origin) ? origin : null;
-    },
-    credentials: true,
-  })(c, next),
-);
-
-/*
- * Nothing under /auth is cacheable. A GET with no cache directives is heuristically cacheable, and
- * these responses depend on who is asking while the only Vary is Origin, not Cookie -- so a shared
- * cache could serve one person's account to somebody else.
- */
+// Account responses must stay uncacheable, including a refusal from the origin gate.
 app.use('/auth/*', async (c, next) => {
   await next();
   c.header('Cache-Control', 'no-store, max-age=0');
   c.header('Pragma', 'no-cache');
+});
+
+app.use('/auth/*', async (c, next) => {
+  const origin = c.req.header('Origin');
+  const allowed = authOrigins(c.env, c.req.url);
+  if (origin && !allowed.has(origin) && !['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)) {
+    return c.json({ error: 'ORIGIN_NOT_ALLOWED', message: 'That is not allowed from here.' }, 403);
+  }
+  return cors({
+    origin: (candidate) => (allowed.has(candidate) ? candidate : null),
+    credentials: true,
+  })(c, next);
 });
 
 app.get('/health', (c) => c.json({ status: 'ok', service: 'auth' }));

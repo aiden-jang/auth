@@ -5,7 +5,7 @@ apps: the `/auth/*` API plus the login/account UI. Every app trusts it.
 
 Each app is its own Worker on its own origin in its own repo. An app validates a request by
 forwarding the session cookie to this service and consuming `@aidenjang/auth-client`; the apps
-never talk to each other. The README lists which ones do that today. See "Adding another app"
+never talk to each other. The consuming repositories own their current adoption. See "Adding another app"
 below for the integration pattern.
 
 ## Base URLs
@@ -28,23 +28,28 @@ below for the integration pattern.
 - Protected endpoints return `401` without a valid session. "Auth" column below: **public** =
   no session needed, **session** = requires the cookie.
 
+Browser requests with an Origin header must come from Accounts or an explicit `CORS_ORIGINS` entry.
+Unapproved state-changing requests return `403 ORIGIN_NOT_ALLOWED`; the default never reflects an
+arbitrary origin. Server-to-server requests without Origin remain supported. All `/auth/*` responses,
+including refusals, are `no-store`.
+
 ---
 
 ## Auth service: `packages/api`
 
-| Method | Path                        | Auth    | Rate | Notes                                               |
-| ------ | --------------------------- | ------- | ---- | --------------------------------------------------- |
-| GET    | `/health`                   | public  |      | Liveness: `{ status, service }`                     |
-| POST   | `/auth/register`            | public  | ✓    | `{ email, password, displayName }` → sets session   |
-| POST   | `/auth/login`               | public  | ✓    | `{ email, password }` → sets session                |
-| POST   | `/auth/logout`              | public  |      | Clears the session; harmless without one            |
-| GET    | `/auth/me`                  | session |      | `{ user, sudoUntil }`, or `401` signed out          |
-| POST   | `/auth/forgot-password`     | public  | ✓    | `{ email }` → always `200` (no account enumeration) |
-| POST   | `/auth/reset-password`      | public  | ✓    | `{ token, newPassword }`                            |
-| POST   | `/auth/verify-email`        | public  |      | `{ token }`, spent on first use                     |
-| POST   | `/auth/resend-verification` | session | ✓    | Re-sends to the address on the account              |
-| POST   | `/auth/update-profile`      | session |      | `{ displayName }`                                   |
-| GET    | `/auth/export`              | session |      | A copy of the account's data, credentials excluded  |
+| Method | Path                        | Auth    | Rate | Notes                                                                   |
+| ------ | --------------------------- | ------- | ---- | ----------------------------------------------------------------------- |
+| GET    | `/health`                   | public  |      | Liveness: `{ status, service }`                                         |
+| POST   | `/auth/register`            | public  | ✓    | `{ email, password, displayName }` → sets session                       |
+| POST   | `/auth/login`               | public  | ✓    | `{ email, password }` → sets session                                    |
+| POST   | `/auth/logout`              | public  |      | Clears the session; harmless without one                                |
+| GET    | `/auth/me`                  | session |      | `{ user, sudoUntil }`, or `401` signed out                              |
+| POST   | `/auth/forgot-password`     | public  | ✓    | `{ email }` → identical successful response for known/unknown addresses |
+| POST   | `/auth/reset-password`      | public  | ✓    | `{ token, newPassword }`                                                |
+| POST   | `/auth/verify-email`        | public  |      | `{ token }`, spent on first use                                         |
+| POST   | `/auth/resend-verification` | session | ✓    | Re-sends to the address on the account                                  |
+| POST   | `/auth/update-profile`      | session |      | `{ displayName }`                                                       |
+| GET    | `/auth/export`              | session |      | A copy of the account's data, credentials excluded                      |
 
 ### Password-manager discovery
 

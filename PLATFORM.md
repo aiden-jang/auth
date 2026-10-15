@@ -12,12 +12,13 @@ LLM grows you a garden), **coast**, **mrrp**, **iguess** (realtime draw-and-gues
 **wherever** (group restaurant voting). The first four sign people in through auth; the last two do
 not yet.
 
+For the current Accounts module map, validation, and release boundaries, see [ARCHITECTURE.md](ARCHITECTURE.md). The sections below explain the wider platform decisions; each app owns its current adoption of shared sign-in.
+
 ## 1. The constraints that shaped everything
 
 - **$0 hosting.** Everything runs on Cloudflare's free tier: Workers, Durable Objects, D1 (SQLite),
   and KV. No always-on server, no managed auth vendor, no database bill.
-- **No cold starts.** Workers start per request at the edge, so every app is fast from anywhere with
-  no warm-up.
+- **Edge execution.** Workers avoid an always-on origin server; startup and latency still depend on the runtime and request.
 - **One login, many apps, zero shared secrets in app code.** A session valid across every
   `*.aidenjang.com` app, without any app ever handling the session secret in the browser.
 - **Independently shippable.** Each app is its own repo with its own CI/CD, so one app's deploy

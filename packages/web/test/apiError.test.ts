@@ -181,3 +181,12 @@ describe('failures with nothing human in them', () => {
     expect((err as Error).message).toMatch(/our end/i);
   });
 });
+
+it('rejects a successful HTML or malformed JSON response instead of reporting success', async () => {
+  for (const headers of [{ 'content-type': 'text/html' }, { 'content-type': 'application/json' }]) {
+    globalThis.fetch = vi.fn(
+      async () => new Response('<html>edge fallback</html>', { status: 200, headers }),
+    ) as unknown as typeof fetch;
+    await expect(authApi.logout()).rejects.toMatchObject({ code: 'UNEXPECTED_RESPONSE' });
+  }
+});

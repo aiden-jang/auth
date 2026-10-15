@@ -66,13 +66,13 @@ export function SessionList({
           )}
         </div>
       </div>
-      {(sessions === null || refreshingSessions) && (
+      {((sessions === null && !sessionError) || refreshingSessions) && (
         <p role="status" className="mt-3 text-xs text-muted">
           {reassurance('sessions')}
         </p>
       )}
       <ul className="mt-3 space-y-2">
-        {sessions === null ? (
+        {sessions === null && !sessionError ? (
           <>
             <li>
               <Skeleton className="h-14 w-full" />
@@ -81,10 +81,10 @@ export function SessionList({
               <Skeleton className="h-14 w-full" />
             </li>
           </>
-        ) : sessions.length === 0 ? (
+        ) : sessions?.length === 0 ? (
           <li className="text-sm text-muted">No active sessions.</li>
         ) : (
-          sessions.map((s) => {
+          sessions?.map((s) => {
             const expanded = expandedSessionId === s.id;
             const horizon = sessionHorizon(s.createdAt, s.expiresAt);
             const recentlyAdded =

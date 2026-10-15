@@ -16,6 +16,7 @@ export function ForgotPasswordPage(): ReactNode {
   const carriedEmail = (location.state as { email?: unknown } | null)?.email;
   const [email, setEmail] = useState(typeof carriedEmail === 'string' ? carriedEmail : '');
   const [turnstileToken, setTurnstileToken] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [resent, setResent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,11 +35,15 @@ export function ForgotPasswordPage(): ReactNode {
     return () => window.clearInterval(timer);
   }, [counting]);
 
-  async function requestReset(): Promise<void> {
+  async function requestReset(): Promise<boolean> {
+    setError(null);
     try {
       await authApi.forgot(email, turnstileToken, returnTo);
-    } catch {
-      // Always show the same confirmation, so this flow never reveals whether an account exists.
+      return true;
+    } catch (err) {
+      // The server answers identically for known and unknown accounts; transport failures need a retry.
+      setError(err instanceof Error ? err.message : 'Could not request a reset link. Try again.');
+      return false;
     } finally {
       setTurnstileToken('');
       setResetSignal((signal) => signal + 1);
@@ -49,7 +54,7 @@ export function ForgotPasswordPage(): ReactNode {
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
     setLoading(true);
-    await requestReset();
+    if (!(await requestReset())) return;
     setSent(true);
     setResent(false);
     setResendIn(30);
@@ -58,7 +63,7 @@ export function ForgotPasswordPage(): ReactNode {
   async function resend(): Promise<void> {
     if (loading || resendIn > 0 || (turnstileEnabled && !turnstileToken)) return;
     setLoading(true);
-    await requestReset();
+    if (!(await requestReset())) return;
     setResent(true);
     setResendIn(30);
   }
@@ -69,6 +74,14 @@ export function ForgotPasswordPage(): ReactNode {
       subtitle="We'll email you a link to choose a new one."
       returnApp={returnApp}
     >
+      {error && (
+        <p
+          role="alert"
+          className="mb-4 rounded-xl border border-neg/30 bg-neg/10 p-3 text-sm text-neg"
+        >
+          {error}
+        </p>
+      )}
       {sent ? (
         <div className="space-y-4">
           <p

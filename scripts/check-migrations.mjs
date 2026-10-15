@@ -5,7 +5,8 @@
  * that does not happen. See the note in src/auth/stepUp.ts.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, globSync, readFileSync, rmSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { existsSync, globSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 const API = 'packages/api';
 const journal = JSON.parse(readFileSync(`${API}/migrations/meta/_journal.json`, 'utf8'));
@@ -44,19 +45,34 @@ if (!existsSync(`${API}/migrations/meta/${index}_snapshot.json`)) {
  * check does not litter the tree.
  */
 const before = new Set(globSync(`${API}/migrations/**/*.{sql,json}`));
-const out = execFileSync('npx', ['drizzle-kit', 'generate', '--name', 'drift_check'], {
-  cwd: API,
-  encoding: 'utf8',
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-const created = globSync(`${API}/migrations/**/*.{sql,json}`).filter((f) => !before.has(f));
-if (created.length > 0 || !/No schema changes/.test(out)) {
-  problems.push(
-    `schema.ts has changes with no migration. Run \`pnpm --filter @aidenjang/auth-api db:generate\` ` +
-      `and commit what it writes.`,
+const journalPath = `${API}/migrations/meta/_journal.json`;
+const originalJournal = readFileSync(journalPath);
+let out = '';
+try {
+  out = execFileSync(
+    resolve(API, 'node_modules/.bin/drizzle-kit'),
+    ['generate', '--name', 'drift_check'],
+    {
+      cwd: API,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
   );
-  for (const f of created) rmSync(f);
-  execFileSync('git', ['checkout', '--', `${API}/migrations/meta/_journal.json`]);
+  const created = globSync(`${API}/migrations/**/*.{sql,json}`).filter((file) => !before.has(file));
+  if (created.length > 0 || !/No schema changes/.test(out)) {
+    problems.push(
+      'schema.ts has changes with no migration. Run `pnpm --filter @aidenjang/auth-api db:generate` and commit its SQL and snapshot.',
+    );
+  }
+} catch (error) {
+  problems.push(
+    `Could not check migration drift: ${error instanceof Error ? error.message : String(error)}`,
+  );
+} finally {
+  // Restore the working copy, including edits that were already present before the check.
+  for (const file of globSync(`${API}/migrations/**/*.{sql,json}`))
+    if (!before.has(file)) rmSync(file);
+  writeFileSync(journalPath, originalJournal);
 }
 
 if (problems.length > 0) {

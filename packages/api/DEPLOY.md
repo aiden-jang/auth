@@ -1,97 +1,41 @@
-# Deploying the auth service → accounts.aidenjang.com
+# Accounts API deployment
 
-**Status: LIVE.** One Cloudflare Worker (`aidenjang-auth`) serves both the API (`/auth/*`,
-`/health`) and the login/account UI (static assets) on one origin, `accounts.aidenjang.com`.
-Identity D1: `aidenjang-identity` (its `database_id` is already in `wrangler.toml`). Free tier.
+The routine path is a verified PR merged to main. CI downloads the web bundle that passed checks,
+applies pending migrations to `aidenjang-identity`, then deploys `aidenjang-auth`. It stops if migration
+application fails. The existing GitHub token needs both Workers script editing and D1 editing.
 
-All commands run from `packages/api`.
+For the complete process and rollback, see [the deployment checklist](../../docs/DEPLOY-CHECKLIST.md).
 
-## Routine redeploy (the usual case)
+## Configuration
 
-```bash
-pnpm exec wrangler deploy   # ship an API/config change (uses the last-built UI assets)
-# or, if the UI (packages/web) changed:
-pnpm run deploy             # builds web, then wrangler deploy
-```
+Bindings and the custom domain live in `wrangler.toml`. Local secrets belong in ignored `.dev.vars`.
+Production secrets are managed in the Worker dashboard or an authenticated Wrangler session; never
+extract a saved credential or paste a secret in a command history.
 
-- No re-login needed: `wrangler login` stores credentials (`~/Library/Preferences/.wrangler/`)
-  that persist across sessions. All `wrangler` commands reuse them until they expire.
-- It's `pnpm exec wrangler deploy` (runs the workspace binary), **not** `pnpm wrangler deploy`.
-- **If you added a migration**, apply it to remote D1 first:
-  `pnpm exec wrangler d1 migrations apply aidenjang-identity --remote`. A deploy does not run
-  migrations, so new columns/tables are missing until you do this and the app 500s on them.
-- Do **not** run bare `pnpm deploy`: that's pnpm's built-in command, unrelated. Use `pnpm run deploy`.
+| Setting                                    | Purpose                                                                 |
+| ------------------------------------------ | ----------------------------------------------------------------------- |
+| `APP_URL`                                  | Accounts UI origin used for email and redirect URLs                     |
+| `COOKIE_DOMAIN`                            | Shared production cookie domain; omit locally for a host-only cookie    |
+| `CORS_ORIGINS`                             | Explicit comma-separated app origins allowed to use browser credentials |
+| `EMAIL_FROM`, `RESEND_API_KEY`             | Mail sender and delivery provider credential                            |
+| `TURNSTILE_SECRET`                         | Server challenge verification; pairs with the public web site key       |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth server configuration                                       |
 
-## Config / secrets (already set; change with the same command)
+The CI build supplies `VITE_GOOGLE_ENABLED=true` and the public `VITE_TURNSTILE_SITE_KEY`.
+Server provider secrets stay on the Worker. Keep frontend flags and server configuration paired;
+a server challenge without the corresponding widget blocks login and recovery. Google’s callback
+is `/auth/google/callback` on the auth Worker origin.
 
-```bash
-echo "<value>" | pnpm exec wrangler secret put <NAME>
-```
+## Manual recovery
 
-Currently set: `COOKIE_DOMAIN=.aidenjang.com`, `CORS_ORIGINS` (owewell + bloomnote origins),
-`APP_URL=https://accounts.aidenjang.com`, `EMAIL_FROM`. Secrets don't affect local dev.
+From the repository root, run complete verification first. An authorized manual deployment uses
+`pnpm --filter @aidenjang/auth-api run deploy`, which builds the UI, migrates D1, then deploys.
+Provide the same public build flags as CI. `deploy:assets` is for CI’s already-verified artifact;
+it does not build the UI. Avoid a bare Wrangler deployment that skips pending migrations.
 
-**Not yet set (optional):**
+## Local development
 
-- `RESEND_API_KEY`: until set, verification/reset emails are logged, not sent. To deliver, set
-  it and add SPF/DKIM/DMARC for `aidenjang.com`.
-- `TURNSTILE_SECRET` (server) **+** `VITE_TURNSTILE_SITE_KEY` (web build): the CAPTCHA needs
-  **both**, set together. Create a Turnstile widget in the Cloudflare dashboard, then:
-  - build the web with the site key: `VITE_TURNSTILE_SITE_KEY=<site-key> pnpm --filter @aidenjang/auth-web build`
-    (the deploy script runs the build, so export it in the deploy shell), and
-  - set the secret: `echo "<secret>" | pnpm exec wrangler secret put TURNSTILE_SECRET`.
-    With neither set, Turnstile is skipped everywhere (widget hidden, backend check bypassed). Do
-    **not** set only the secret, or the backend will then reject every signup/login/forgot for a
-    missing token, since the widget wouldn't render.
-- `GOOGLE_CLIENT_ID` **+** `GOOGLE_CLIENT_SECRET` (server) **+** `VITE_GOOGLE_ENABLED=true` (web
-  build): "Continue with Google" needs all three, set together. In the Google Cloud console create
-  an OAuth **Web application** client and register the redirect URI
-  `https://accounts.aidenjang.com/auth/google/callback` (plus `http://localhost:34100/auth/google/callback`
-  for dev), then:
-  - build the web with the flag: `VITE_GOOGLE_ENABLED=true pnpm --filter @aidenjang/auth-web build`
-    (the deploy script runs the build, so export it in the deploy shell), and
-  - set the secrets: `echo "<id>" | pnpm exec wrangler secret put GOOGLE_CLIENT_ID` and the same for
-    `GOOGLE_CLIENT_SECRET`.
-    With none set, Google sign-in is hidden and `/auth/google*` returns 404. To let anyone (not just
-    test users) sign in, publish the OAuth consent screen to production.
-
-## One-time account setup (done, kept for reference)
-
-- `pnpm exec wrangler login` (once; persists).
-- The account needs a **workers.dev subdomain**, even for a custom-domain-only Worker. Set via
-  Dashboard → Workers & Pages → subdomain, or the API:
-  ```bash
-  TOKEN=$(grep oauth_token "$HOME/Library/Preferences/.wrangler/config/default.toml" | sed -E 's/.*= *"([^"]+)".*/\1/')
-  curl -X PUT "https://api.cloudflare.com/client/v4/accounts/a8577323eaa4cc3f1812c163775e81ab/workers/subdomain" \
-    -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"subdomain":"aidenjang"}'
-  ```
-
-## First deploy of a NEW worker (done for auth; the pattern for future apps)
-
-1. `pnpm exec wrangler d1 create <name>` → paste the printed `database_id` into `wrangler.toml`.
-2. `pnpm exec wrangler d1 migrations apply <name> --remote`.
-3. **Custom-domain two-step**: a Worker must have a deployment before a custom domain attaches.
-   So temporarily comment the `[[routes]] custom_domain` block, `wrangler deploy` (creates the
-   first deployment), then uncomment it and `wrangler deploy` again to attach the domain.
-4. Set config secrets (above).
-
-## Gotchas we actually hit (so you don't rediscover them)
-
-- **`error 10063: need a workers.dev subdomain`** → register one (one-time account setup above).
-- **`Cannot attach custom domain: Worker has no deployments`** → the two-step first deploy above.
-- **register/login return 500 in prod but work locally** → Cloudflare caps PBKDF2 at **100,000
-  iterations**; keep `ITERATIONS <= 100000` in `src/auth/password.ts`. Local `wrangler dev`
-  doesn't enforce the cap, so it only shows up in prod.
-
-## Smoke test
-
-```bash
-curl https://accounts.aidenjang.com/health     # {"status":"ok","service":"auth"}
-```
-
-Then open `https://accounts.aidenjang.com/login`, sign up, confirm the `platform_session` cookie.
-
-## Local dev (no Cloudflare needed)
-
-`pnpm exec wrangler dev` (API on :34100, local D1) + the web Vite dev server (:34110). No
-secrets; cookie is host-only.
+Build the web app and apply local migrations before starting the Worker. The README’s API command
+sets `APP_URL` to the local web origin. With no provider keys, mail is logged and the local bot
+challenge is unconfigured; production configuration is independent. Workers’ password-hashing limit
+is recorded beside the hashing parameters in `src/auth/password.ts`.
