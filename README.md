@@ -53,6 +53,20 @@ from the verification email, sign out, sign back in. It reads the token out of t
 log, because the database stores only a hash and the raw token exists nowhere else, so the link it
 follows is the one a real person would click. `pnpm --filter @aidenjang/auth-web e2e`.
 
+## Sharing preview
+
+Accounts has its own slate and ice-blue preview at `https://accounts.aidenjang.com/og.png`.
+It uses the shared key mark and bundled DM Sans, with static branding across sign-in and recovery
+links. The image contains no account or return-destination data.
+
+Regenerate the committed SVG and PNG after changing the mark or preview copy:
+
+```sh
+pnpm --filter @aidenjang/auth-web run gen:og
+```
+
+The same PNG can be uploaded under the GitHub repository's Settings → Social preview.
+
 ## Repo layout
 
 - **`packages/api`** and **`packages/web`**: the service. `api` is a Hono Worker (D1
