@@ -30,6 +30,7 @@ export async function sendEmail(env: Env, msg: Message): Promise<void> {
     },
     body: JSON.stringify({
       from: env.EMAIL_FROM ?? 'aidenjang <noreply@aidenjang.com>',
+      reply_to: 'hello@aidenjang.com',
       to: msg.to,
       subject,
       html: msg.html,
