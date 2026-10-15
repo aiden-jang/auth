@@ -3,6 +3,7 @@ import { cors } from 'hono/cors';
 import { DEFAULT_CSP, harden } from './harden.js';
 import { onUnhandledError, requestIdFrom } from './requestId.js';
 import type { Env2 } from './http/context.js';
+import discoveryRoutes from './routes/discovery.js';
 import accountRoutes from './routes/account.js';
 import disconnectGoogleRoute from './routes/misc.js';
 import googleRoutes from './routes/google.js';
@@ -73,6 +74,7 @@ app.get('/health', (c) => c.json({ status: 'ok', service: 'auth' }));
 
 /* One module per concern, so a change to passkeys is not an edit to the same file as password
    reset. Everything above still applies to each group. */
+app.route('/', discoveryRoutes);
 app.route('/', signupRoutes);
 app.route('/', googleRoutes);
 app.route('/', passwordRoutes);

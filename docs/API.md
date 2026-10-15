@@ -46,6 +46,13 @@ below for the integration pattern.
 | POST   | `/auth/update-profile`      | session |      | `{ displayName }`                                   |
 | GET    | `/auth/export`              | session |      | A copy of the account's data, credentials excluded  |
 
+### Password-manager discovery
+
+`/.well-known/change-password` (GET) redirects to `/account?password=change`, opening
+the password form. Signed-out users return there after signing in. The probe
+`/.well-known/resource-that-should-not-exist-whose-status-code-should-not-be-200` (GET)
+returns a real 404 instead of the single-page fallback.
+
 ### Proving the session again
 
 Anything that changes how the account signs in needs a session that proved itself in the last 10

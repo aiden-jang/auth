@@ -64,10 +64,10 @@ export function AccountPage(): ReactNode {
   const [nameDraft, setNameDraft] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
-  const [changingPw, setChangingPw] = useState(false);
+  const [changingPw, setChangingPw] = useState(
+    () => new URLSearchParams(window.location.search).get('password') === 'change',
+  );
   const [pwDone, setPwDone] = useState(false);
-  // Tracks which action just succeeded, so the confirmation reads correctly (adding a first
-  // password does not sign other devices out, unlike a change).
   // Read once, on the first render: the ?error the Google callback redirects back with is fixed
   // by the time this page mounts, so deriving it in an effect only costs a second render.
   const [googleLinkError] = useState(readGoogleLinkError);
@@ -169,7 +169,7 @@ export function AccountPage(): ReactNode {
         .me()
         .then((r) => setUser(r.user))
         .catch(() => {
-          window.location.replace('/login');
+          window.location.replace(`/login?return_to=${encodeURIComponent(window.location.href)}`);
         })
         .finally(() => setLoading(false));
     };
@@ -194,7 +194,7 @@ export function AccountPage(): ReactNode {
 
   async function logout(): Promise<void> {
     await authApi.logout().catch(() => undefined);
-    window.location.replace('/login');
+    window.location.replace(`/login?return_to=${encodeURIComponent(window.location.href)}`);
   }
 
   if (loading) {

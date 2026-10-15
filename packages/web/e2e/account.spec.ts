@@ -173,3 +173,16 @@ test.describe('deleting the account', () => {
     await expect(page.getByRole('alert')).toBeVisible();
   });
 });
+
+test('password-manager destination survives signing in', async ({ page }) => {
+  const email = await registerAndLand(page);
+  await page.getByRole('button', { name: 'Log out', exact: true }).click();
+  await expect(page).toHaveURL(/\/login/);
+  await page.goto('/account?password=change', { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/\/login\?return_to=/);
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Log in', exact: true }).click();
+  await expect(page.getByLabel('Current password')).toBeFocused();
+  await expect(page.getByLabel('New password', { exact: true })).toBeVisible();
+});

@@ -11,13 +11,12 @@ export function escapeHtml(value: string): string {
   );
 }
 
-// Set a background on every cell; clients that invert a light email do it badly. The accent is the
-// house purple darkened, since #8b7bff is chosen against a dark app background and fails on white.
-const INK = '#1a1725';
-const MUTED = '#5f5a70';
-const LINE = '#e6e3ef';
-const CANVAS = '#f5f4f8';
-const ACCENT = '#5b4bd6';
+// Explicit cell backgrounds help email clients that invert light messages.
+const INK = '#1d222a';
+const MUTED = '#566171';
+const LINE = '#d8dfe8';
+const CANVAS = '#eef2f7';
+const ACCENT = '#283e5c';
 
 interface EmailAction {
   label: string;
@@ -132,7 +131,7 @@ export function renderEmail(content: EmailContent): RenderedEmail {
     `style="background:${CANVAS};padding:32px 16px;">` +
     `<tr><td align="center">` +
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" ` +
-    `style="max-width:520px;background:#ffffff;border:1px solid ${LINE};border-radius:16px;">` +
+    `style="max-width:520px;background:#ffffff;border:1px solid ${LINE};border-top:4px solid #aacbfa;border-radius:16px;">` +
     `<tr><td style="padding:28px 28px 0;font-family:${FONT};">` +
     // Text, not an image: it still shows when images are blocked, which is when somebody is deciding
     // whether to trust the message.
