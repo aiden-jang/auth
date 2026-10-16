@@ -8,8 +8,11 @@ The browser fixture preserves the configured viewport, touch settings and other 
 
 Local development pins the Worker upstream to HTTP localhost. Safari otherwise refuses its Secure cookie and upgrades the built interface’s assets to an unavailable HTTPS listener. The asset-upgrade exception uses the existing secure-request policy: only plain HTTP on exact localhost or 127.0.0.1 is exempt. HTTPS loopback, real domains, HTTP requests on real domains, and lookalike loopback hostnames keep the upgrade directive. HSTS and the other CSP directives remain present. The regression check failed on both HTTP loopback cases before the fix and passed after it.
 
-Verification and recovery email links were exercised through the isolated Worker’s dev-mail log. The live Google sign-in returned to Worth, and sibling apps recognized the shared session. No live password reset or verification email was requested in this review; delivery to a real mailbox remains outside this evidence.
+Verification and recovery email links were exercised through the isolated Worker’s dev-mail log. The live Google sign-in returned to Worth, and sibling apps recognized the shared session.
+
+In a live follow-up, one approved password-reset email arrived in the intended Gmail inbox. Its “Choose a new password” link opened Accounts’ reset form with both password fields empty. No password was entered or changed, and no reset was submitted. This confirms recovery-email delivery and navigation; live verification-email delivery and reset submission remain untested. The capture excludes the recovery URL and token.
 
 This is browser-engine emulation, not a physical iPhone check. Native password-manager UI, passkey enrollment, touch gestures and keyboard behavior still require an actual device. The passkey capture below uses synthetic account responses.
 
 - [Phone account details](passkeys-phone.png)
+- [Live recovery form](live-recovery-form.jpg)
