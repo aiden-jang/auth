@@ -276,3 +276,52 @@ test('passkey details stay readable with long names and forced colors', async ({
     }
   }
 });
+
+test('an expired password reset offers a fresh link while service failures preserve the form', async ({
+  page,
+}) => {
+  const returnTo = 'https://worth.aidenjang.com/lists';
+  let attempts = 0;
+  await page.route('**/auth/reset-password', (route) =>
+    route.fulfill(
+      ++attempts === 1
+        ? { status: 503, json: { error: 'UNAVAILABLE', message: 'Try again shortly.' } }
+        : {
+            status: 400,
+            json: { error: 'INVALID_TOKEN', message: 'That reset link is invalid or expired.' },
+          },
+    ),
+  );
+  await page.goto(`/reset-password?token=expired&return_to=${encodeURIComponent(returnTo)}`);
+  await page.getByLabel('New password', { exact: true }).fill('a fresh passphrase');
+  await page.getByLabel('Confirm new password', { exact: true }).fill('a fresh passphrase');
+  const submit = page.getByRole('button', { name: 'Set new password', exact: true });
+  await submit.click();
+  await expect(page.getByRole('alert')).toContainText('Try again shortly.');
+  await expect(
+    page.getByRole('link', { name: 'Request a new reset link', exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel('New password', { exact: true })).toHaveValue('a fresh passphrase');
+  await submit.click();
+  const fresh = page.getByRole('link', { name: 'Request a new reset link', exact: true });
+  await expect(fresh).toBeVisible();
+  await expect(submit).toHaveCount(0);
+  await expect(fresh).toHaveAttribute(
+    'href',
+    `/forgot-password?return_to=${encodeURIComponent(returnTo)}`,
+  );
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 900 });
+    await fresh.scrollIntoViewIfNeeded();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({
+      path: test.info().outputPath(`reset-recovery-${width}.png`),
+      animations: 'disabled',
+    });
+  }
+  await fresh.click();
+  await expect(page.getByRole('button', { name: 'Send reset link', exact: true })).toBeVisible();
+  await expect(page.getByLabel('Email', { exact: true })).toHaveAttribute('autocomplete', 'email');
+});

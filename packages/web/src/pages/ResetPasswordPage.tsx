@@ -1,7 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { returnAppFor, safeReturnTo } from '../lib/returnTo';
-import { authApi } from '../lib/api';
+import { ApiError, authApi } from '../lib/api';
 import { AuthCard, buttonClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
@@ -18,10 +18,11 @@ export function ResetPasswordPage(): ReactNode {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [invalidLink, setInvalidLink] = useState(false);
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
-    if (!token) return;
+    if (!token || loading || invalidLink) return;
     if (password !== confirmPassword) {
       setError('Those passwords do not match.');
       return;
@@ -32,6 +33,7 @@ export function ResetPasswordPage(): ReactNode {
       await authApi.reset(token, password);
       setDone(true);
     } catch (err) {
+      setInvalidLink(err instanceof ApiError && err.code === 'INVALID_TOKEN');
       setError(err instanceof Error ? err.message : 'Could not reset your password.');
       setLoading(false);
     }
@@ -78,7 +80,7 @@ export function ResetPasswordPage(): ReactNode {
               value={password}
               onChange={(value) => {
                 setPassword(value);
-                setError(null);
+                if (!invalidLink) setError(null);
               }}
               required
               minLength={8}
@@ -99,7 +101,7 @@ export function ResetPasswordPage(): ReactNode {
               value={confirmPassword}
               onChange={(value) => {
                 setConfirmPassword(value);
-                setError(null);
+                if (!invalidLink) setError(null);
               }}
               required
               minLength={8}
@@ -123,9 +125,18 @@ export function ResetPasswordPage(): ReactNode {
             </p>
           )}
 
-          <button className={buttonClass} disabled={loading}>
-            {loading ? 'Saving...' : 'Set new password'}
-          </button>
+          {invalidLink ? (
+            <Link
+              to={withReturn('/forgot-password')}
+              className={`${buttonClass} block text-center no-underline`}
+            >
+              Request a new reset link
+            </Link>
+          ) : (
+            <button className={buttonClass} disabled={loading}>
+              {loading ? 'Saving...' : 'Set new password'}
+            </button>
+          )}
         </form>
       )}
     </AuthCard>
