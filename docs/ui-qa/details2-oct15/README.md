@@ -14,3 +14,6 @@ different creation and last-used dates. The timestamp assertion was checked
 against a deliberately wrong creation-date substitution, then restored and passed.
 High contrast is emulated in Chromium; actual assistive technology and device
 passkey prompts remain device checks.
+
+High-contrast selections use a heavier bottom rule while labels retain native
+system text colors. This avoids text backplates obscuring a filled selection.
