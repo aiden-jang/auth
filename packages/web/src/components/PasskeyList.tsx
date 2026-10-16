@@ -5,15 +5,6 @@ import { Skeleton } from './Skeleton';
 
 /* Removal goes through the account page's step-up prompt, so this only has to not swallow a refusal. */
 
-function whenish(iso: string | null): string {
-  if (!iso) return 'not used yet';
-  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (days <= 0) return 'used today';
-  if (days === 1) return 'used yesterday';
-  if (days < 30) return `used ${days} days ago`;
-  return `last used ${new Date(iso).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`;
-}
-
 export function PasskeyList({
   guard,
 }: {
@@ -118,8 +109,7 @@ export function PasskeyList({
         </div>
       ) : passkeys?.length === 0 ? (
         <p className="mt-4 rounded-xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
-          None yet. Adding one on the device you use most is the single biggest upgrade to this
-          account.
+          No passkeys yet.
         </p>
       ) : (
         <ul className="mt-4 space-y-2">
@@ -130,28 +120,24 @@ export function PasskeyList({
             >
               <div className="min-w-0 flex-1 basis-40 [overflow-wrap:anywhere]">
                 <p className="font-medium">{passkey.label}</p>
-                <p className="text-xs text-muted">
+                <p className="mt-1 text-xs text-muted">
                   {passkey.lastUsedAt ? (
-                    <time dateTime={passkey.lastUsedAt}>{whenish(passkey.lastUsedAt)}</time>
+                    <>
+                      Last used:{' '}
+                      <time dateTime={passkey.lastUsedAt}>
+                        {new Date(passkey.lastUsedAt).toLocaleString(undefined, {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}
+                      </time>
+                    </>
                   ) : (
-                    whenish(null)
-                  )}
-                  {' · '}
-                  {passkey.backedUp ? (
-                    <span className="text-pos">synced, so a lost device keeps it</span>
-                  ) : (
-                    <span>on this device only</span>
+                    'Not used yet'
                   )}
                 </p>
-                {passkey.lastUsedAt && (
-                  <p className="mt-1 text-xs text-muted">
-                    Last used:{' '}
-                    {new Date(passkey.lastUsedAt).toLocaleString(undefined, {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    })}
-                  </p>
-                )}
+                <p className="text-xs text-muted">
+                  {passkey.backedUp ? <span className="text-pos">Backed up</span> : 'Not backed up'}
+                </p>
               </div>
               <button
                 type="button"

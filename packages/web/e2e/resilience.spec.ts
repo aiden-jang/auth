@@ -258,7 +258,9 @@ test('passkey details stay readable with long names and forced colors', async ({
     lastUsedAt,
   );
   await expect(section.getByText(`Last used: ${exact}`, { exact: true })).toBeVisible();
+  await expect(section.locator('time')).toHaveCount(1);
   await expect(section.locator('time')).toHaveAttribute('datetime', lastUsedAt);
+  await expect(section.getByText('Backed up', { exact: true })).toBeVisible();
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await section.scrollIntoViewIfNeeded();
