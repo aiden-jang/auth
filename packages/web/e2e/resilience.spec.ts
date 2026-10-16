@@ -229,3 +229,50 @@ test('a post-confirmation action failure returns to the original error handler',
   await expect(page.getByText('Personal laptop')).toBeVisible();
   expect(attempts).toBe(2);
 });
+
+test('passkey details stay readable with long names and forced colors', async ({ page }) => {
+  await account(page);
+  const label = 'Personal laptop — 수진 — ' + 'Travel authenticator '.repeat(10);
+  const lastUsedAt = '2026-10-15T13:14:00.000Z';
+  await page.route('**/auth/passkeys', (route) =>
+    route.fulfill({
+      json: {
+        passkeys: [
+          {
+            id: 'review-key',
+            label,
+            backedUp: true,
+            createdAt: '2026-10-01T12:00:00.000Z',
+            lastUsedAt,
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto('/account');
+  const section = page.getByRole('region', { name: 'Passkeys', exact: true });
+  const name = section.getByText(label, { exact: true });
+  await expect(name).toBeVisible();
+  const exact = await page.evaluate(
+    (iso) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }),
+    lastUsedAt,
+  );
+  await expect(section.getByText(`Last used: ${exact}`, { exact: true })).toBeVisible();
+  await expect(section.locator('time')).toHaveAttribute('datetime', lastUsedAt);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await section.scrollIntoViewIfNeeded();
+    expect(await name.evaluate((el) => getComputedStyle(el).textOverflow)).not.toBe('ellipsis');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    for (const forcedColors of ['none', 'active'] as const) {
+      await page.emulateMedia({ forcedColors });
+      await section.getByRole('button', { name: 'Add a passkey', exact: true }).focus();
+      await page.screenshot({
+        path: test.info().outputPath(`details2-passkeys-${width}-${forcedColors}.png`),
+        animations: 'disabled',
+      });
+    }
+  }
+});

@@ -128,10 +128,14 @@ export function PasskeyList({
               key={passkey.id}
               className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-xl border border-line bg-field px-4 py-3"
             >
-              <div className="min-w-0">
-                <p className="truncate font-medium">{passkey.label}</p>
+              <div className="min-w-0 flex-1 basis-40 [overflow-wrap:anywhere]">
+                <p className="font-medium">{passkey.label}</p>
                 <p className="text-xs text-muted">
-                  {whenish(passkey.lastUsedAt)}
+                  {passkey.lastUsedAt ? (
+                    <time dateTime={passkey.lastUsedAt}>{whenish(passkey.lastUsedAt)}</time>
+                  ) : (
+                    whenish(null)
+                  )}
                   {' · '}
                   {passkey.backedUp ? (
                     <span className="text-pos">synced, so a lost device keeps it</span>
@@ -139,6 +143,15 @@ export function PasskeyList({
                     <span>on this device only</span>
                   )}
                 </p>
+                {passkey.lastUsedAt && (
+                  <p className="mt-1 text-xs text-muted">
+                    Last used:{' '}
+                    {new Date(passkey.lastUsedAt).toLocaleString(undefined, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
+                  </p>
+                )}
               </div>
               <button
                 type="button"
