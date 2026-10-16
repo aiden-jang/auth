@@ -39,7 +39,7 @@ export function ExportAccount(): ReactNode {
   return (
     <section
       aria-labelledby="your-data-heading"
-      className="flex items-center justify-between gap-4"
+      className="flex flex-wrap items-center justify-between gap-4"
     >
       <div>
         <h2
@@ -67,7 +67,7 @@ export function ExportAccount(): ReactNode {
         {exportStatus === 'exporting'
           ? 'Preparing…'
           : exportStatus === 'downloaded'
-            ? 'Downloaded'
+            ? 'Download started'
             : 'Download copy'}
       </button>
     </section>

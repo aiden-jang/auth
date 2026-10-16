@@ -137,6 +137,20 @@ test.describe('taking your data with you', () => {
     await page.getByRole('button', { name: 'Download copy' }).click();
     const file = await download;
     expect(file.suggestedFilename()).toMatch(/\.json$/);
+    await expect(page.getByRole('button', { name: 'Download started', exact: true })).toBeVisible();
+    for (const width of [1440, 390, 320]) {
+      await page.setViewportSize({ width, height: 780 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      const data = page.getByRole('region', { name: 'Your data', exact: true });
+      await data.scrollIntoViewIfNeeded();
+      await expect(data.getByRole('button')).toBeInViewport();
+      await page.screenshot({
+        path: test.info().outputPath(`account-download-${width}.png`),
+        animations: 'disabled',
+      });
+    }
   });
 });
 
@@ -185,4 +199,20 @@ test('password-manager destination survives signing in', async ({ page }) => {
   await page.getByRole('button', { name: 'Log in', exact: true }).click();
   await expect(page.getByLabel('Current password')).toBeFocused();
   await expect(page.getByLabel('New password', { exact: true })).toBeVisible();
+});
+
+test('tab titles follow authentication and recovery through browser history', async ({ page }) => {
+  await page.goto('/login');
+  await expect(page).toHaveTitle('Sign in · aidenjang accounts');
+  await expect(
+    page.getByRole('link', { name: 'aiden jang', exact: true }),
+  ).toHaveAccessibleDescription('Opens in a new tab');
+  await page.getByRole('link', { name: /Forgot\?/i }).click();
+  await expect(page).toHaveTitle('Reset password · aidenjang accounts');
+  await page.goBack();
+  await expect(page).toHaveTitle('Sign in · aidenjang accounts');
+  await page.goForward();
+  await expect(page).toHaveTitle('Reset password · aidenjang accounts');
+  await page.goto('/privacy');
+  await expect(page).toHaveTitle('Privacy · aidenjang accounts');
 });

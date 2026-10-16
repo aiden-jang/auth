@@ -96,6 +96,7 @@ export function ForgotPasswordPage(): ReactNode {
             <a
               href={inboxFor(email)!.href}
               target="_blank"
+              aria-describedby="external-link-hint"
               rel="noopener noreferrer"
               className={`${buttonClass} flex items-center justify-center gap-2 text-center no-underline`}
             >

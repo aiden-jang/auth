@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect, type ReactNode } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
@@ -11,6 +11,21 @@ import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 
 export function App(): ReactNode {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      '/login': 'Sign in',
+      '/signup': 'Create account',
+      '/forgot-password': 'Reset password',
+      '/reset-password': 'Choose a new password',
+      '/verify-email': 'Verify email',
+      '/account': 'Your account',
+      '/logout': 'Signing out',
+      '/privacy': 'Privacy',
+      '/terms': 'Terms',
+    };
+    document.title = `${titles[pathname] ?? 'Your account'} · aidenjang accounts`;
+  }, [pathname]);
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

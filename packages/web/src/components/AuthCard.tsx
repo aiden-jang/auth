@@ -32,6 +32,7 @@ function MadeBy({ className }: { className?: string }): ReactNode {
       <a
         href="https://www.aidenjang.com"
         target="_blank"
+        aria-describedby="external-link-hint"
         rel="noreferrer"
         className="hover:text-accent hover:underline"
       >
@@ -104,6 +105,7 @@ function BrandPanel(): ReactNode {
               <a
                 href={appHref(app)}
                 target="_blank"
+                aria-describedby="external-link-hint"
                 rel="noreferrer"
                 style={{ '--app-accent': app.accent } as CSSProperties}
               >
