@@ -8,6 +8,8 @@ workers_dev = false
 # Local dev port — matches the web Vite proxy target (packages/web/vite.config.ts).
 [dev]
 port = 34100
+host = "localhost"
+upstream_protocol = "http"
 
 # Identity store: users + sessions. database_id is filled in at deploy (step 1.9);
 # local dev uses miniflare's local D1.

@@ -23,7 +23,11 @@ export interface StepUp {
    * Run an action, and if the server wants re-confirmation, ask for it and run the action again.
    * Any other failure is rethrown so the caller's own error handling still owns it.
    */
-  guard: (label: string, run: () => Promise<void>) => Promise<boolean>;
+  guard: (
+    label: string,
+    run: () => Promise<void>,
+    trigger?: HTMLElement | null,
+  ) => Promise<boolean>;
   prompt: ReactNode;
 }
 
@@ -40,25 +44,33 @@ export function useStepUp(): StepUp {
     setPending(null);
   }, []);
 
-  const guard = useCallback(async (label: string, run: () => Promise<void>): Promise<boolean> => {
-    if (pendingRef.current) return false;
-    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    try {
-      await run();
-      return true;
-    } catch (err) {
-      if (!isReauthRequired(err)) throw err;
-      const confirmed = await new Promise<boolean>((resolve) => {
-        const next = { resolve, trigger, canUsePassword: reauthCanUsePassword(err), label };
-        pendingRef.current = next;
-        setPending(next);
-      });
-      if (!confirmed) return false;
-      // Resume the original caller so its error handler owns a failed action after reauthentication.
-      await run();
-      return true;
-    }
-  }, []);
+  const guard = useCallback(
+    async (
+      label: string,
+      run: () => Promise<void>,
+      opener?: HTMLElement | null,
+    ): Promise<boolean> => {
+      if (pendingRef.current) return false;
+      const trigger =
+        opener ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+      try {
+        await run();
+        return true;
+      } catch (err) {
+        if (!isReauthRequired(err)) throw err;
+        const confirmed = await new Promise<boolean>((resolve) => {
+          const next = { resolve, trigger, canUsePassword: reauthCanUsePassword(err), label };
+          pendingRef.current = next;
+          setPending(next);
+        });
+        if (!confirmed) return false;
+        // Resume the original caller so its error handler owns a failed action after reauthentication.
+        await run();
+        return true;
+      }
+    },
+    [],
+  );
 
   const prompt = pending ? (
     <StepUpDialog

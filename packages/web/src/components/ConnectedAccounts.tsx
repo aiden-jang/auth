@@ -1,3 +1,4 @@
+import type { StepUp } from './StepUpPrompt';
 import { useState, type ReactNode } from 'react';
 import { authApi, googleConnectUrl, type AuthUser } from '../lib/api';
 
@@ -14,19 +15,23 @@ export function ConnectedAccounts({
      render before this component is anywhere near it. */
   googleMsg: string | null;
   setGoogleMsg: (message: string | null) => void;
-  guard: (label: string, run: () => Promise<void>) => Promise<boolean>;
+  guard: StepUp['guard'];
   onDisconnected: () => void;
 }): ReactNode {
   const [disconnecting, setDisconnecting] = useState(false);
 
-  async function disconnectGoogle(): Promise<void> {
+  async function disconnectGoogle(trigger: HTMLButtonElement): Promise<void> {
     setDisconnecting(true);
     setGoogleMsg(null);
     try {
-      await guard('unlink Google', async () => {
-        await authApi.disconnectGoogle();
-        onDisconnected();
-      });
+      await guard(
+        'unlink Google',
+        async () => {
+          await authApi.disconnectGoogle();
+          onDisconnected();
+        },
+        trigger,
+      );
     } catch (err) {
       setGoogleMsg(err instanceof Error ? err.message : 'Could not disconnect Google.');
     } finally {
@@ -68,7 +73,7 @@ export function ConnectedAccounts({
           user.hasPassword ? (
             <button
               type="button"
-              onClick={() => void disconnectGoogle()}
+              onClick={(event) => void disconnectGoogle(event.currentTarget)}
               disabled={disconnecting}
               className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2 text-sm text-muted transition hover:text-ink disabled:opacity-60"
             >

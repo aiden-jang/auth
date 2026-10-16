@@ -1,6 +1,8 @@
 # Accounts UI verification
 
-The [October 14 review](october-14/README.md) records the latest account, recovery, and keyboard checks.
+The [October 16 Safari flow review](flow-audit-oct16/README.md) records the current browser coverage
+and local development fixes. The [October 14 review](october-14/README.md) records the earlier account,
+recovery and keyboard pass.
 Earlier records below describe their historical revisions.
 
 The [design](../DESIGN.md) uses an independent slate and ice-blue identity with cool paper,

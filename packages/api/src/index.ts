@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { isSecureRequest } from './auth/cookie.js';
 import { cors } from 'hono/cors';
 import { DEFAULT_CSP, harden } from './harden.js';
 import { onUnhandledError, requestIdFrom } from './requestId.js';
@@ -38,7 +39,13 @@ app.use('*', async (c, next) => {
   c.header('x-request-id', requestId);
 });
 
-app.use('*', harden({ csrf: false, csp: AUTH_CSP }));
+app.use('*', (c, next) =>
+  harden({
+    csrf: false,
+    // Safari upgrades loopback assets too; local HTTP has no HTTPS listener.
+    csp: isSecureRequest(c) ? AUTH_CSP : AUTH_CSP.replace('; upgrade-insecure-requests', ''),
+  })(c, next),
+);
 
 // Only /assets: a hashed name cannot change, while index.html keeps its name across deploys.
 app.use('*', async (c, next) => {

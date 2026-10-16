@@ -36,6 +36,7 @@ Optional local secrets belong in the ignored `.dev.vars` file in `packages/api`;
 ## Verify
 
 ```sh
+pnpm --filter @aidenjang/auth-web exec playwright install --with-deps chromium webkit
 pnpm run verify
 ```
 
@@ -44,7 +45,10 @@ dependency audit, builds, unit suites, and browser journeys. `verify:fast` runs 
 `verify:core` adds builds and unit tests. Browser tests own their local servers, database migrations,
 synthetic accounts, and dev-mail log. They test the built production configuration with a local
 security-widget stub, while actual account journeys use local challenge-free development mode.
-They do not contact Google, send email, or change production accounts.
+They do not contact Google, send email, or change production accounts. Desktop Chromium and
+iPhone-sized WebKit run the journeys; physical keyboards, gestures and native sheets still need
+a real-device check. Local HTTP tests pin the Worker’s upstream to loopback so cookies and asset
+URLs use the development origin.
 
 CI runs `verify:core` and browser journeys in parallel, retains the checked web bundle and browser
 evidence, and deploys only after both jobs pass. Merging to main triggers the existing automatic

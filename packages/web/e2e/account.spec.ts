@@ -107,17 +107,19 @@ test.describe('changing the password', () => {
 });
 
 test.describe('signed-in devices', () => {
-  test('lists this one, and names it something recognisable', async ({ page }) => {
+  test('lists this one, and names it something recognisable', async ({ page, browserName }) => {
     await registerAndLand(page);
     await expect(page.getByRole('region', { name: 'Security' })).toBeVisible();
     // The label is what somebody scans for a device that is not theirs.
-    await expect(page.getByText(/Chrome on/)).toBeVisible();
+    await expect(
+      page.getByText(browserName === 'webkit' ? 'Safari on iOS' : /Chrome on/),
+    ).toBeVisible();
   });
 
-  test('renames a device, and the new name survives a reload', async ({ page }) => {
+  test('renames a device, and the new name survives a reload', async ({ page, browserName }) => {
     await registerAndLand(page);
     await page
-      .getByText(/Chrome on/)
+      .getByText(browserName === 'webkit' ? 'Safari on iOS' : /Chrome on/)
       .first()
       .click();
     await page.getByRole('button', { name: 'Rename device' }).click();

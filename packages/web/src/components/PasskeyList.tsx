@@ -1,3 +1,4 @@
+import type { StepUp } from './StepUpPrompt';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { authApi, type Passkey } from '../lib/api';
 import { addPasskey, passkeysSupported } from '../lib/passkeys';
@@ -9,7 +10,7 @@ export function PasskeyList({
   guard,
 }: {
   /** Runs an action through the account page's step-up prompt, so a removal can ask for a password. */
-  guard: (label: string, run: () => Promise<void>) => Promise<boolean>;
+  guard: StepUp['guard'];
 }): ReactNode {
   const [passkeys, setPasskeys] = useState<Passkey[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -61,15 +62,19 @@ export function PasskeyList({
     await load();
   }
 
-  async function remove(passkey: Passkey): Promise<void> {
+  async function remove(passkey: Passkey, trigger: HTMLButtonElement): Promise<void> {
     if (busy) return;
     setBusy(passkey.id);
     setMessage(null);
     try {
-      await guard('remove a passkey', async () => {
-        await authApi.deletePasskey(passkey.id);
-        await load();
-      });
+      await guard(
+        'remove a passkey',
+        async () => {
+          await authApi.deletePasskey(passkey.id);
+          await load();
+        },
+        trigger,
+      );
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Could not remove that one.');
     } finally {
@@ -141,7 +146,7 @@ export function PasskeyList({
               </div>
               <button
                 type="button"
-                onClick={() => void remove(passkey)}
+                onClick={(event) => void remove(passkey, event.currentTarget)}
                 disabled={busy !== null}
                 className="shrink-0 rounded-lg border border-line px-3 py-1.5 text-sm text-muted transition hover:border-neg/40 hover:text-neg disabled:opacity-50"
               >

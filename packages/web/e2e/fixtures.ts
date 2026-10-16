@@ -16,12 +16,11 @@ function addressFor(title: string): string {
 }
 
 export const test = base.extend({
-  context: async ({ browser }, use, testInfo) => {
-    const context = await browser.newContext({
-      extraHTTPHeaders: { 'cf-connecting-ip': addressFor(testInfo.titlePath.join('/')) },
+  context: async ({ context }, use, testInfo) => {
+    await context.setExtraHTTPHeaders({
+      'cf-connecting-ip': addressFor(testInfo.titlePath.join('/')),
     });
     await use(context);
-    await context.close();
   },
 });
 

@@ -1,3 +1,4 @@
+import type { StepUp } from './StepUpPrompt';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { authApi, type AuthUser } from '../lib/api';
 import { labelClass } from './AuthCard';
@@ -24,7 +25,7 @@ export function PasswordSection({
   pwDone: boolean;
   setPwDone: (done: boolean) => void;
   /** Runs an action behind the step-up prompt, for the half that has no old password to ask for. */
-  guard: (label: string, run: () => Promise<void>) => Promise<boolean>;
+  guard: StepUp['guard'];
   onPasswordAdded: () => void;
   /** Lets the page retire the security-review banner once the password is dealt with. */
   onFinished: () => void;
@@ -45,6 +46,7 @@ export function PasswordSection({
 
   async function submitPassword(e: FormEvent): Promise<void> {
     e.preventDefault();
+    const trigger = (e.nativeEvent as SubmitEvent).submitter;
     if (newPw !== confirmPw) {
       setPwError('Those passwords do not match.');
       return;
@@ -57,11 +59,15 @@ export function PasswordSection({
         await authApi.changePassword(curPw, newPw);
         setPwWasSet(false);
       } else {
-        const completed = await guard('add a password', async () => {
-          await authApi.setPassword(newPw);
-          onPasswordAdded();
-          setPwWasSet(true);
-        });
+        const completed = await guard(
+          'add a password',
+          async () => {
+            await authApi.setPassword(newPw);
+            onPasswordAdded();
+            setPwWasSet(true);
+          },
+          trigger,
+        );
         if (!completed) return;
       }
       setChangingPw(false);
