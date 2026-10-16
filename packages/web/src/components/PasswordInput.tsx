@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { inputClass } from './AuthCard';
 
 interface PasswordInputProps {
@@ -30,6 +30,7 @@ export function PasswordInput({
   autoFocus,
   minLength,
 }: PasswordInputProps): ReactNode {
+  const inputRef = useRef<HTMLInputElement>(null);
   const [show, setShow] = useState(false);
   const [capsOn, setCapsOn] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -41,6 +42,7 @@ export function PasswordInput({
     <>
       <div className="relative">
         <input
+          ref={inputRef}
           id={id}
           name={name}
           type={show ? 'text' : 'password'}
@@ -51,6 +53,9 @@ export function PasswordInput({
           onKeyDown={trackCaps}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
+          spellCheck={false}
+          autoCapitalize="none"
+          autoCorrect="off"
           autoComplete={autoComplete}
           placeholder={placeholder}
           required={required}
@@ -59,7 +64,18 @@ export function PasswordInput({
         />
         <button
           type="button"
-          onClick={() => setShow((s) => !s)}
+          onClick={() => {
+            const input = inputRef.current;
+            const start = input?.selectionStart ?? 0;
+            const end = input?.selectionEnd ?? start;
+            const direction = input?.selectionDirection ?? 'none';
+            setShow((current) => !current);
+            requestAnimationFrame(() => {
+              if (!input?.isConnected) return;
+              input.focus({ preventScroll: true });
+              input.setSelectionRange(start, end, direction);
+            });
+          }}
           aria-label={show ? 'Hide password' : 'Show password'}
           aria-pressed={show}
           className="absolute inset-y-0 right-0 grid w-11 cursor-pointer place-items-center text-muted transition hover:text-ink"

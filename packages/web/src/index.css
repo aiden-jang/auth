@@ -367,3 +367,20 @@ button:not(:disabled) {
 .account-shell select:focus {
   border-color: var(--color-accent);
 }
+
+input:is(:autofill, :-webkit-autofill),
+textarea:is(:autofill, :-webkit-autofill) {
+  -webkit-text-fill-color: var(--color-ink);
+  caret-color: var(--color-ink);
+  box-shadow: 0 0 0 1000px var(--color-field) inset;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #14171c;
+}
+
+input::selection,
+textarea::selection {
+  -webkit-text-fill-color: #14171c;
+}

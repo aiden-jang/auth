@@ -71,3 +71,36 @@ test('a security-check script failure is recoverable without a full page reload'
   await expect(page.getByRole('button', { name: 'Log in', exact: true })).toBeEnabled();
   expect(calls).toBe(2);
 });
+
+test('revealing a password preserves its draft, selection and focus', async ({ page }) => {
+  await page.goto(`${ORIGIN}/login`);
+  const password = page.getByLabel('Password', { exact: true });
+  await password.fill('Only-a-local-draft');
+  await password.evaluate((input: HTMLInputElement) => input.setSelectionRange(2, 8));
+  await page.getByRole('button', { name: 'Show password', exact: true }).click();
+  await expect(password).toHaveAttribute('type', 'text');
+  await expect(password).toBeFocused();
+  expect(
+    await password.evaluate((input: HTMLInputElement) => [
+      input.selectionStart,
+      input.selectionEnd,
+    ]),
+  ).toEqual([2, 8]);
+  await page.getByRole('button', { name: 'Hide password', exact: true }).click();
+  await expect(password).toHaveAttribute('type', 'password');
+  await expect(password).toHaveValue('Only-a-local-draft');
+  await expect(password).toBeFocused();
+  expect(
+    await password.evaluate((input: HTMLInputElement) => [
+      input.selectionStart,
+      input.selectionEnd,
+    ]),
+  ).toEqual([2, 8]);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.screenshot({
+      path: test.info().outputPath(`password-${width}.png`),
+      animations: 'disabled',
+    });
+  }
+});
