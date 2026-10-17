@@ -22,13 +22,7 @@ export interface AuthedUser {
   emailVerified: boolean;
 }
 
-/**
- * Only https aidenjang.com hosts, else `${base}/account`. An open redirect here is a real phishing
- * vector: the victim did just sign in to the real site, and carries that trust wherever they land.
- *
- * Loopback passes only when `base` is itself loopback -- true in dev, never in production. Keying
- * that off `base` rather than the target is what stops production pointing at somebody's machine.
- */
+/** Allow HTTPS app hosts; permit loopback only when the service itself is on loopback. */
 export function safeAppRedirect(returnTo: string, base: string): string {
   const baseUrl = new URL(base);
   const origin = baseUrl.origin;
@@ -144,13 +138,7 @@ export async function exchangeGoogleCode(
   };
 }
 
-/**
- * Match on google_id, else link by email, else create. Null when Google will not vouch.
- *
- * Everything past the google_id match turns on the address, so an unverified one is refused: it
- * would hand an existing account to whoever claimed it, or let somebody squat one. A google_id
- * that matches is a binding established earlier and stands on its own.
- */
+/** Existing Google IDs identify an account; linking or creating by email requires verified ownership. */
 export async function upsertGoogleUser(
   db: DB,
   identity: GoogleIdentity,

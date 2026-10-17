@@ -1,11 +1,4 @@
-/*
- * Every gate in `verify` has to actually run.
- *
- * `pnpm docs` silently resolves to npm's own `docs` command, which exits 0 without running the
- * script — so that gate reported green for a day while never executing, and only failed once CI
- * tried to open a browser. `pnpm deploy` collides the same way. `pnpm run <name>` is unambiguous,
- * so the chain must always spell it out.
- */
+// Check that verification and CI run the same real scripts with unambiguous command names.
 import { readFileSync } from 'node:fs';
 
 const { scripts } = JSON.parse(readFileSync('package.json', 'utf8'));

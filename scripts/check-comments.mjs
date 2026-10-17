@@ -1,12 +1,4 @@
-/*
- * Three mechanical checks on comments, run by `pnpm verify`.
- *
- * A budget, because a cleanup is a moment and drift is permanent. A duplicate check, because the
- * same fact copied into several files is the failure this repo actually had: each copy reads as
- * reasonable on its own and only a whole-repo view shows it. And a stranded check, because moving
- * code leaves comments behind describing something that is no longer underneath them -- one of
- * those claimed an enumeration defence above a route that has none.
- */
+// Check comment budgets, repeated explanations, and comments stranded by moves.
 import { globSync, readFileSync } from 'node:fs';
 
 /*
@@ -23,13 +15,7 @@ const SRC_BUDGET = 699;
 const SCRIPTS_CEILING = 0.25;
 const DUP_MIN_CHARS = 45;
 
-/**
- * Comment spans in one file.
- *
- * Strings are blanked first, because the source is full of things that look like comment openers:
- * `http://…` in a URL, and `'/auth/*'` as a route path, which opened a block comment that swallowed
- * sixteen lines of middleware and counted them as prose.
- */
+/* Mask string literals so URLs and glob patterns cannot open comments. */
 function comments(source, isCss) {
   const masked = source.replace(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g, (m) =>
     ' '.repeat(m.length),
@@ -84,11 +70,7 @@ for (const file of files) {
   let afterDeclaration = false;
   for (let i = 1; i < lines.length - 2; i++) {
     if (/^\}\)?;?$/.test(lines[i])) afterDeclaration = true;
-    /*
-     * A doc block with nothing under it but a closing brace. `/**` exists to describe the next
-     * declaration, so one describing a brace documents a prop or a field that has been removed.
-     * Ungated: the first interface in a file is where this happens.
-     */
+    // A doc block followed only by a closing delimiter has lost its subject.
     if (/\*\/\s*$/.test(lines[i])) {
       let open = i;
       while (open >= 0 && !lines[open].includes('/*')) open--;

@@ -1,10 +1,4 @@
-/*
- * Which app somebody was reaching, for the footer line explaining why they got the email.
- *
- * From the hostname, never a name the client sent: this is printed in an email, and "someone used
- * this address to sign in to your bank" is exactly what a phisher would want there. Taken from the
- * subdomain rather than a list, so a new app reads correctly with no entry here to forget.
- */
+// Derive email app labels from the verified return host, never client-supplied display text.
 
 const ROOT = 'aidenjang.com';
 

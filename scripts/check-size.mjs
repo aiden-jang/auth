@@ -1,23 +1,10 @@
-/*
- * Ceilings on file length and component state, run by `pnpm verify`.
- *
- * Nothing else here notices a file growing. index.ts reached 1225 lines holding thirty routes and
- * AccountPage 1151 with 43 useState calls, both passing every other gate the whole way. A god-file
- * is never added; it accretes twenty lines at a time, and no single diff looks wrong.
- *
- * Raise a ceiling only when the thing above it genuinely is one responsibility. Splitting the file
- * is the other option and usually the right one.
- */
+// Enforce module and local-state budgets; existing exceptions may only shrink.
 import { globSync, readFileSync } from 'node:fs';
 
 const MAX_LINES = 400;
 const MAX_STATE = 12;
 
-/*
- * Already over, and being decomposed. Listed at its own size rather than the ceiling being raised for
- * everyone, so nothing else can grow past it meanwhile.
- * An entry sitting above its file fails too, so nobody has to remember to shrink one.
- */
+// Existing exceptions are pinned and must shrink with their files.
 const ALREADY_OVER = {};
 
 const files = globSync('packages/*/src/**/*.{ts,tsx}').filter((f) => !/\.test\.tsx?$/.test(f));

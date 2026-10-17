@@ -31,13 +31,7 @@ export type SessionOutcome =
   /** Accounts could not be asked, so this says nothing about whether they are signed in. */
   | { state: 'unavailable' };
 
-/**
- * Resolve the caller's session, keeping "signed out" and "could not ask" apart. An outage read as
- * a sign-out offers to sign in someone who already is, and to import guest data over synced data.
- *
- * Only a reachable service refusing the cookie is signed out. Unreachable, 5xx, a rate limit, a
- * wrong base URL or an unparseable body are all `unavailable` -- none is evidence about the person.
- */
+/** Only an authoritative refusal means signed out. Transport, server, rate-limit, and parse failures are unavailable. */
 export async function resolveSession(
   request: Request,
   authBaseUrl: string,

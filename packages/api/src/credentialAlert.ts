@@ -1,13 +1,7 @@
 import type { SessionMeta } from './auth/session.js';
 import { escapeHtml, readableTime, renderEmail, type RenderedEmail } from './emailLayout.js';
 
-/*
- * The safety net that does not depend on reasoning correctly about attack paths, so it is sent for
- * every credential change and never gated on one looking suspicious.
- *
- * Best-effort at the call site for the same reason: a mail outage must not stop someone changing a
- * password they think somebody else has.
- */
+// Alert on every credential change. Delivery failures must not prevent securing the account.
 
 export type CredentialChange =
   | 'password_added'

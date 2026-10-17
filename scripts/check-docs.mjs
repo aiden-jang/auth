@@ -1,11 +1,4 @@
-/*
- * Two mechanical checks on the docs, run by `pnpm verify`.
- *
- * Every route the code serves has to appear in docs/API.md, and every file path the docs point at
- * has to exist. Neither was true: API.md described nine of twenty-nine routes and SECURITY.md sent
- * readers to a package that was never created. Prose drifts silently, so the parts of it that are
- * checkable should be checked.
- */
+// Validate documented paths, scripts, routes, symbols, and local links.
 import { existsSync, globSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
