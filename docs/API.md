@@ -110,3 +110,11 @@ New apps live in their own repo and integrate with auth as a client:
    service's `/auth/me`; never add per-app login. Expose a same-origin `/me` for the frontend.
 3. Redirect to the shared auth origin for sign-in/out with `loginUrl` / `logoutUrl` (+ `return_to`).
 4. Add the app's origin to auth's `CORS_ORIGINS` if it calls `/auth/*` cross-origin.
+
+## Anonymous analytics
+
+`POST /api/analytics` accepts at most 256 bytes with an exact same-origin `Origin`.
+The JSON is a fixed `page_view` category or an allowlisted action name. It does not
+resolve accounts, read private records, accept URLs/IDs/text, or set cookies.
+Successful or ignored events return 204; foreign origins return 403, oversized bodies
+413, and the independent per-IP edge limit 429. See the analytics guide for categories.

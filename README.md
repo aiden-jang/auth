@@ -97,3 +97,5 @@ not public issues. See [security](docs/SECURITY.md) for the implemented controls
 The committed slate/ice-blue preview at `/og.png` contains static branding, with no account or return
 destination data. Regenerate its SVG and PNG with `pnpm --filter @aidenjang/auth-web run gen:og`.
 The same PNG is suitable for the repository’s optional GitHub social preview.
+
+Aggregate traffic and feature-event coverage, privacy boundaries and queries: [Analytics](docs/ANALYTICS.md).

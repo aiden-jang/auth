@@ -1,3 +1,5 @@
+import { usePageAnalytics } from './usePageAnalytics.js';
+import { pageForPath } from '../../../analytics/schema.js';
 import { useEffect, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
@@ -12,6 +14,7 @@ import { TermsPage } from './pages/TermsPage';
 
 export function App(): ReactNode {
   const { pathname } = useLocation();
+  usePageAnalytics(pageForPath(pathname), pathname);
   useEffect(() => {
     const titles: Record<string, string> = {
       '/login': 'Sign in',

@@ -1,3 +1,4 @@
+import { handleAnalytics } from '../../../analytics/worker.js';
 import { Hono } from 'hono';
 import { isSecureRequest } from './auth/cookie.js';
 import { cors } from 'hono/cors';
@@ -28,8 +29,8 @@ app.onError(onUnhandledError);
 const TURNSTILE_ORIGIN = 'https://challenges.cloudflare.com';
 const AUTH_CSP =
   DEFAULT_CSP.replace("script-src 'self'", `script-src 'self' ${TURNSTILE_ORIGIN}`).replace(
-    "connect-src 'self' https://static.cloudflareinsights.com https://cloudflareinsights.com",
-    `connect-src 'self' https://static.cloudflareinsights.com https://cloudflareinsights.com ${TURNSTILE_ORIGIN}`,
+    "connect-src 'self'",
+    `connect-src 'self' ${TURNSTILE_ORIGIN}`,
   ) + `; frame-src ${TURNSTILE_ORIGIN}`;
 app.use('*', async (c, next) => {
   const requestId = requestIdFrom(c.req.raw);
@@ -73,6 +74,8 @@ app.use('/auth/*', async (c, next) => {
     credentials: true,
   })(c, next);
 });
+
+app.all('/api/analytics', (c) => handleAnalytics(c.req.raw, c.env));
 
 app.get('/health', (c) => c.json({ status: 'ok', service: 'auth' }));
 

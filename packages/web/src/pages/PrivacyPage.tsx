@@ -62,15 +62,18 @@ export function PrivacyPage(): ReactNode {
           </li>
           <li>
             <strong>Technical:</strong> standard request logs (IP, timestamp, error traces) kept
-            briefly for debugging and abuse prevention, plus aggregate, cookieless page-view counts.
+            briefly for debugging and abuse prevention, plus aggregate, cookieless page-category and
+            feature-use counts.
           </li>
         </ul>
       </Section>
 
       <Section heading="Cookies and analytics">
         One essential cookie holds your login session so you are not asked to sign in on every
-        click. That is the only one. Analytics are cookieless (Cloudflare Web Analytics counts
-        visits without following you across sites), so there is no consent banner to dismiss. We
+        click. That is the only one. App analytics are cookieless aggregate counters. We send fixed
+        page categories and action names, without private URLs, account IDs, email addresses, names
+        or message text. Browser counters respect Global Privacy Control and Do Not Track. The
+        public portfolio and globe also use privacy-focused traffic and performance analytics. We
         also count how often each sign-in method is used and when a password is changed or added,
         with no account, email or address attached.
       </Section>

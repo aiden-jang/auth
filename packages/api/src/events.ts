@@ -6,9 +6,13 @@ const APP = 'auth';
 
 export function writeEvent(env: Env, name: string, variant = '', detail = ''): void {
   if (!env.EVENTS) return;
-  env.EVENTS.writeDataPoint({
-    indexes: [APP],
-    blobs: [APP, name, variant.slice(0, 64), detail.slice(0, 64)],
-    doubles: [1, 0],
-  });
+  try {
+    env.EVENTS.writeDataPoint({
+      indexes: [APP],
+      blobs: [APP, name, variant.slice(0, 64), detail.slice(0, 64)],
+      doubles: [1, 0],
+    });
+  } catch {
+    /* Aggregate counters are best effort and must not fail product actions. */
+  }
 }

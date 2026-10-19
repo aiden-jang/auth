@@ -22,20 +22,23 @@ head_sampling_rate = 1
   (filter by status, exception, invocation). Retention is on the free tier.
 - Drop `head_sampling_rate` below `1` only if a worker gets high enough traffic to matter (none do).
 
-## 2. Web Analytics (traffic): dashboard
+## 2. Aggregate traffic and product events
 
-Cloudflare **Web Analytics** is cookieless (hashes IP+UA at the edge) and free, so **no cookie
-banner** is required (disclosed in the privacy policy, step 5.5).
+Private apps report fixed page categories to the shared `aidenjang_events` Analytics
+Engine dataset through an anonymous first-party endpoint. Accounts, Owewell, Bloomnote, Wherever, mrrp, iguess and Worth block the automatic
+Web Analytics URL beacon through their Content Security Policy: its full-path
+collection would record private room, share and record identifiers. The free
+Cloudflare plan can still inject the script, but the browser must refuse to run it. Native rate limiting has a separate analytics
+bucket. No URL, query, fragment, note, name or account identifier is sent in these events.
 
-Setup is done: the `aidenjang.com` zone has one site, and Cloudflare injects its beacon into every
-proxied HTML response, Worker-served ones included. That single site collects every hostname under
-the zone, so each app's numbers come from its hostname filter rather than a site of its own.
+The public portfolio keeps Vercel Analytics/Speed Insights, with URLs normalized to
+its home page. The public everythingisfine globe keeps Cloudflare Web Analytics and
+adds fixed usage events to Analytics Engine; its permalink fragments are not collected
+by the Cloudflare beacon. Do not inject a second traffic beacon.
 
-Do not paste a manual beacon snippet in as well. `beacon.min.js` initialises once per page, so a
-second copy no-ops and its site sits at zero, which reads exactly like broken analytics.
-
-The CSP still has to allow `https://static.cloudflareinsights.com` in `script-src`, since the
-injected script is what does the reporting.
+See [Analytics](ANALYTICS.md) for schemas, privacy choices and the dashboard query.
+`pnpm events [days]` reads the shared dataset using sample-weighted counts. Browser
+counters are best effort and must not be treated as unique people or exact retention.
 
 ## 3. Uptime: external keyword monitors
 
@@ -55,7 +58,7 @@ when the thing behind it is broken, so a status-code check would sit green throu
 
 The path is not uniform, and that is not an oversight: wherever and mrrp serve everything under
 `/api/*` and their health sits there, while `/health` at the root would be answered by the SPA
-fallback. everythingisfine has no Worker at all, so its page is the only thing to check.
+fallback. everythingisfine has no data API (its Worker only accepts aggregate analytics), so its page is the only thing to check.
 
 wherever's keyword is deliberately `"source":"google"` rather than `"ok":true`. It reports `mock`
 when the Places key is missing, so the monitor covers the key as well as the worker.

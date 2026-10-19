@@ -32,11 +32,11 @@ async function run(sql) {
 const since = `timestamp >= NOW() - INTERVAL '${days}' DAY`;
 
 const byApp = await run(
-  `SELECT blob1 AS app, SUM(double1) AS events FROM aidenjang_events
+  `SELECT blob1 AS app, SUM(_sample_interval * double1) AS events FROM aidenjang_events
    WHERE ${since} GROUP BY app ORDER BY events DESC`,
 );
 const byEvent = await run(
-  `SELECT blob1 AS app, blob2 AS event, blob3 AS variant, SUM(double1) AS n
+  `SELECT blob1 AS app, blob2 AS event, blob3 AS variant, SUM(_sample_interval * double1) AS n
    FROM aidenjang_events WHERE ${since} GROUP BY app, event, variant ORDER BY n DESC LIMIT 60`,
 );
 

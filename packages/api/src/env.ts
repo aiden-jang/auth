@@ -2,6 +2,7 @@ import type { RateLimiter } from './rateLimiter.js';
 
 /** Bindings + vars declared in wrangler.toml / secrets, surfaced to the Worker. */
 export interface Env {
+  EVENT_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
   // Identity store: users + sessions + one-time tokens.
   DB: D1Database;
   // Fixed-window rate limiter, one instance per action:ip.

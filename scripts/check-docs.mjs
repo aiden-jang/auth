@@ -19,7 +19,7 @@ const apiDoc = readFileSync('docs/API.md', 'utf8');
 const documented = new Set(
   [
     ...apiDoc.matchAll(
-      /`(?:GET |POST |PUT |PATCH |DELETE |OPTIONS |HEAD )?(\/(?:auth\/[a-z0-9/-]+|health|\.well-known\/[a-z0-9/-]+))`/g,
+      /`(?:GET |POST |PUT |PATCH |DELETE |OPTIONS |HEAD )?(\/(?:auth\/[a-z0-9/-]+|api\/[a-z0-9/-]+|health|\.well-known\/[a-z0-9/-]+))`/g,
     ),
   ].map((m) => m[1]),
 );
