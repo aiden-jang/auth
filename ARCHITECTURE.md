@@ -61,6 +61,10 @@ Playwright owns local server lifecycles and exercises real account journeys, ser
 recovery failures, keyboard access, and the built production flags. UI captures use synthetic
 responses and include narrow-screen overflow checks. See [UI evidence](docs/ui-qa/README.md).
 
+Passkey management tests declare browser support explicitly so the host's WebAuthn availability
+cannot hide the panel under test. A separate unsupported-browser case covers the account fallback;
+these fixtures do not perform passkey registration or authentication ceremonies.
+
 CI runs core checks and browser journeys independently. Both gate automatic main deployment. The
 core job builds production assets with the public provider flags; deployment downloads that bundle,
 applies D1 migrations, and publishes without rebuilding it. Security scanning and required PR checks

@@ -17,6 +17,17 @@ async function account(page: Page, overrides = {}): Promise<void> {
   await page.route('**/auth/passkeys', (route) => route.fulfill({ json: { passkeys: [] } }));
 }
 
+async function passkeyAccount(page: Page): Promise<void> {
+  // Management tests need the capability flag, not a hardware authenticator.
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'PublicKeyCredential', {
+      configurable: true,
+      value: class PublicKeyCredential {},
+    });
+  });
+  await account(page);
+}
+
 test('an account outage stays recoverable without pretending the session expired', async ({
   page,
 }) => {
@@ -53,7 +64,7 @@ test('logout waits for confirmation and offers a retry on failure', async ({ pag
 });
 
 test('a failed passkey list is an error with a retry, never an empty account', async ({ page }) => {
-  await account(page);
+  await passkeyAccount(page);
   let unavailable = true;
   await page.route('**/auth/passkeys', (route) =>
     route.fulfill(
@@ -77,10 +88,23 @@ test('a failed passkey list is an error with a retry, never an empty account', a
   await page.goto('/account');
   const section = page.getByRole('region', { name: 'Passkeys', exact: true });
   await expect(section.getByRole('alert')).toBeVisible();
-  await expect(section.getByText('None yet.', { exact: false })).toBeHidden();
+  await expect(section.getByText('No passkeys yet.', { exact: true })).toBeHidden();
   unavailable = false;
   await section.getByRole('button', { name: 'Try again', exact: true }).click();
   await expect(section.getByText('Personal laptop')).toBeVisible();
+});
+
+test('an account remains usable without browser passkey support', async ({ page }) => {
+  await account(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'PublicKeyCredential', { configurable: true, value: undefined });
+  });
+  await page.goto('/account');
+  await expect(page.getByText(user.email, { exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Passkeys', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Change password', exact: true }).click();
+  await expect(page.getByLabel('Current password', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Log out', exact: true })).toBeVisible();
 });
 
 test('cancelling reauthentication keeps the password draft without claiming success', async ({
@@ -107,7 +131,7 @@ test('cancelling reauthentication keeps the password draft without claiming succ
 test('reauthentication keeps keyboard focus inside and restores it on cancellation', async ({
   page,
 }) => {
-  await account(page);
+  await passkeyAccount(page);
   await page.route('**/auth/passkeys', (route) =>
     route.fulfill({
       json: {
@@ -190,7 +214,7 @@ test('a device-list failure does not claim there are no active sessions', async 
 test('a post-confirmation action failure returns to the original error handler', async ({
   page,
 }) => {
-  await account(page);
+  await passkeyAccount(page);
   await page.route('**/auth/passkeys', (route) =>
     route.fulfill({
       json: {
@@ -231,7 +255,7 @@ test('a post-confirmation action failure returns to the original error handler',
 });
 
 test('passkey details stay readable with long names and forced colors', async ({ page }) => {
-  await account(page);
+  await passkeyAccount(page);
   const label = 'Personal laptop — 수진 — ' + 'Travel authenticator '.repeat(10);
   const lastUsedAt = '2026-10-15T13:14:00.000Z';
   await page.route('**/auth/passkeys', (route) =>
