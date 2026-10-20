@@ -29,7 +29,8 @@ pnpm --filter @aidenjang/auth-web run dev
 ```
 
 Open `http://localhost:34110`; the local Worker runs on port 34100. Apply migrations before using a
-fresh local D1. Local mail is printed to the Worker log when no email provider key is configured.
+fresh local D1. With an explicit HTTP(S) loopback `APP_URL` and no email provider key, local mail is printed
+to the Worker log. Other origins require the mail provider; message contents are never logged.
 Optional local secrets belong in the ignored `.dev.vars` file in `packages/api`; see
 [the API runbook](packages/api/DEPLOY.md). Never use production credentials for tests.
 

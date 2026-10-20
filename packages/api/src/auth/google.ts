@@ -33,7 +33,13 @@ export function safeAppRedirect(returnTo: string, base: string): string {
       const h = u.hostname;
       const ours = h === 'aidenjang.com' || h.endsWith('.aidenjang.com');
       const loopback = h === 'localhost' || h === '127.0.0.1';
-      if ((ours && u.protocol === 'https:') || (loopback && devBase)) return u.toString();
+      const web = u.protocol === 'http:' || u.protocol === 'https:';
+      if (
+        !u.username &&
+        !u.password &&
+        ((ours && u.protocol === 'https:') || (loopback && devBase && web))
+      )
+        return u.toString();
     } catch {
       /* not a valid URL — fall through */
     }
@@ -79,7 +85,7 @@ function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
   }
 }
 
-/** Exchange an auth code for the user's Google identity, or null on any failure. */
+/** Exchange an auth code for an identity; callers handle transport failures. */
 export async function exchangeGoogleCode(
   clientId: string,
   clientSecret: string,
@@ -98,14 +104,13 @@ export async function exchangeGoogleCode(
     }),
   });
   if (!res.ok) {
-    // Google's body names the cause: invalid_grant, redirect_uri_mismatch, invalid_client, …
-    const body = await res.text().catch(() => '');
-    console.error('[google] token exchange HTTP', res.status, body.slice(0, 300));
+    // Provider replies can carry credentials; keep response bodies out of logs.
+    console.error('[google] token exchange HTTP', res.status);
     return null;
   }
   const data = (await res.json()) as { id_token?: string };
   if (!data.id_token) {
-    console.error('[google] token response had no id_token:', JSON.stringify(data).slice(0, 200));
+    console.error('[google] token response had no id_token');
     return null;
   }
 

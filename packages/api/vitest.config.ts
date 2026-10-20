@@ -13,6 +13,7 @@ export default defineConfig(async () => {
             TEST_MIGRATIONS: migrations,
             // Tests cannot inherit live email, bot-challenge, or OAuth secrets from .dev.vars.
             RESEND_API_KEY: '',
+            APP_URL: 'http://localhost:34110',
             TURNSTILE_SECRET: '',
             GOOGLE_CLIENT_ID: '',
             GOOGLE_CLIENT_SECRET: '',

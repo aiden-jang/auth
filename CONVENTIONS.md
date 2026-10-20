@@ -1,8 +1,8 @@
 # Working in this repo
 
-Planning, commits and how to explain things live in the global `~/.claude/CLAUDE.md`. This file is
-what is true _here_: the patterns to follow, the smells that actually shipped, and the gates that
-catch what judgment did not.
+Use scope-free Conventional Commits. Setup and review expectations are in
+[CONTRIBUTING.md](CONTRIBUTING.md). This file records repository patterns, constraints and
+verification gates.
 
 ## Before you say anything is done
 

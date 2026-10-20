@@ -36,6 +36,7 @@ it does not build the UI. Avoid a bare Wrangler deployment that skips pending mi
 ## Local development
 
 Build the web app and apply local migrations before starting the Worker. The README’s API command
-sets `APP_URL` to the local web origin. With no provider keys, mail is logged and the local bot
-challenge is unconfigured; production configuration is independent. Workers’ password-hashing limit
+sets `APP_URL` to the local web origin. Without a mail key, only explicit HTTP(S) loopback
+origins print dev mail; a nonlocal origin logs a configuration error without message contents.
+The local bot challenge is unconfigured; production configuration is independent. Workers’ password-hashing limit
 is recorded beside the hashing parameters in `src/auth/password.ts`.

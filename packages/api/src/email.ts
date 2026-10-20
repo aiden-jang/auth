@@ -8,15 +8,24 @@ interface Message {
   text?: string;
 }
 
-// Sends via Resend when RESEND_API_KEY is set; otherwise logs (dev / no-cost default).
+// Only loopback development may print credential-bearing mail for local inspection.
 export async function sendEmail(env: Env, msg: Message): Promise<void> {
-  // In local dev (APP_URL points at localhost) tag the subject so test
-  // emails are obvious in an inbox and in the console log, and never get
-  // mistaken for the real thing.
-  const isLocal = env.APP_URL?.includes('localhost') ?? false;
+  let isLocal = false;
+  try {
+    const url = new URL(env.APP_URL ?? '');
+    isLocal =
+      ['http:', 'https:'].includes(url.protocol) &&
+      ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+  } catch {
+    /* Missing or malformed configuration must not enable credential logging. */
+  }
   const subject = isLocal ? `[dev] ${msg.subject}` : msg.subject;
 
   if (!env.RESEND_API_KEY) {
+    if (!isLocal) {
+      console.error('email delivery unavailable: provider not configured');
+      return;
+    }
     console.log(
       `[email:dev] to=${msg.to} subject=${JSON.stringify(subject)}\n${msg.text ?? msg.html}`,
     );
@@ -37,5 +46,5 @@ export async function sendEmail(env: Env, msg: Message): Promise<void> {
       ...(msg.text ? { text: msg.text } : {}),
     }),
   });
-  if (!res.ok) console.error('email send failed', res.status, await res.text());
+  if (!res.ok) console.error('email send failed', res.status);
 }

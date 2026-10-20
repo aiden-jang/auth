@@ -16,7 +16,7 @@ export interface Env {
   CORS_ORIGINS?: string;
   // Base URL of the auth UI, used to build email links (e.g. https://accounts.aidenjang.com).
   APP_URL?: string;
-  // Email delivery (Resend). Unset = dev mode: emails are logged, not sent.
+  // Resend delivery. Missing keys print mail only when APP_URL is loopback.
   RESEND_API_KEY?: string;
   EMAIL_FROM?: string;
   // Turnstile (CAPTCHA) secret. Unset = verification skipped (dev / not-yet-set).

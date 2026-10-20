@@ -39,9 +39,8 @@ a defence.
 
 ## Transport & response headers
 
-Every web-facing Worker sets a common set of headers through `harden()`. There is no shared
-package: each app carries its own copy, so a Worker never depends on this one being deployed to be
-served safely. This repo's lives in `packages/api/src/harden.ts`, which is the reference version.
+Accounts applies response headers through `packages/api/src/harden.ts`. Other apps deploy
+their own policies with their code or static assets. There is no shared runtime header service.
 
 | Header                      | Value / intent                                                                                                                                                                                                                                 |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -49,7 +48,7 @@ served safely. This repo's lives in `packages/api/src/harden.ts`, which is the r
 | `Strict-Transport-Security` | 2 years, `includeSubDomains; preload`                                                                                                                                                                                                          |
 | `X-Content-Type-Options`    | `nosniff`                                                                                                                                                                                                                                      |
 | `X-Frame-Options`           | `DENY` (clickjacking; belt-and-suspenders with `frame-ancestors`)                                                                                                                                                                              |
-| `Referrer-Policy`           | `strict-origin-when-cross-origin`                                                                                                                                                                                                              |
+| `Referrer-Policy`           | `no-referrer`                                                                                                                                                                                                                                  |
 | `Permissions-Policy`        | camera/mic/geolocation/payment/usb off by default (wherever overrides to allow geolocation)                                                                                                                                                    |
 
 The CSP is intentionally conservative so the SPAs run unchanged; tighten per app after
@@ -58,12 +57,18 @@ override rather than loosening the shared default.
 
 ## CSRF
 
-- **Primary defense:** `SameSite=Lax` stops the browser from attaching the session cookie to
-  cross-site state-changing requests, so a forged POST from another origin is unauthenticated.
-- **Defense-in-depth:** each app's inlined `enforceSameOrigin()` rejects any state-changing request
-  whose `Origin` header is present and points at an unapproved host. Accounts accepts its own UI
-  origin and explicitly configured app origins; an absent allowlist never reflects an arbitrary
-  origin. Server-to-server calls without Origin remain supported.
+- `SameSite=Lax` limits cookie attachment to cross-site requests. Sibling subdomains remain
+  same-site, so this does not isolate one app from another.
+- Accounts rejects state-changing requests whose Origin is outside its own UI origin and
+  explicitly configured app origins. An absent allowlist never reflects an arbitrary origin.
+  Server-to-server calls without Origin remain supported. CORS response access does not replace
+  this request check or session validation.
+
+## Provider diagnostics
+
+OAuth and mail failures log operation/status information without provider response bodies.
+A missing production mail key logs a configuration error, never the recipient or credential-bearing
+message. Only an explicit HTTP(S) loopback `APP_URL` enables dev-mail output.
 
 ## Dependencies
 

@@ -56,6 +56,17 @@ describe('where a sign-in is allowed to land', () => {
     expect(safeAppRedirect('/groups', DEV)).toBe('http://localhost:34110/groups');
   });
 
+  it.each([
+    'ftp://localhost:34110/account',
+    'ws://127.0.0.1:34110/account',
+    'javascript://localhost/%0aalert(1)',
+    'https://guest:secret@worth.aidenjang.com/',
+  ])('rejects non-web schemes and embedded credentials in local redirects: %s', (target) => {
+    expect(safeAppRedirect(target, 'http://localhost:34110')).toBe(
+      'http://localhost:34110/account',
+    );
+  });
+
   it('accepts the apex and any subdomain of it', () => {
     expect(safeAppRedirect('https://aidenjang.com/x', PROD)).toBe('https://aidenjang.com/x');
     expect(safeAppRedirect('https://bloomnote.aidenjang.com/g/1', PROD)).toBe(

@@ -15,10 +15,16 @@ export function safeReturnTo(raw: string | null): string | null {
     const h = u.hostname;
     const ours = h === 'aidenjang.com' || h.endsWith('.aidenjang.com');
     const loopback = h === 'localhost' || h === '127.0.0.1';
+    const web = u.protocol === 'http:' || u.protocol === 'https:';
     // Loopback only when this page is itself on loopback, which is true in dev and never in
     // production. Keying it off where we are, rather than off the target, is what stops production
     // handing somebody to a service on their own machine. Mirrors safeAppRedirect on the server.
-    if ((ours && u.protocol === 'https:') || (loopback && onLoopback)) return u.toString();
+    if (
+      !u.username &&
+      !u.password &&
+      ((ours && u.protocol === 'https:') || (loopback && onLoopback && web))
+    )
+      return u.toString();
   } catch {
     /* fall through */
   }
