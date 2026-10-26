@@ -37,6 +37,12 @@ Migrations run before deployed code, and their SQL/snapshot history stays additi
 feedback; `PasswordSection`, `ConnectedAccounts`, `PasskeyList`, `SessionList`, `ExportAccount`, and
 `DeleteAccount` own their respective interactions. `useSessions` shares the device list with the
 security-review banner so revocation cannot leave two conflicting lists on screen.
+Device refreshes track request order and the latest successful mutation. A response started before
+a rename or sign-out cannot restore its older snapshot or claim the list is up to date.
+
+The router resets scroll and focuses the new document heading on internal path changes, preserving
+form autofocus. Turnstile reserves its standard widget height and clears a previous challenge error
+when a later solve succeeds. Neither behavior changes the server’s challenge requirement.
 
 `useStepUp` suspends the original action until confirmation or cancellation. Cancelling returns an
 explicit incomplete result; confirming resumes the original caller, including its error handler.
@@ -67,5 +73,6 @@ these fixtures do not perform passkey registration or authentication ceremonies.
 
 CI runs core checks and browser journeys independently. Both gate automatic main deployment. The
 core job builds production assets with the public provider flags; deployment downloads that bundle,
-applies D1 migrations, and publishes without rebuilding it. Security scanning and required PR checks
-are configured in GitHub; [the deployment runbook](docs/DEPLOY-CHECKLIST.md) covers recovery.
+applies D1 migrations, and publishes without rebuilding it. GitHub keeps linear history, administrator
+enforcement, and blocked force pushes/deletion while allowing direct maintenance commits. Security
+scanning is configured in GitHub; [the deployment runbook](docs/DEPLOY-CHECKLIST.md) covers recovery.

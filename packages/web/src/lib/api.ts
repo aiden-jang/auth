@@ -76,6 +76,7 @@ export interface AccountExport {
     expiresAt: string;
   }>;
   securityActivity: Array<Omit<SecurityEvent, 'id'>>;
+  passkeys: Array<Omit<Passkey, 'id'>>;
 }
 
 /** Keeps the server's code: recovering from REAUTH_REQUIRED needs it, and string-matching the prose

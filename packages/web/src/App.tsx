@@ -1,6 +1,6 @@
 import { usePageAnalytics } from './usePageAnalytics.js';
 import { pageForPath } from '../../../analytics/schema.js';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
 import { SignupPage } from './pages/SignupPage';
@@ -14,7 +14,25 @@ import { TermsPage } from './pages/TermsPage';
 
 export function App(): ReactNode {
   const { pathname } = useLocation();
+  const previousPath = useRef(pathname);
   usePageAnalytics(pageForPath(pathname), pathname);
+  useLayoutEffect(() => {
+    // Native Back restoration can otherwise overwrite the router's new heading position.
+    const restoration = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    return () => {
+      window.history.scrollRestoration = restoration;
+    };
+  }, []);
+  useLayoutEffect(() => {
+    if (previousPath.current === pathname) return;
+    previousPath.current = pathname;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    // Keep a form's autofocus; document routes need their new heading announced instead.
+    if (!document.activeElement?.matches('main input, main textarea, main select')) {
+      document.querySelector<HTMLHeadingElement>('main h1')?.focus({ preventScroll: true });
+    }
+  }, [pathname]);
   useEffect(() => {
     const titles: Record<string, string> = {
       '/login': 'Sign in',

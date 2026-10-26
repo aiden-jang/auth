@@ -3,7 +3,7 @@ import { LegalLayout, Section } from '../components/LegalLayout';
 
 export function PrivacyPage(): ReactNode {
   return (
-    <LegalLayout title="Privacy Policy" updated="August 27, 2026">
+    <LegalLayout title="Privacy Policy" updated="October 26, 2026">
       <p>
         Aiden Jang builds a small collection of personal apps under the name aidenjang. This is what
         they store, why, and who else sees it. Written to actually be read, because a privacy policy
@@ -11,11 +11,11 @@ export function PrivacyPage(): ReactNode {
       </p>
 
       <Section heading="Do you need an account">
-        No. Every app works without one. Signing in is optional and just saves your stuff across
-        your devices: your groups and expenses in owewell, the gardens you make in bloomnote, your
-        seat in an mrrp room. wherever and iguess run on throwaway room codes that clear when
-        everyone leaves, so there is nothing to save and nothing to sign in for. The account details
-        below apply only when you choose to sign in.
+        It depends on the app. Worth uses an account for your private archive; its signed-out
+        example does not save to that archive. owewell and bloomnote offer signed-out use, with
+        sign-in for account features, and mrrp can link a room seat to your account. wherever and
+        iguess use temporary rooms without an account. The account details below apply when you use
+        the shared sign-in service.
       </Section>
 
       <Section heading="What we collect">
@@ -24,7 +24,19 @@ export function PrivacyPage(): ReactNode {
             <strong>Account:</strong> your email and display name, plus a securely hashed password
             if you sign up with one (never the password itself). You can also continue with Google,
             in which case Google confirms your email and name for you and no password is stored.
-            Email signs you in, verifies your address, and resets it if you forget.
+            Email is used for verification, password recovery, and security notifications. If you
+            add a passkey, we store its public credential, label, and usage metadata. Your private
+            key and biometric checks stay with your device or passkey provider.
+          </li>
+          <li>
+            <strong>Worth:</strong> the records, notes, photos, receipts, activity entries, and
+            sharing choices you save. Photo-text recognition runs on your device; a receipt image is
+            uploaded only if you choose to attach the checked copy. Device drafts and optional
+            offline copies also use local storage. Details are in{' '}
+            <a className="text-accent hover:underline" href="https://worth.aidenjang.com/privacy">
+              Worth’s privacy policy
+            </a>
+            .
           </li>
           <li>
             <strong>owewell:</strong> the groups, expenses, splits, and settlements you enter,
@@ -53,7 +65,8 @@ export function PrivacyPage(): ReactNode {
           </li>
           <li>
             <strong>iguess:</strong> the room code, the drawings, and the guesses, but only while
-            the game is running. Nothing survives the room.
+            the game is running. AI guessing can send drawings and masked hints to a configured
+            vision provider. The secret word is not sent to the AI guesser.
           </li>
           <li>
             <strong>Sessions:</strong> for the "active devices" list on your account, each sign-in
@@ -69,32 +82,37 @@ export function PrivacyPage(): ReactNode {
       </Section>
 
       <Section heading="Cookies and analytics">
-        One essential cookie holds your login session so you are not asked to sign in on every
-        click. That is the only one. App analytics are cookieless aggregate counters. We send fixed
-        page categories and action names, without private URLs, account IDs, email addresses, names
-        or message text. Browser counters respect Global Privacy Control and Do Not Track. The
-        public portfolio and globe also use privacy-focused traffic and performance analytics. We
-        also count how often each sign-in method is used and when a password is changed or added,
-        with no account, email or address attached.
+        Essential cookies keep your shared login session and protect Google and passkey sign-in
+        handshakes. Recent-account email hints and a passkey-use hint stay on this device; you can
+        forget a recent account from the sign-in screen. App analytics are cookieless aggregate
+        counters. We send fixed page categories and action names, without private URLs, account IDs,
+        email addresses, names or message text. Browser counters respect Global Privacy Control and
+        Do Not Track. The public portfolio and globe also use privacy-focused traffic and
+        performance analytics. We also count how often each sign-in method is used and when a
+        password is changed or added, with no account, email or address attached.
       </Section>
 
       <Section heading="Who else sees your data">
         No selling, no renting, no advertising. A few providers process data on our behalf:
         <ul className="mt-2 list-disc space-y-1.5 pl-5">
           <li>
-            <strong>Cloudflare</strong> hosts every app and stores its data (databases, key-value,
-            edge storage).
+            <strong>Cloudflare</strong> hosts Accounts and app services and stores data in its
+            databases and edge storage. <strong>Vercel</strong> hosts the public portfolio and
+            processes its traffic and performance measurements.
           </li>
           <li>
             <strong>An email provider</strong> delivers verification and password-reset messages.
           </li>
           <li>
-            <strong>AI providers</strong> power two features: bloomnote sends your note text to
-            Google (Gemini) to grow a garden, and owewell sends receipt images to a vision model to
-            read them. Send only what you are fine sharing with those services.
+            <strong>AI providers:</strong> bloomnote sends your note text to Google (Gemini) to grow
+            a garden, and owewell sends receipt images to a vision model to read them. iguess can
+            send drawings and masked hints to Cloudflare Workers AI, or to OpenAI or Anthropic when
+            those providers are configured. Worth’s photo-text recognition stays on-device. Send
+            only what you are fine sharing with those services.
           </li>
           <li>
-            <strong>Cloudflare Turnstile</strong> runs a privacy-preserving bot check on sign-up.
+            <strong>Cloudflare Turnstile</strong> runs a bot check on sign-in, sign-up, and password
+            recovery.
           </li>
           <li>
             <strong>Open-Meteo</strong> tells mrrp what the weather is doing, so the window in the
@@ -106,21 +124,24 @@ export function PrivacyPage(): ReactNode {
       </Section>
 
       <Section heading="Keeping and deleting your data">
-        Account data stays until you remove it or ask us to. You can delete groups, expenses, and
-        gardens inside the apps. wherever and iguess rooms are temporary and clear themselves, so
-        there is nothing to delete. An mrrp room is built to last, and both people in it have a way
-        out: whoever made the room can delete the whole thing, and the other one can leave, which
-        takes their side of it and leaves the room standing. Both take effect at once, and both can
-        be undone for a week. A deleted room is unreachable straight away and erased for good a week
-        later, and only the person who deleted it can put it back inside that week. Someone who has
-        left can put their side back for a week too, for as long as nobody else has taken the seat
-        they freed. To wipe your entire account and everything attached to it, email{' '}
+        Account data stays until you remove it or ask us to. Accounts lets you download or delete
+        your identity account. App data is held separately: remove it in each app before deleting
+        your shared sign-in, or contact us for help. Worth has its own export, Trash, and
+        data-deletion controls. You can delete groups, expenses, and gardens inside the other apps.
+        wherever and iguess rooms are temporary and clear themselves, so there is nothing to delete.
+        An mrrp room is built to last, and both people in it have a way out: whoever made the room
+        can delete the whole thing, and the other one can leave, which takes their side of it and
+        leaves the room standing. Both take effect at once, and both can be undone for a week. A
+        deleted room is unreachable straight away and erased for good a week later, and only the
+        person who deleted it can put it back inside that week. Someone who has left can put their
+        side back for a week too, for as long as nobody else has taken the seat they freed. For
+        deletion or data-access requests, email{' '}
         <a className="text-accent hover:underline" href="mailto:privacy@aidenjang.com">
           privacy@aidenjang.com
-        </a>{' '}
-        and it is done. You can also ask for a copy of what we hold, and in mrrp you do not have to
-        ask: open &ldquo;delete this room&rdquo; or &ldquo;leave this room&rdquo; and the
-        &ldquo;Take a copy first&rdquo; link hands you the lot as a file.
+        </a>
+        . You can also ask for a copy of what we hold, and in mrrp you do not have to ask: open
+        &ldquo;delete this room&rdquo; or &ldquo;leave this room&rdquo; and the &ldquo;Take a copy
+        first&rdquo; link hands you the lot as a file.
       </Section>
 
       <Section heading="A note on other people's data">

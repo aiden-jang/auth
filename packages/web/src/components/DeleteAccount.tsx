@@ -38,7 +38,8 @@ export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
           <h2 className="text-sm font-semibold text-neg">Delete account</h2>
           <p className="text-sm text-muted">
             This permanently deletes your account and signs you out of every app. It cannot be
-            undone.
+            undone. App data is managed separately. Delete it in each app before removing your
+            sign-in.
           </p>
           {user.hasPassword ? (
             <div>
@@ -78,7 +79,7 @@ export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
           )}
           <div className="flex gap-2">
             <button
-              className="cursor-pointer rounded-full bg-neg px-5 py-2.5 text-sm font-semibold text-white transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="cursor-pointer rounded-full bg-neg px-5 py-2.5 text-sm font-semibold text-canvas transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
               disabled={deleting}
             >
               {deleting ? 'Deleting...' : 'Delete my account'}

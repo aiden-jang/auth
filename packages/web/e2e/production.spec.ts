@@ -72,6 +72,67 @@ test('a security-check script failure is recoverable without a full page reload'
   expect(calls).toBe(2);
 });
 
+test('a recovered security check clears its earlier failure', async ({ page }) => {
+  await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js', (route) =>
+    route.fulfill({
+      contentType: 'application/javascript',
+      body: `window.turnstile = {
+        render(element, options) {
+          for (const [label, action] of [
+            ['Simulate challenge failure', () => options['error-callback']()],
+            ['Simulate challenge recovery', () => options.callback('recovered-token')]
+          ]) {
+            const button = document.createElement('button');
+            button.type = 'button'; button.textContent = label; button.onclick = action;
+            element.appendChild(button);
+          }
+          return 'local-widget';
+        },
+        remove() {}, reset() {}
+      };`,
+    }),
+  );
+  await page.goto(`${ORIGIN}/login`);
+  const submit = page.getByRole('button', { name: 'Log in', exact: true });
+  await page.getByRole('button', { name: 'Simulate challenge failure' }).click();
+  await expect(page.getByRole('alert')).toContainText('security check failed');
+  await expect(submit).toBeDisabled();
+  await page.getByRole('button', { name: 'Simulate challenge recovery' }).click();
+  await expect(submit).toBeEnabled();
+  await expect(page.getByRole('alert')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Reload security check' })).toBeHidden();
+});
+
+test('loading the security check keeps the submit button in place', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js', (route) =>
+    route.fulfill({
+      contentType: 'application/javascript',
+      body: `window.turnstile = {
+        render(element, options) {
+          element.dataset.fixtureReady = 'true';
+          window.addEventListener('fixture:challenge-ready', () => {
+            element.style.minHeight = '65px'; element.textContent = 'Security check ready';
+            options.callback('local-test-token');
+          }, {once:true});
+          return 'local-widget';
+        },
+        remove() {}, reset() {}
+      };`,
+    }),
+  );
+  await page.goto(`${ORIGIN}/login`);
+  const submit = page.getByRole('button', { name: 'Log in', exact: true });
+  await expect(page.locator('[data-fixture-ready]')).toHaveCount(1);
+  await expect(submit).toBeDisabled();
+  await page.evaluate(() => document.fonts.ready);
+  const before = await submit.boundingBox();
+  await page.evaluate(() => window.dispatchEvent(new Event('fixture:challenge-ready')));
+  await expect(submit).toBeEnabled();
+  const after = await submit.boundingBox();
+  expect(Math.abs(after!.y - before!.y)).toBeLessThanOrEqual(1);
+});
+
 test('revealing a password preserves its draft, selection and focus', async ({ page }) => {
   await page.goto(`${ORIGIN}/login`);
   const password = page.getByLabel('Password', { exact: true });

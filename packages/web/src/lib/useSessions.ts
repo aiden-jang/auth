@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { authApi, type SessionInfo } from './api';
 
 /* A hook, not state inside SessionList: the security-review banner signs the other devices out, so
@@ -35,22 +35,31 @@ export function useSessions(): Sessions {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState('');
   const [savingName, setSavingName] = useState(false);
+  // An older GET must not undo a successful rename or device sign-out.
+  const latestRefresh = useRef(0);
+  const revision = useRef(0);
 
   const refresh = useCallback(async (manual = false): Promise<void> => {
+    const request = ++latestRefresh.current;
+    const snapshot = revision.current;
+    const current = (): boolean =>
+      request === latestRefresh.current && snapshot === revision.current;
     if (manual) setRefreshing(true);
     setError(null);
     try {
       const result = await authApi.listSessions();
+      if (!current()) return;
       setList(result.sessions);
       if (manual) {
         setJustRefreshed(true);
       }
     } catch {
+      if (!current()) return;
       // Preserve a previously loaded list. A refresh failure should not make every known session
       // disappear and falsely imply that no devices are signed in.
       setError('Couldn’t refresh active devices. Try again.');
     } finally {
-      if (manual) setRefreshing(false);
+      if (manual && request === latestRefresh.current) setRefreshing(false);
     }
   }, []);
 
@@ -59,6 +68,9 @@ export function useSessions(): Sessions {
     // render on mount rather than showing a stale failure over a list being reloaded.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
+    return () => {
+      latestRefresh.current += 1;
+    };
   }, [refresh]);
 
   useEffect(() => {
@@ -72,6 +84,8 @@ export function useSessions(): Sessions {
     setError(null);
     try {
       await authApi.revokeSession(id);
+      revision.current += 1;
+      setJustRefreshed(false);
       setList((s) => s?.filter((x) => x.id !== id) ?? null);
       setExpandedId((current) => (current === id ? null : current));
     } catch {
@@ -86,6 +100,8 @@ export function useSessions(): Sessions {
     setError(null);
     try {
       await authApi.revokeOtherSessions();
+      revision.current += 1;
+      setJustRefreshed(false);
       setList((s) => s?.filter((x) => x.current) ?? null);
       return true;
     } catch {
@@ -116,6 +132,8 @@ export function useSessions(): Sessions {
       setError(null);
       try {
         const { session } = await authApi.renameSession(id, label);
+        revision.current += 1;
+        setJustRefreshed(false);
         setList(
           (current) =>
             current?.map((item) => (item.id === id ? { ...item, device: session.device } : item)) ??

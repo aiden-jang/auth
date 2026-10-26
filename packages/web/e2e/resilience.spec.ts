@@ -1,4 +1,5 @@
 import { expect, test, type Page } from './fixtures';
+import { contrast, type Hex } from '../src/lib/theme';
 
 const user = {
   id: 'ui-review',
@@ -8,6 +9,46 @@ const user = {
   hasPassword: true,
   hasGoogle: true,
 };
+
+test('account save and delete buttons have readable text', async ({ page }) => {
+  await account(page);
+  const now = new Date().toISOString();
+  await page.route('**/auth/sessions', (route) =>
+    route.fulfill({
+      json: {
+        sessions: [
+          {
+            id: 'contrast-preview',
+            current: true,
+            device: 'Personal laptop',
+            location: null,
+            createdAt: now,
+            lastSeenAt: now,
+            expiresAt: '2099-01-01T00:00:00Z',
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto('/account');
+  await page.getByRole('button', { name: /Personal laptop/ }).click();
+  await page.getByRole('button', { name: 'Rename device', exact: true }).click();
+  await page.getByRole('button', { name: 'Delete account', exact: true }).click();
+  for (const name of ['Save name', 'Delete my account']) {
+    const colors = await page.getByRole('button', { name, exact: true }).evaluate((button) => {
+      const style = getComputedStyle(button);
+      return [style.color, style.backgroundColor];
+    });
+    const hex = colors.map((color) => {
+      expect(color).toMatch(/^rgb\(/);
+      return `#${color
+        .match(/\d+/g)!
+        .map((value) => Number(value).toString(16).padStart(2, '0'))
+        .join('')}` as Hex;
+    });
+    expect(contrast(hex[0]!, hex[1]!), name).toBeGreaterThanOrEqual(4.5);
+  }
+});
 
 async function account(page: Page, overrides = {}): Promise<void> {
   await page.route('**/auth/me', (route) =>

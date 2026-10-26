@@ -2,17 +2,19 @@
 
 ## Automatic deployment
 
-Merge a verified PR to main. CI runs repository/unit/build checks and browser journeys in parallel;
-both must pass. It retains the production web artifact and browser evidence. The deployment job
+Push verified changes to main, directly for owner maintenance or through a contribution PR.
+CI runs repository/unit/build checks and browser journeys in parallel;
+both must pass. It retains the production web artifact and failed-run browser evidence. The deployment job
 uses that artifact, applies pending D1 migrations, and then publishes the Worker. It never publishes
 the SDK. Details of provider flags and bindings are in [the API runbook](../packages/api/DEPLOY.md).
 
-## Before merging
+## Before pushing to main
 
 - Run `pnpm run verify` using the pinned Node and pnpm versions.
 - Review any API/session-contract change against consuming apps and the published SDK.
 - Include generated migration SQL, snapshots and journal entries for schema changes.
-- Confirm required CI and security scans pass for the current PR head.
+- Review CI and security findings for the revision being published. The core and browser jobs must
+  both pass before the workflow deploys.
 
 ## Verify after deployment
 

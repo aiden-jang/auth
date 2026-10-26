@@ -3,10 +3,11 @@ import { LegalLayout, Section } from '../components/LegalLayout';
 
 export function TermsPage(): ReactNode {
   return (
-    <LegalLayout title="Terms of Service" updated="August 27, 2026">
+    <LegalLayout title="Terms of Service" updated="October 26, 2026">
       <p>
-        By using aidenjang&rsquo;s apps (owewell, bloomnote, mrrp, wherever, and iguess), you agree
-        to these terms. They are short on purpose.
+        By using Accounts and aidenjang&rsquo;s apps (including Worth, owewell, bloomnote, mrrp,
+        wherever, and iguess), you agree to these terms. Individual apps may also explain their own
+        features and data handling in their terms and privacy pages.
       </p>
 
       <Section heading="The deal">
@@ -16,10 +17,10 @@ export function TermsPage(): ReactNode {
       </Section>
 
       <Section heading="Your account">
-        owewell and bloomnote use one shared login, and mrrp can optionally use it; wherever and
-        iguess need no account at all. Where you do have a login, you are responsible for what
-        happens under it, so keep your password to yourself. You need to be at least 13. One human,
-        one account, no impersonating anyone else.
+        Worth, owewell, and bloomnote use the shared Accounts login, and mrrp can optionally use it;
+        wherever and iguess need no account at all. Where you do have a login, you are responsible
+        for what happens under it, so keep your password to yourself. You need to be at least 13.
+        One human, one account, no impersonating anyone else.
       </Section>
 
       <Section heading="Your content is yours">
@@ -55,11 +56,12 @@ export function TermsPage(): ReactNode {
       </Section>
 
       <Section heading="Ending things">
-        You can stop using the apps and delete your account any time. The room-based apps end on
-        their own once everyone leaves. An mrrp room lasts until someone ends it: whoever made it
-        can delete it for both people, with a week to change their mind before it is erased, and the
-        other one can leave it, with a week to come back. We can suspend access if these terms are
-        broken or if a feature is retired.
+        You can stop using the apps and delete your identity account in Accounts. App data is
+        managed separately, so delete it in each app before removing your shared sign-in or contact
+        us for help. The room-based apps end on their own once everyone leaves. An mrrp room lasts
+        until someone ends it: whoever made it can delete it for both people, with a week to change
+        their mind before it is erased, and the other one can leave it, with a week to come back. We
+        can suspend access if these terms are broken or if a feature is retired.
       </Section>
 
       <Section heading="Questions">

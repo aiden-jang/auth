@@ -49,7 +49,11 @@ including refusals, are `no-store`.
 | POST   | `/auth/verify-email`        | public  |      | `{ token }`, spent on first use                                         |
 | POST   | `/auth/resend-verification` | session | ✓    | Re-sends to the address on the account                                  |
 | POST   | `/auth/update-profile`      | session |      | `{ displayName }`                                                       |
-| GET    | `/auth/export`              | session |      | A copy of the account's data, credentials excluded                      |
+| GET    | `/auth/export`              | session |      | Account data, including safe passkey metadata; credentials excluded     |
+
+`GET /auth/export` includes the profile, sign-in methods, active devices, security history, and
+passkey labels, backup status, and timestamps. Passkey credential IDs and keys are excluded,
+alongside passwords and session identifiers. All data is scoped to the signed-in account.
 
 ### Password-manager discovery
 

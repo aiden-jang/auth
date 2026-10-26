@@ -144,7 +144,9 @@ export function AccountShell({
       <div className="animate-enter mx-auto w-full max-w-xl">
         <Wordmark />
         <p className="account-eyebrow mt-10">ACCOUNT / SETTINGS</p>
-        <h1 className="account-title mt-3">{title}</h1>
+        <h1 tabIndex={-1} className="account-title mt-3">
+          {title}
+        </h1>
         {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
         <div className="account-content mt-8">{children}</div>
         <MadeBy className="mt-10 text-center text-xs text-muted" />
@@ -182,7 +184,9 @@ export function AuthCard({
             <Wordmark />
           </div>
           <p className="account-eyebrow mb-4">YOUR ACCOUNT</p>
-          <h1 className="auth-title">{title}</h1>
+          <h1 tabIndex={-1} className="auth-title">
+            {title}
+          </h1>
           {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
           {returnApp && (
             <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent">

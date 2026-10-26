@@ -1,10 +1,13 @@
 # Contributing
 
 Start with the [README](README.md), [architecture](ARCHITECTURE.md), and repository
-[conventions](CONVENTIONS.md). Use a branch and scope-free Conventional Commits, for example
+[conventions](CONVENTIONS.md). Use scope-free Conventional Commits, for example
 `fix: preserve recovery drafts during reauthentication`.
 
-## Before a PR
+Owner maintenance may be committed directly to main after local verification. External contributions
+use a branch and pull request. Every main push still runs CI and deploys only after its checks pass.
+
+## Before committing or opening a PR
 
 Run `pnpm run verify` with the pinned Node/pnpm versions. Keep the normal file/state ceilings and
 comment budgets; extract cohesive modules rather than raising limits. Demonstrate a new regression

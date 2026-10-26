@@ -217,4 +217,13 @@ test('tab titles follow authentication and recovery through browser history', as
   await expect(page).toHaveTitle('Reset password · aidenjang accounts');
   await page.goto('/privacy');
   await expect(page).toHaveTitle('Privacy · aidenjang accounts');
+  await page.getByRole('navigation').getByRole('link', { name: 'Terms', exact: true }).click();
+  const terms = page.getByRole('heading', { name: 'Terms of Service', exact: true });
+  await expect(terms).toBeInViewport();
+  await expect(terms).toBeFocused();
+  await expect(page).toHaveTitle('Terms · aidenjang accounts');
+  await page.goBack();
+  const privacy = page.getByRole('heading', { name: 'Privacy Policy', exact: true });
+  await expect(privacy).toBeInViewport();
+  await expect(privacy).toBeFocused();
 });

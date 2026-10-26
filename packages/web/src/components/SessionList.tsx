@@ -213,7 +213,7 @@ export function SessionList({
                           <button
                             type="submit"
                             disabled={savingSessionName || !sessionNameDraft.trim()}
-                            className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                            className="btn-primary rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-50"
                           >
                             {savingSessionName ? 'Saving…' : 'Save name'}
                           </button>

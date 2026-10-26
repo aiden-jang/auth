@@ -1,6 +1,8 @@
 # Accounts UI verification
 
-The [October 16 Safari flow review](flow-audit-oct16/README.md) records the current browser coverage
+The [October 26 account review](october-26/README.md) records the latest recovery, device-list,
+policy-navigation, contrast, and dependency checks. The
+[October 16 Safari flow review](flow-audit-oct16/README.md) records earlier browser coverage
 and local development fixes. The [October 14 review](october-14/README.md) records the earlier account,
 recovery and keyboard pass.
 Earlier records below describe their historical revisions.

@@ -51,8 +51,8 @@ iPhone-sized WebKit run the journeys; physical keyboards, gestures and native sh
 a real-device check. Local HTTP tests pin the Worker’s upstream to loopback so cookies and asset
 URLs use the development origin.
 
-CI runs `verify:core` and browser journeys in parallel, retains the checked web bundle and browser
-evidence, and deploys only after both jobs pass. Merging to main triggers the existing automatic
+CI runs `verify:core` and browser journeys in parallel, retains the checked web bundle and failed-run
+browser evidence, and deploys only after both jobs pass. Pushing to main triggers the existing automatic
 deployment: D1 migrations first, then the Worker with that checked bundle.
 
 ## Repository map
@@ -92,6 +92,7 @@ not public issues. See [security](docs/SECURITY.md) for the implemented controls
 - [Deployment](docs/DEPLOY-CHECKLIST.md): automatic deployment, recovery, and rollback.
 - [Observability](docs/OBSERVABILITY.md): request IDs, logs, events, and health checks.
 - [Design](docs/DESIGN.md) and [UI evidence](docs/ui-qa/README.md).
+- [Visitor and real-device review](docs/visitor-review.md): a prepared walkthrough and the remaining manual checks.
 
 ## Sharing preview
 

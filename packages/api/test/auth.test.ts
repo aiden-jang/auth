@@ -521,6 +521,24 @@ describe('account data export', () => {
     const a = await register();
     const b = await register();
     await post('/auth/login', { email: a.email, password: a.password });
+    const mine = `export-key-${crypto.randomUUID()}`;
+    await db()
+      .insert(credentials)
+      .values([
+        {
+          id: mine,
+          userId: a.id,
+          publicKey: 'private-export-fixture',
+          label: 'Personal laptop',
+          backedUp: true,
+        },
+        {
+          id: `other-${crypto.randomUUID()}`,
+          userId: b.id,
+          publicKey: 'other-export-fixture',
+          label: 'Someone else’s phone',
+        },
+      ]);
 
     const response = await get('/auth/export', a.cookie);
     expect(response.status).toBe(200);
@@ -528,16 +546,27 @@ describe('account data export', () => {
       account: { email: string; signInMethods: string[] };
       activeSessions: Array<Record<string, unknown>>;
       securityActivity: Array<{ type: string }>;
+      passkeys: Array<Record<string, unknown>>;
     };
     expect(body.account.email).toBe(a.email);
     expect(body.account.email).not.toBe(b.email);
-    expect(body.account.signInMethods).toContain('password');
+    expect(body.account.signInMethods).toEqual(['password', 'passkey']);
+    expect(body.passkeys).toHaveLength(1);
+    expect(body.passkeys[0]).toEqual({
+      label: 'Personal laptop',
+      backedUp: true,
+      createdAt: expect.any(String),
+      lastUsedAt: null,
+    });
     expect(body.activeSessions.length).toBeGreaterThan(0);
     expect(body.activeSessions.every((session) => !('id' in session))).toBe(true);
     expect(body.securityActivity.some((event) => event.type === 'account_created')).toBe(true);
     const raw = JSON.stringify(body);
     expect(raw).not.toContain('passwordHash');
     expect(raw).not.toContain('googleId');
+    expect(raw).not.toContain(mine);
+    expect(raw).not.toContain('private-export-fixture');
+    expect(raw).not.toContain('Someone else’s phone');
   });
 
   it('requires authentication', async () => {

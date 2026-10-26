@@ -3,11 +3,10 @@ import { Hono } from 'hono';
 import { desc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { createDb } from '../db/client.js';
-import { securityEvents, sessions, users } from '../db/schema.js';
+import { credentials, securityEvents, sessions, users } from '../db/schema.js';
 import { verifyPassword } from '../auth/password.js';
 import { validateSession } from '../auth/session.js';
 import { clearSessionCookie, getCookie, SESSION_COOKIE } from '../auth/cookie.js';
-import {} from '../auth/passkeys.js';
 import { sudoUntil } from '../auth/stepUp.js';
 import {
   MIN,
@@ -74,7 +73,7 @@ app.get('/auth/export', async (c) => {
     .get();
   if (!account) return unauthenticated(c);
 
-  const [sessionRows, eventRows] = await Promise.all([
+  const [sessionRows, eventRows, passkeyRows] = await Promise.all([
     db
       .select({
         device: sessions.device,
@@ -98,6 +97,16 @@ app.get('/auth/export', async (c) => {
       .where(eq(securityEvents.userId, me.id))
       .orderBy(desc(securityEvents.createdAt))
       .limit(500),
+    db
+      .select({
+        label: credentials.label,
+        backedUp: credentials.backedUp,
+        createdAt: credentials.createdAt,
+        lastUsedAt: credentials.lastUsedAt,
+      })
+      .from(credentials)
+      .where(eq(credentials.userId, me.id))
+      .orderBy(desc(credentials.createdAt)),
   ]);
   const now = Date.now();
 
@@ -110,7 +119,8 @@ app.get('/auth/export', async (c) => {
       signInMethods: [
         account.passwordHash ? 'password' : null,
         account.googleId ? 'google' : null,
-      ].filter((method): method is 'password' | 'google' => method !== null),
+        passkeyRows.length > 0 ? 'passkey' : null,
+      ].filter((method): method is 'password' | 'google' | 'passkey' => method !== null),
       createdAt: account.createdAt.toISOString(),
       updatedAt: account.updatedAt.toISOString(),
     },
@@ -129,6 +139,12 @@ app.get('/auth/export', async (c) => {
       device: event.device,
       location: event.location,
       createdAt: event.createdAt.toISOString(),
+    })),
+    passkeys: passkeyRows.map((passkey) => ({
+      label: passkey.label,
+      backedUp: passkey.backedUp,
+      createdAt: passkey.createdAt.toISOString(),
+      lastUsedAt: passkey.lastUsedAt?.toISOString() ?? null,
     })),
   });
 });

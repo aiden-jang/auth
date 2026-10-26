@@ -83,7 +83,10 @@ export function Turnstile({
         if (cancelled || !ref.current || !window.turnstile) return;
         widgetId.current = window.turnstile.render(ref.current, {
           sitekey: SITE_KEY,
-          callback: (token) => cb.current(token),
+          callback: (token) => {
+            setError(null);
+            cb.current(token);
+          },
           'expired-callback': () => cb.current(''),
           'error-callback': () => {
             cb.current('');
@@ -115,7 +118,7 @@ export function Turnstile({
   if (!SITE_KEY) return null;
   return (
     <div>
-      <div ref={ref} className="mt-1 flex justify-center" />
+      <div ref={ref} className="mt-1 flex min-h-[65px] justify-center" />
       {error && (
         <div className="mt-2 text-sm">
           <p role="alert" className="text-neg">
