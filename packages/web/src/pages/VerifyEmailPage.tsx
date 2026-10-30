@@ -55,7 +55,7 @@ export function VerifyEmailPage(): ReactNode {
         </div>
       )}
       {status === 'ok' && (
-        <div className="space-y-4">
+        <div className="flex flex-col items-start gap-4">
           <p className="text-sm text-pos">Your email is verified. Nothing else to do.</p>
           {returnTo && returnApp ? (
             <a href={returnTo} className="font-medium text-accent hover:underline">
@@ -69,7 +69,7 @@ export function VerifyEmailPage(): ReactNode {
         </div>
       )}
       {status === 'error' && (
-        <div className="space-y-4">
+        <div className="flex flex-col items-start gap-4">
           <p role="alert" className="text-sm text-neg">
             {error ?? 'That verification link is invalid or expired.'}
           </p>
