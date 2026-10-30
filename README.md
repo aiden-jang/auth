@@ -4,7 +4,7 @@ The shared sign-in and account hub for Aiden Jang’s apps, at
 [accounts.aidenjang.com](https://accounts.aidenjang.com). Sign in with a password, Google, or a
 passkey; manage devices, recover access, and download or delete the identity account.
 
-![Accounts sign-in](docs/ui-qa/login-1440.png)
+![Accounts sign-in](docs/screenshots/sign-in-desktop.png)
 
 A Cloudflare Worker serves the Hono API and React UI together. D1 stores identity and hashed
 sessions; a Durable Object limits abusive requests. Other apps resolve identity server-side through
@@ -91,7 +91,7 @@ not public issues. See [security](docs/SECURITY.md) for the implemented controls
 - [API reference](docs/API.md): routes, response codes, and the shared session contract.
 - [Deployment](docs/DEPLOY-CHECKLIST.md): automatic deployment, recovery, and rollback.
 - [Observability](docs/OBSERVABILITY.md): request IDs, logs, events, and health checks.
-- [Design](docs/DESIGN.md) and [UI evidence](docs/ui-qa/README.md).
+- [Design](docs/DESIGN.md) and [Quality checks](docs/quality.md).
 - [Visitor and real-device review](docs/visitor-review.md): a prepared walkthrough and the remaining manual checks.
 
 ## Sharing preview

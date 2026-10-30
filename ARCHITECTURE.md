@@ -65,7 +65,7 @@ outbound provider calls are intercepted and real local secrets are neutralized.
 
 Playwright owns local server lifecycles and exercises real account journeys, server/API contracts,
 recovery failures, keyboard access, and the built production flags. UI captures use synthetic
-responses and include narrow-screen overflow checks. See [UI evidence](docs/ui-qa/README.md).
+responses and include narrow-screen overflow checks. See [quality checks](docs/quality.md).
 
 Passkey management tests declare browser support explicitly so the host's WebAuthn availability
 cannot hide the panel under test. A separate unsupported-browser case covers the account fallback;

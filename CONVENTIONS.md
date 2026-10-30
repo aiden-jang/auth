@@ -174,3 +174,5 @@ Other repositories install this as a versioned dependency. Public-contract chang
 - `getSessionUser` stays alongside `resolveSession` for the apps still on it.
 - Loopback redirects are allowed only when the app's own origin is loopback. Both
   `safeAppRedirect` (server) and `safeReturnTo` (browser) enforce it; they must agree.
+
+Keep generated review output out of Git; follow the [artifact policy](docs/quality.md#review-artifacts).

@@ -17,7 +17,8 @@ Browser checks use local synthetic accounts, not production sessions. Put API re
 
 Keep API/security/runbooks aligned with behavior. Do not put live test counts in maintained prose.
 For UI changes, check keyboard access, busy/error/success states, and narrow screens, and record
-sanitized evidence under `docs/ui-qa/`.
+unavailable checks in the change description. Keep captures local as described in
+[quality checks](docs/quality.md).
 
 ## Database changes
 
