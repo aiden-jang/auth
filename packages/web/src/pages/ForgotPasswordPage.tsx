@@ -73,6 +73,7 @@ export function ForgotPasswordPage(): ReactNode {
       title="Reset your password"
       subtitle="We'll email you a link to choose a new one."
       returnApp={returnApp}
+      artwork="mail"
     >
       {error && (
         <p

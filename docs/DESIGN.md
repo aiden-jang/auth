@@ -8,6 +8,8 @@ verified return destinations and are adjusted for readable contrast.
 
 Sign-in and recovery use a split desktop layout with a quiet app directory and an illustrated
 cool paper key card. Phones show the wordmark and form first, without the desktop brand panel.
+Recovery and verification use a small mail illustration; passkey setup uses a device sketch.
+These static, decorative marks share the key card's palette and leave status and security copy in text.
 Forms retain visible labels, password visibility controls, errors, status messages, passkeys,
 Google sign-in, Turnstile and the existing return-destination handling. Buttons use flat fills and modest rounded corners. Form headings are compact; the larger
 illustrated panel provides personality without competing with the sign-in task.

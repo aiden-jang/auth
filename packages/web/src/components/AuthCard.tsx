@@ -3,6 +3,7 @@ import { APPS, appHref } from '../lib/apps';
 import type { ReturnApp } from '../lib/returnTo';
 import { themeFor, themeStyle } from '../lib/theme';
 import { BrandMark } from './BrandMark';
+import { AccountArt } from './AccountArt';
 
 export const inputClass =
   'w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20';
@@ -159,12 +160,14 @@ export function AuthCard({
   title,
   subtitle,
   returnApp,
+  artwork,
   children,
 }: {
   title: string;
   subtitle?: string;
   /** The verified app a sign-in will return to, when there is one. */
   returnApp?: ReturnApp | null;
+  artwork?: 'mail';
   children: ReactNode;
 }): ReactNode {
   /*
@@ -184,6 +187,7 @@ export function AuthCard({
             <Wordmark />
           </div>
           <p className="account-eyebrow mb-4">YOUR ACCOUNT</p>
+          {artwork && <AccountArt kind={artwork} />}
           <h1 tabIndex={-1} className="auth-title">
             {title}
           </h1>

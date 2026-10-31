@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { authApi, type Passkey } from '../lib/api';
 import { addPasskey, passkeysSupported } from '../lib/passkeys';
 import { Skeleton } from './Skeleton';
+import { AccountArt } from './AccountArt';
 
 /* Removal goes through the account page's step-up prompt, so this only has to not swallow a refusal. */
 
@@ -89,6 +90,7 @@ export function PasskeyList({
     >
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
+          <AccountArt kind="device" />
           <h2 id="passkeys-heading" className="font-semibold">
             Passkeys
           </h2>

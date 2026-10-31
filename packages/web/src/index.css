@@ -211,6 +211,13 @@ button:not(:disabled) {
   padding: 22px 26px;
   margin-top: 32px;
 }
+.account-support-art {
+  float: right;
+  width: 64px;
+  height: 58px;
+  margin: 0 0 8px 16px;
+  pointer-events: none;
+}
 .account-key-card span,
 .account-key-card small {
   font-size: 10px;

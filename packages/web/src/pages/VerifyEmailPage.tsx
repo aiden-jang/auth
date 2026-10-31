@@ -45,7 +45,7 @@ export function VerifyEmailPage(): ReactNode {
   }, [token, attempt]);
 
   return (
-    <AuthCard title="Verify your email" returnApp={returnApp}>
+    <AuthCard title="Verify your email" returnApp={returnApp} artwork="mail">
       {status === 'pending' && (
         <div className="space-y-1">
           <p className="text-sm text-muted">Confirming your email...</p>
