@@ -2,6 +2,7 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { authApi, type AuthUser } from '../lib/api';
 import { inputClass, labelClass } from './AuthCard';
 import { PasswordInput } from './PasswordInput';
+import { forgetRecentAccount } from '../lib/recentAccount';
 
 /* What this asks for depends on how the account signs in, and the server asks again either way --
    see the delete-account route for which proof it demands and why. */
@@ -20,6 +21,7 @@ export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
       await authApi.deleteAccount(
         user.hasPassword ? { password: deletePw } : { confirm: deleteConfirm },
       );
+      forgetRecentAccount(user.email);
       window.location.replace('/login');
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Could not delete your account.');

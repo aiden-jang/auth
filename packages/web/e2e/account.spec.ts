@@ -180,10 +180,21 @@ test.describe('deleting the account', () => {
   /* The one irreversible action on the page. Afterwards the credentials must not work. */
   test('with the password, really removes the account', async ({ page }) => {
     const email = await registerAndLand(page);
+    await page.evaluate((email) => {
+      localStorage.setItem('aidenjang:recent-email', email);
+      localStorage.setItem(
+        'aidenjang:recent-accounts:v1',
+        JSON.stringify([{ email, lastUsedAt: new Date().toISOString() }]),
+      );
+    }, email);
     await page.getByRole('button', { name: 'Delete account' }).click();
     await page.getByLabel('Your password').fill(password);
     await page.getByRole('button', { name: 'Delete my account' }).click();
     await expect(page).toHaveURL(/\/login|\/signup/);
+    expect(
+      await page.evaluate(() => localStorage.getItem('aidenjang:recent-accounts:v1')),
+    ).not.toContain(email);
+    expect(await page.evaluate(() => localStorage.getItem('aidenjang:recent-email'))).toBeNull();
 
     await signIn(page, email, password);
     await expect(page.getByRole('alert')).toBeVisible();

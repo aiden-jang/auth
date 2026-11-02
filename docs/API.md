@@ -51,7 +51,7 @@ including refusals, are `no-store`.
 | POST   | `/auth/update-profile`      | session |      | `{ displayName }`                                                       |
 | GET    | `/auth/export`              | session |      | Account data, including safe passkey metadata; credentials excluded     |
 
-`GET /auth/export` includes the profile, sign-in methods, active devices, security history, and
+`GET /auth/export` includes the profile, sign-in methods, active devices, the complete stored security history, and
 passkey labels, backup status, and timestamps. Passkey credential IDs and keys are excluded,
 alongside passwords and session identifiers. All data is scoped to the signed-in account.
 

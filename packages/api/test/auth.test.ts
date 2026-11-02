@@ -2,7 +2,14 @@ import { SELF, env } from 'cloudflare:test';
 import { and, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { createDb } from '../src/db/client.js';
-import { authTokens, credentials, sessions, users } from '../src/db/schema.js';
+import {
+  authTokens,
+  credentials,
+  securityEvents,
+  sessions,
+  users,
+  webauthnChallenges,
+} from '../src/db/schema.js';
 import { issueToken } from '../src/auth/verification.js';
 import { hashToken } from '../src/auth/token.js';
 import { createSession } from '../src/auth/session.js';
@@ -517,6 +524,39 @@ describe('the account event trail', () => {
 });
 
 describe('account data export', () => {
+  it('keeps security history beyond 500 events complete and private to its owner', async () => {
+    const owner = await register();
+    const other = await register();
+    const rows = Array.from({ length: 501 }, (_, index) => ({
+      id: crypto.randomUUID(),
+      userId: owner.id,
+      type: 'signed_in',
+      device: `Historical device ${index}`,
+      createdAt: new Date(Date.UTC(2025, 0, 1, 0, 0, index)),
+    }));
+    for (let start = 0; start < rows.length; start += 10)
+      await db()
+        .insert(securityEvents)
+        .values(rows.slice(start, start + 10));
+    await db().insert(securityEvents).values({
+      id: crypto.randomUUID(),
+      userId: other.id,
+      type: 'signed_in',
+      device: 'Other private device',
+    });
+    const response = await get('/auth/export', owner.cookie);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { securityActivity: { device: string | null }[] };
+    expect(
+      body.securityActivity.filter((event) => event.device?.startsWith('Historical device ')),
+    ).toHaveLength(501);
+    expect(body.securityActivity.some((event) => event.device === 'Historical device 0')).toBe(
+      true,
+    );
+    expect(body.securityActivity.some((event) => event.device === 'Other private device')).toBe(
+      false,
+    );
+  });
   it('exports only the signed-in account without credentials or session identifiers', async () => {
     const a = await register();
     const b = await register();
@@ -636,6 +676,51 @@ describe('how each sign-in happened', () => {
 });
 
 describe('delete account', () => {
+  it('cascades every identity record, revokes all sessions, and keeps another account intact', async () => {
+    const owner = await register(),
+      other = await register();
+    const tokens: string[] = [];
+    for (const account of [owner, other]) {
+      tokens.push((await createSession(db(), account.id)).token);
+      await issueToken(db(), account.id, 'reset');
+      await db().insert(credentials).values({
+        id: crypto.randomUUID(),
+        userId: account.id,
+        publicKey: 'synthetic-public-key',
+        label: 'Synthetic passkey',
+      });
+      await db()
+        .insert(webauthnChallenges)
+        .values({
+          id: crypto.randomUUID(),
+          userId: account.id,
+          challenge: 'synthetic-challenge',
+          expiresAt: new Date(Date.now() + 60_000),
+        });
+    }
+    const tables = [sessions, authTokens, credentials, securityEvents, webauthnChallenges] as const;
+    const preserved = await Promise.all(
+      tables.map((table) => db().select().from(table).where(eq(table.userId, other.id))),
+    );
+    expect(
+      (await post('/auth/delete-account', { password: owner.password }, owner.cookie)).status,
+    ).toBe(200);
+    for (const [index, table] of tables.entries()) {
+      expect(await db().select().from(table).where(eq(table.userId, owner.id))).toEqual([]);
+      expect(await db().select().from(table).where(eq(table.userId, other.id))).toEqual(
+        preserved[index],
+      );
+    }
+    expect((await get('/auth/export', `platform_session=${tokens[0]}`)).status).toBe(401);
+    expect((await get('/auth/me', `platform_session=${tokens[1]}`)).status).toBe(200);
+    const recreated = await post('/auth/register', {
+      email: owner.email,
+      password: owner.password,
+      displayName: 'New identity',
+    });
+    expect(recreated.status).toBe(201);
+    expect(((await recreated.json()) as { user: { id: string } }).user.id).not.toBe(owner.id);
+  });
   it('deletes with the correct password and blocks login afterward', async () => {
     const { email, password, cookie } = await register();
     expect(

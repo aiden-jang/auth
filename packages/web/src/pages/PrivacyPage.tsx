@@ -3,7 +3,7 @@ import { LegalLayout, Section } from '../components/LegalLayout';
 
 export function PrivacyPage(): ReactNode {
   return (
-    <LegalLayout title="Privacy Policy" updated="October 26, 2026">
+    <LegalLayout title="Privacy Policy" updated="November 2, 2026">
       <p>
         Aiden Jang builds a small collection of personal apps under the name aidenjang. This is what
         they store, why, and who else sees it. Written to actually be read, because a privacy policy
@@ -61,12 +61,14 @@ export function PrivacyPage(): ReactNode {
           </li>
           <li>
             <strong>wherever:</strong> the room code, the restaurant options, and everyone&rsquo;s
-            votes. Tied to a throwaway room, not to you, and gone when the room ends.
+            votes. Tied to a temporary room rather than an identity account. Shared result links
+            last seven days; expiry clears the room and its visited-place history.
           </li>
           <li>
-            <strong>iguess:</strong> the room code, the drawings, and the guesses, but only while
-            the game is running. AI guessing can send drawings and masked hints to a configured
-            vision provider. The secret word is not sent to the AI guesser.
+            <strong>iguess:</strong> the room code, names, avatars, drawings, scores and game
+            progress in temporary recovery checkpoints, which expire after a day of inactivity. Chat
+            messages are not included in those checkpoints. AI guessing can send drawings and masked
+            hints to a configured vision provider. The secret word is not sent to the AI guesser.
           </li>
           <li>
             <strong>Sessions:</strong> for the "active devices" list on your account, each sign-in
@@ -127,15 +129,19 @@ export function PrivacyPage(): ReactNode {
         Account data stays until you remove it or ask us to. Accounts lets you download or delete
         your identity account. App data is held separately: remove it in each app before deleting
         your shared sign-in, or contact us for help. Worth has its own export, Trash, and
-        data-deletion controls. You can delete groups, expenses, and gardens inside the other apps.
-        wherever and iguess rooms are temporary and clear themselves, so there is nothing to delete.
-        An mrrp room is built to last, and both people in it have a way out: whoever made the room
-        can delete the whole thing, and the other one can leave, which takes their side of it and
-        leaves the room standing. Both take effect at once, and both can be undone for a week. A
-        deleted room is unreachable straight away and erased for good a week later, and only the
-        person who deleted it can put it back inside that week. Someone who has left can put their
-        side back for a week too, for as long as nobody else has taken the seat they freed. For
-        deletion or data-access requests, email{' '}
+        data-deletion controls. owewell supports expense removal and reversal of recorded payments;
+        contact us for group-wide or account-data removal. Removing a Bloomnote library entry leaves
+        its shared garden link working; contact us to request a copy or removal of stored gardens.
+        wherever rooms expire after seven days, and iguess recovery checkpoints after a day of
+        inactivity. Browser copies and downloaded files are separate from server data and can be
+        removed through this browser’s site-data controls or your device’s file manager. An mrrp
+        room is built to last, and both people in it have a way out: whoever made the room can
+        delete the whole thing, and the other one can leave, which takes their side of it and leaves
+        the room standing. Both take effect at once, and both can be undone for a week. A deleted
+        room is unreachable straight away and erased for good a week later, and only the person who
+        deleted it can put it back inside that week. Someone who has left can put their side back
+        for a week too, for as long as nobody else has taken the seat they freed. For deletion or
+        data-access requests, email{' '}
         <a className="text-accent hover:underline" href="mailto:privacy@aidenjang.com">
           privacy@aidenjang.com
         </a>

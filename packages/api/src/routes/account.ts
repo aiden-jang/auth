@@ -95,8 +95,7 @@ app.get('/auth/export', async (c) => {
       })
       .from(securityEvents)
       .where(eq(securityEvents.userId, me.id))
-      .orderBy(desc(securityEvents.createdAt))
-      .limit(500),
+      .orderBy(desc(securityEvents.createdAt)),
     db
       .select({
         label: credentials.label,
