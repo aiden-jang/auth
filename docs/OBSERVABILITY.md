@@ -1,7 +1,8 @@
 # Observability
 
-Three legs, all $0 on Cloudflare's free tier. One is code (Workers Logs, already enabled); the
-other two are dashboard/external setup, documented here.
+Workers Logs and aggregate analytics are configured in code. Error alerts and
+active uptime checks need separate dashboard setup and verified notification
+delivery; enabling logs alone does not notify anyone.
 
 ## 1. Workers Logs (error + request tracking): enabled in code
 
@@ -42,26 +43,48 @@ counters are best effort and must not be treated as unique people or exact reten
 
 ## 3. Uptime: external keyword monitors
 
-Cloudflare Health Checks are a paid add-on, so point a **free external monitor** (e.g.
-UptimeRobot, 5-min interval) at each app. Use keyword monitors: every URL below answers 200 even
-when the thing behind it is broken, so a status-code check would sit green through an outage.
+Cloudflare's free plan does not include active Health Checks. A free external
+service such as [UptimeRobot](https://uptimerobot.com/pricing/) supports keyword
+checks every five minutes. Use both a successful HTTP response and the expected
+content below: a wrong health path can return the SPA with status 200.
 
 | App              | Monitor URL                                 | Keyword                 |
 | ---------------- | ------------------------------------------- | ----------------------- |
 | auth             | `https://accounts.aidenjang.com/health`     | `"service":"auth"`      |
+| worth            | `https://worth.aidenjang.com/api/health`    | `"status":"ok"`         |
 | bloomnote        | `https://bloomnote.aidenjang.com/health`    | `"service":"bloomnote"` |
 | iguess           | `https://iguess.aidenjang.com/health`       | `"service":"iguess"`    |
 | owewell          | `https://owewell.aidenjang.com/health`      | `"service":"owewell"`   |
 | wherever         | `https://wherever.aidenjang.com/api/health` | `"source":"google"`     |
 | mrrp             | `https://mrrp.aidenjang.com/api/health`     | `"ok":true`             |
 | everythingisfine | `https://everythingisfine.aidenjang.com/`   | `Everything Is Fine`    |
+| portfolio        | `https://www.aidenjang.com/`                | `Aiden Jang`            |
 
 The path is not uniform, and that is not an oversight: wherever and mrrp serve everything under
 `/api/*` and their health sits there, while `/health` at the root would be answered by the SPA
 fallback. everythingisfine has no data API (its Worker only accepts aggregate analytics), so its page is the only thing to check.
 
 wherever's keyword is deliberately `"source":"google"` rather than `"ok":true`. It reports `mock`
-when the Places key is missing, so the monitor covers the key as well as the worker.
+when the Places key is missing. This verifies the configured source, not that a
+live Places search succeeds.
 
-A green health check proves the worker is reachable and its runtime is up; it does not exercise
-D1/KV/DO, which surface via Workers Logs instead.
+A green health check proves that endpoint is reachable and returns its expected
+content. It does not exercise signed-in journeys, D1/KV/Durable Objects, email
+delivery or third-party searches. Failures there need log review and separate
+journey checks. Never include private room, share or record URLs in an external
+monitor.
+
+### Error alerts complement uptime checks
+
+[Cloudflare Monitors](https://developers.cloudflare.com/notifications/monitors/)
+can query observed HTTP traffic for repeated 5xx responses. Restrict the query to
+the app hostnames, use a short evaluation window and limit repeat notifications.
+For example, three server errors in a five-minute window with hourly repeats is
+a low-noise starting point for these apps.
+
+This only covers requests visible to Cloudflare. It cannot detect an idle outage
+or guarantee coverage of a DNS-only hostname hosted elsewhere, including the
+portfolio. Keep active external checks for every app. Verify each rule's preview,
+delivery destination and a test notification before treating alerting as working;
+do not deliberately break production to trigger it. Email addresses and provider
+credentials belong in the provider dashboard, not this repository.
