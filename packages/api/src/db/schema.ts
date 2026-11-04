@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 // Shared identity: one account per person across every app. App-specific data lives in each app's
 // own D1, never here.
@@ -37,27 +37,31 @@ export const authTokens = sqliteTable('auth_tokens', {
 
 // `id` holds the SHA-256 hash of the session token; the raw token lives only in the
 // user's cookie, so a DB leak never hands out live sessions.
-export const sessions = sqliteTable('sessions', {
-  id: text('id').primaryKey(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-  createdAt: integer('created_at', { mode: 'timestamp' })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  // Session metadata for the "active devices" list. Parsed device label (not the raw UA) and a
-  // coarse city/country from Cloudflare's edge (not the raw IP); nullable for pre-existing rows.
-  device: text('device'),
-  location: text('location'),
-  lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }),
-  // When this session last proved who it belongs to, which is not the same as when it was created:
-  // signing in stamps it, and so does re-entering a password to confirm a sensitive action. Actions
-  // that could lock the owner out of their own account require it to be recent. Nullable because
-  // sessions predating this column exist; those fall back to `createdAt`, which is the honest
-  // answer for them (creating a session did involve authenticating).
-  reauthAt: integer('reauth_at', { mode: 'timestamp' }),
-});
+export const sessions = sqliteTable(
+  'sessions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    // Session metadata for the "active devices" list. Parsed device label (not the raw UA) and a
+    // coarse city/country from Cloudflare's edge (not the raw IP); nullable for pre-existing rows.
+    device: text('device'),
+    location: text('location'),
+    lastSeenAt: integer('last_seen_at', { mode: 'timestamp' }),
+    // When this session last proved who it belongs to, which is not the same as when it was created:
+    // signing in stamps it, and so does re-entering a password to confirm a sensitive action. Actions
+    // that could lock the owner out of their own account require it to be recent. Nullable because
+    // sessions predating this column exist; those fall back to `createdAt`, which is the honest
+    // answer for them (creating a session did involve authenticating).
+    reauthAt: integer('reauth_at', { mode: 'timestamp' }),
+  },
+  (table) => [index('sessions_user_expiry_idx').on(table.userId, table.expiresAt)],
+);
 
 // A short, human-readable audit trail for the account page. It deliberately stores only a parsed
 // device label and coarse edge location, never an IP address or full user-agent.

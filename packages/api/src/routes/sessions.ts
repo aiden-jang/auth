@@ -1,6 +1,6 @@
 /* The devices signed in right now, and signing them out. */
 import { Hono } from 'hono';
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq, gt, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import { createDb } from '../db/client.js';
 import { sessions } from '../db/schema.js';
@@ -38,11 +38,10 @@ app.get('/auth/sessions', async (c) => {
       expiresAt: sessions.expiresAt,
     })
     .from(sessions)
-    .where(eq(sessions.userId, me.id))
+    .where(and(eq(sessions.userId, me.id), gt(sessions.expiresAt, new Date(now))))
     .all();
 
   const list = rows
-    .filter((r) => r.expiresAt.getTime() > now)
     .map((r) => ({
       id: r.id,
       current: r.id === currentId,

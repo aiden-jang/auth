@@ -30,6 +30,9 @@ origin may make credentialed browser requests. Server-to-server callers need no 
 Route handlers validate input and ownership before changing state. Credential changes that could
 lock someone out require recent proof; password changes supply their own current-password proof.
 Migrations run before deployed code, and their SQL/snapshot history stays additive.
+Active-device reads filter ownership and expiry in SQLite using the combined user/expiry index.
+They return every active device, with the current one first, without loading expired session history
+into the Worker.
 
 ## UI ownership
 

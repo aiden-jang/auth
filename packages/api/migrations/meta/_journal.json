@@ -57,6 +57,13 @@
       "when": 1786637200000,
       "tag": "0007_signin_method",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793761476815,
+      "tag": "0008_session_lookup",
+      "breakpoints": true
     }
   ]
 }

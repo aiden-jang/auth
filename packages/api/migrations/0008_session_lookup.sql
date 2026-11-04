@@ -1,0 +1,1 @@
+CREATE INDEX `sessions_user_expiry_idx` ON `sessions` (`user_id`,`expires_at`);
