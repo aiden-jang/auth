@@ -1,4 +1,5 @@
-import { type FormEvent, type ReactNode } from 'react';
+import { useRef, type FormEvent, type ReactNode } from 'react';
+import { useReturnFocus } from '../lib/useReturnFocus';
 import type { Sessions } from '../lib/useSessions';
 import { reassurance } from '../lib/reassurance';
 import { sessionHorizon } from '../lib/sessionHorizon';
@@ -40,9 +41,21 @@ export function SessionList({
   const cancelRename = store.cancelRename;
   const refreshSessions = store.refresh;
   const renameSession = (event: FormEvent, id: string): Promise<void> => rename(event, id);
+  const section = useRef<HTMLElement>(null);
+  const lastRename = useRef<string | null>(null);
+  useReturnFocus(Boolean(renamingSessionId), () =>
+    [...(section.current?.querySelectorAll<HTMLButtonElement>('[data-rename-session]') ?? [])].find(
+      (button) => button.dataset.renameSession === lastRename.current,
+    ),
+  );
 
   return (
-    <section id="active-sessions" aria-label="Active sessions" className="scroll-mt-4">
+    <section
+      ref={section}
+      id="active-sessions"
+      aria-label="Active sessions"
+      className="scroll-mt-4"
+    >
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Active sessions</h2>
         <div className="flex items-center gap-3">
@@ -58,7 +71,7 @@ export function SessionList({
             <button
               type="button"
               onClick={() => void revokeOthers()}
-              disabled={revokingOthers}
+              disabled={revokingOthers || savingSessionName}
               className="cursor-pointer text-xs font-medium text-accent hover:underline disabled:opacity-60"
             >
               {revokingOthers ? 'Signing out...' : 'Sign out everywhere else'}
@@ -94,6 +107,7 @@ export function SessionList({
                 <div className="flex items-center justify-between gap-4">
                   <button
                     type="button"
+                    disabled={savingSessionName}
                     onClick={() => setExpandedSessionId(expanded ? null : s.id)}
                     aria-expanded={expanded}
                     className="min-w-0 flex-1 cursor-pointer text-left"
@@ -127,7 +141,7 @@ export function SessionList({
                     <button
                       type="button"
                       onClick={() => void revoke(s.id)}
-                      disabled={revokingId === s.id}
+                      disabled={revokingId === s.id || savingSessionName}
                       className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2 text-sm text-muted transition hover:text-ink disabled:opacity-60"
                     >
                       {revokingId === s.id ? '...' : 'Sign out'}
@@ -202,6 +216,7 @@ export function SessionList({
                         <div className="flex gap-2">
                           <button
                             type="button"
+                            disabled={savingSessionName}
                             onClick={() => {
                               cancelRename();
                               setSessionNameDraft('');
@@ -222,7 +237,11 @@ export function SessionList({
                     ) : (
                       <button
                         type="button"
-                        onClick={() => beginSessionRename(s)}
+                        data-rename-session={s.id}
+                        onClick={() => {
+                          lastRename.current = s.id;
+                          beginSessionRename(s);
+                        }}
                         className="mt-3 text-xs font-medium text-accent hover:underline"
                       >
                         Rename device

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
-import { AuthCard, buttonClass, inputClass } from '../components/AuthCard';
+import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
 import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { EmailSuggestion } from '../components/EmailSuggestion';
 import { returnAppFor } from '../lib/returnTo';
@@ -122,6 +122,7 @@ export function ForgotPasswordPage(): ReactNode {
             </button>
             <button
               type="button"
+              disabled={loading}
               onClick={() => {
                 setSent(false);
                 setResent(false);
@@ -141,24 +142,26 @@ export function ForgotPasswordPage(): ReactNode {
         </div>
       ) : (
         <form onSubmit={(e) => void onSubmit(e)} className="space-y-3.5">
-          <label htmlFor="reset-email" className="sr-only">
-            Email
-          </label>
-          <input
-            id="reset-email"
-            name="email"
-            className={inputClass}
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            inputMode="email"
-            autoCapitalize="none"
-            autoCorrect="off"
-            required
-            autoFocus
-          />
+          <div>
+            <label htmlFor="reset-email" className={labelClass}>
+              Email
+            </label>
+            <input
+              id="reset-email"
+              name="email"
+              className={inputClass}
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              required
+              autoFocus
+            />
+          </div>
           <EmailSuggestion value={email} onAccept={setEmail} />
           <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />
           <button

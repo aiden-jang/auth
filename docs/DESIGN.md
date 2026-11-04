@@ -31,3 +31,10 @@ The account launcher keeps every app visible in two columns on phones, with tagl
 Owewell’s verified return destination uses a light teal accent on Accounts’ dark surface, matching its current identity. The shared house palette stays slate and ice-blue.
 
 Validated app destinations travel through verification and password-reset email links. Recovery retains the destination when signing in again; verification offers an explicit Continue to app link rather than redirecting automatically.
+
+Inline profile, password, device-name and deletion forms return keyboard focus to their
+opening control after closing. Name editing gives the field its own row on phones.
+Closing the password form clears its opening URL flag, so reload keeps it closed.
+Pending saves and deletion keep their form visible and disable controls that would
+falsely suggest the request can be canceled. Password recovery keeps its email label
+visible after typing.

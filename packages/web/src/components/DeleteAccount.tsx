@@ -1,4 +1,5 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useReturnFocus } from '../lib/useReturnFocus';
 import { authApi, type AuthUser } from '../lib/api';
 import { inputClass, labelClass } from './AuthCard';
 import { PasswordInput } from './PasswordInput';
@@ -8,6 +9,8 @@ import { forgetRecentAccount } from '../lib/recentAccount';
    see the delete-account route for which proof it demands and why. */
 export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
   const [showDelete, setShowDelete] = useState(false);
+  const deleteTrigger = useRef<HTMLButtonElement>(null);
+  useReturnFocus(showDelete, () => deleteTrigger.current);
   const [deletePw, setDeletePw] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -55,6 +58,7 @@ export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
                 autoComplete="current-password"
                 placeholder="Your password"
                 value={deletePw}
+                autoFocus
                 onChange={setDeletePw}
                 required
               />
@@ -68,6 +72,7 @@ export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
                 id="delete-confirm"
                 className={inputClass}
                 value={deleteConfirm}
+                autoFocus
                 onChange={(e) => setDeleteConfirm(e.target.value)}
                 placeholder={user.email}
                 autoComplete="off"
@@ -88,6 +93,7 @@ export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
             </button>
             <button
               type="button"
+              disabled={deleting}
               onClick={() => {
                 setShowDelete(false);
                 setDeleteError(null);
@@ -103,6 +109,7 @@ export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
       ) : (
         <button
           type="button"
+          ref={deleteTrigger}
           onClick={() => setShowDelete(true)}
           className="cursor-pointer text-sm font-medium text-neg hover:underline"
         >

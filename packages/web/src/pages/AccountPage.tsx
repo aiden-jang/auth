@@ -60,9 +60,17 @@ export function AccountPage(): ReactNode {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
-  const [changingPw, setChangingPw] = useState(
+  const [changingPw, updateChangingPw] = useState(
     () => new URLSearchParams(window.location.search).get('password') === 'change',
   );
+  function setChangingPw(open: boolean): void {
+    updateChangingPw(open);
+    if (!open) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('password');
+      window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+  }
   const [pwDone, setPwDone] = useState(false);
   // Read once, on the first render: the ?error the Google callback redirects back with is fixed
   // by the time this page mounts, so deriving it in an effect only costs a second render.

@@ -1,4 +1,5 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useReturnFocus } from '../lib/useReturnFocus';
 import { authApi, type AuthUser } from '../lib/api';
 import { inputClass } from './AuthCard';
 
@@ -13,6 +14,8 @@ export function AccountProfile({
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [emailCopied, setEmailCopied] = useState(false);
   const [editingName, setEditingName] = useState(false);
+  const editName = useRef<HTMLButtonElement>(null);
+  useReturnFocus(editingName, () => editName.current);
   const [nameDraft, setNameDraft] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
@@ -93,9 +96,12 @@ export function AccountProfile({
         {editingName ? (
           <div>
             <dt className="mb-1.5 text-muted">Name</dt>
-            <form onSubmit={(e) => void saveName(e)} className="flex items-center gap-2">
+            <form
+              onSubmit={(e) => void saveName(e)}
+              className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+            >
               <input
-                className={`${inputClass} min-w-0 flex-1`}
+                className={`${inputClass} col-span-2 min-w-0 sm:col-span-1`}
                 value={nameDraft}
                 onChange={(e) => setNameDraft(e.target.value)}
                 maxLength={80}
@@ -136,6 +142,7 @@ export function AccountProfile({
               <span className="min-w-0 break-words">{user.displayName}</span>
               <button
                 type="button"
+                ref={editName}
                 onClick={startEditName}
                 className="min-h-11 shrink-0 cursor-pointer text-xs font-medium text-accent hover:underline"
               >

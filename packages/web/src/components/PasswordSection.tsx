@@ -1,5 +1,6 @@
 import type { StepUp } from './StepUpPrompt';
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useReturnFocus } from '../lib/useReturnFocus';
 import { authApi, type AuthUser } from '../lib/api';
 import { labelClass } from './AuthCard';
 import { PasswordInput } from './PasswordInput';
@@ -36,6 +37,8 @@ export function PasswordSection({
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwWasSet, setPwWasSet] = useState(false);
+  const editPassword = useRef<HTMLButtonElement>(null);
+  useReturnFocus(changingPw, () => editPassword.current);
 
   function resetPwForm(): void {
     setCurPw('');
@@ -176,6 +179,7 @@ export function PasswordSection({
       ) : (
         <button
           type="button"
+          ref={editPassword}
           onClick={() => {
             setPwDone(false);
             setChangingPw(true);
