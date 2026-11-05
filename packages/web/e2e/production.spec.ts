@@ -133,6 +133,42 @@ test('loading the security check keeps the submit button in place', async ({ pag
   expect(Math.abs(after!.y - before!.y)).toBeLessThanOrEqual(1);
 });
 
+test('the standard security check fits inside narrow sign-in and sign-up forms', async ({
+  page,
+}) => {
+  await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js', (route) =>
+    route.fulfill({
+      contentType: 'application/javascript',
+      body: `window.turnstile = {
+        render(element, options) {
+          const widget = document.createElement('iframe');
+          widget.title = 'Security check fixture'; widget.width = '300'; widget.height = '65';
+          widget.style.flexShrink = '0'; element.appendChild(widget);
+          options.callback('local-test-token'); return 'local-widget';
+        },
+        remove() {}, reset() {}
+      };`,
+    }),
+  );
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const path of ['/login', '/signup']) {
+      await page.goto(`${ORIGIN}${path}`);
+      const widget = page.getByTitle('Security check fixture');
+      await expect(widget).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const formBox = (await page.locator('form').boundingBox())!;
+      const widgetBox = (await widget.boundingBox())!;
+      expect(widgetBox.width).toBe(300);
+      expect(widgetBox.x).toBeGreaterThanOrEqual(formBox.x - 1);
+      expect(widgetBox.x + widgetBox.width).toBeLessThanOrEqual(formBox.x + formBox.width + 1);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+    }
+  }
+});
+
 test('revealing a password preserves its draft, selection and focus', async ({ page }) => {
   await page.goto(`${ORIGIN}/login`);
   const password = page.getByLabel('Password', { exact: true });

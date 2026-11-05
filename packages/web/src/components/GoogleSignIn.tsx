@@ -11,7 +11,7 @@ export function GoogleSignIn({ returnTo }: { returnTo?: string | null }): ReactN
     <>
       <a
         href={googleLoginUrl(returnTo)}
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-line bg-field px-4 py-2.5 text-sm font-medium text-ink transition hover:border-accent/60 hover:bg-white/5"
+        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[10px] border border-line bg-transparent px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-accent/60 hover:bg-field"
       >
         <svg aria-hidden="true" viewBox="0 0 18 18" className="h-4 w-4">
           <path
@@ -33,9 +33,9 @@ export function GoogleSignIn({ returnTo }: { returnTo?: string | null }): ReactN
         </svg>
         Continue with Google
       </a>
-      <div className="my-4 flex items-center gap-3 text-xs text-muted">
+      <div className="my-5 flex items-center gap-3 text-xs text-muted">
         <span className="h-px flex-1 bg-line" />
-        or
+        or use your email
         <span className="h-px flex-1 bg-line" />
       </div>
     </>

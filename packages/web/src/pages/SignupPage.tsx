@@ -65,6 +65,14 @@ export function SignupPage(): ReactNode {
           : "One account for all of aidenjang's apps."
       }
       returnApp={returnApp}
+      header={
+        <p>
+          Already have an account?{' '}
+          <Link to={withReturn('/login')} state={{ email }}>
+            Log in
+          </Link>
+        </p>
+      }
     >
       <GoogleSignIn returnTo={returnTo} />
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
@@ -103,6 +111,7 @@ export function SignupPage(): ReactNode {
             inputMode="email"
             autoCapitalize="none"
             autoCorrect="off"
+            spellCheck={false}
             placeholder="you@example.com"
             value={email}
             onChange={(e) => {
@@ -138,6 +147,7 @@ export function SignupPage(): ReactNode {
             inputMode="email"
             autoCapitalize="none"
             autoCorrect="off"
+            spellCheck={false}
             placeholder="you@example.com"
             value={confirmEmail}
             onChange={(e) => {
@@ -213,7 +223,7 @@ export function SignupPage(): ReactNode {
           className={buttonClass}
           disabled={loading || (turnstileEnabled && !turnstile.token)}
         >
-          {loading ? 'Creating...' : 'Create account'}
+          {loading ? 'Creating…' : 'Create account'}
         </button>
         {loading && (
           <p role="status" className="text-center text-xs text-muted">
@@ -222,7 +232,7 @@ export function SignupPage(): ReactNode {
         )}
       </form>
 
-      <p className="mt-5 text-center text-sm text-muted">
+      <p className="auth-switch-mobile mt-5 text-center text-sm text-muted">
         Already have an account?{' '}
         <Link
           to={withReturn('/login')}

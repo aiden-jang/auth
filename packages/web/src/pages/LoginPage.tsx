@@ -72,14 +72,19 @@ export function LoginPage(): ReactNode {
     }
   }
 
-  // No subtitle: the brand panel two inches to the left already says "one login for everything I
-  // build", and on desktop both are on screen at once. "Welcome back" is complete on its own — the
-  // returning user is the one person who does not need the pitch.
   return (
     <AuthCard
       title="Welcome back"
       {...(!returnApp ? { subtitle: greeting } : {})}
       returnApp={returnApp}
+      header={
+        <p>
+          First time here?{' '}
+          <Link to={withReturn('/signup')} state={{ email }}>
+            Create an account
+          </Link>
+        </p>
+      }
     >
       <>
         {/* Above Google and the form: nothing to type, and nothing on our side worth stealing. */}
@@ -182,6 +187,7 @@ export function LoginPage(): ReactNode {
               inputMode="email"
               autoCapitalize="none"
               autoCorrect="off"
+              spellCheck={false}
               placeholder="you@example.com"
               value={email}
               onChange={(e) => {
@@ -210,7 +216,7 @@ export function LoginPage(): ReactNode {
                 state={{ email }}
                 className="text-xs text-muted hover:text-ink"
               >
-                Forgot?
+                Forgot password?
               </Link>
             </div>
             <PasswordInput
@@ -241,7 +247,7 @@ export function LoginPage(): ReactNode {
             className={buttonClass}
             disabled={loading || (turnstileEnabled && !turnstile.token)}
           >
-            {loading ? 'Signing in...' : 'Log in'}
+            {loading ? 'Signing in…' : 'Log in'}
           </button>
           {loading && (
             <p role="status" className="text-center text-xs text-muted">
@@ -250,7 +256,7 @@ export function LoginPage(): ReactNode {
           )}
         </form>
 
-        <p className="mt-5 text-center text-sm text-muted">
+        <p className="auth-switch-mobile mt-5 text-center text-sm text-muted">
           First time here?{' '}
           <Link
             to={withReturn('/signup')}

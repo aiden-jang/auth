@@ -6,17 +6,21 @@ verified return destination or appears in the app directory.
 DM Sans is bundled locally under its included license. App-specific accents still come from
 verified return destinations and are adjusted for readable contrast.
 
-Sign-in and recovery use a split desktop layout with a quiet app directory and an illustrated
-cool paper key card. Phones show the wordmark and form first, without the desktop brand panel.
+Sign-in and recovery use the Quiet split layout: a cool paper brand panel on the left and a
+slate form panel on the right. The desktop columns use a 43:57 ratio. The brand panel pairs
+“One account. Fewer keys.” with a compact app directory; the key stays in the wordmark.
+Phones show the wordmark and form first, without the desktop brand panel.
 Recovery and verification use a small mail illustration; passkey setup uses a device sketch.
-These static, decorative marks share the key card's palette and leave status and security copy in text.
+These static, decorative marks share the house palette and leave status and security copy in text.
 Forms retain visible labels, password visibility controls, errors, status messages, passkeys,
-Google sign-in, Turnstile and the existing return-destination handling. Buttons use flat fills and modest rounded corners. Form headings are compact; the larger
-illustrated panel provides personality without competing with the sign-in task.
+Google sign-in, Turnstile and the existing return-destination handling. Buttons use flat fills and
+modest rounded corners. Forms have a narrow reading width, clear labels and compact headings.
+Desktop sign-in/sign-up links sit above the form; phones keep them below the submit action.
+The credit and legal links share a footer. A skip link bypasses the desktop app directory.
 The account hub uses a wider single column, an app grid, separated settings sections and clear
 security/deletion controls. Policies use the existing readable document layout.
 
-The dry humor stays in the decorative panel: “One account. Fewer keys.” and “The keyring was
+The dry humor stays in the brand panel: “One account. Fewer keys.” and “The keyring was
 getting ridiculous.” Security reviews, account recovery, errors and destructive confirmations
 remain factual. Motion is a brief existing entrance and respects reduced motion.
 

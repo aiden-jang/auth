@@ -9,10 +9,10 @@ export function BrandMark(): ReactNode {
     <span
       aria-hidden
       className="inline-grid h-8 w-8 place-items-center rounded-[10px]"
-      style={{ background: '#14171c' }}
+      style={{ background: 'var(--brand-mark-background, #14171c)' }}
     >
       <svg width="20" height="20" viewBox="0 0 512 512" fill="none" aria-hidden>
-        <g transform="rotate(-40 256 256)" fill="#aacbfa">
+        <g transform="rotate(-40 256 256)" fill="var(--brand-mark-ink, #aacbfa)">
           <path
             fillRule="evenodd"
             d="M256 76a100 100 0 1 1 0 200 100 100 0 0 1 0-200Zm0 62a38 38 0 1 0 0 76 38 38 0 0 0 0-76Z"

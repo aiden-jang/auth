@@ -220,7 +220,7 @@ test('tab titles follow authentication and recovery through browser history', as
   await expect(
     page.getByRole('link', { name: 'aiden jang', exact: true }),
   ).toHaveAccessibleDescription('Opens in a new tab');
-  await page.getByRole('link', { name: /Forgot\?/i }).click();
+  await page.getByRole('link', { name: 'Forgot password?', exact: true }).click();
   await expect(page).toHaveTitle('Reset password · aidenjang accounts');
   await page.goBack();
   await expect(page).toHaveTitle('Sign in · aidenjang accounts');

@@ -10,7 +10,7 @@ Automated accessibility scans and browser emulation do not establish physical-de
 behavior, native sharing or spoken screen-reader output. State unavailable checks.
 
 Curated README images live in `docs/screenshots/`. They use synthetic data and describe
-the illustrated revision; they do not verify every subsequent change.
+the Quiet split layout; they do not verify every subsequent change.
 
 ## Review artifacts
 
