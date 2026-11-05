@@ -4,6 +4,7 @@ import { authApi, type Passkey } from '../lib/api';
 import { addPasskey, passkeysSupported } from '../lib/passkeys';
 import { Skeleton } from './Skeleton';
 import { AccountArt } from './AccountArt';
+import { AccountIcon } from './AccountIcon';
 
 /* Removal goes through the account page's step-up prompt, so this only has to not swallow a refusal. */
 
@@ -84,29 +85,16 @@ export function PasskeyList({
   }
 
   return (
-    <section
-      aria-labelledby="passkeys-heading"
-      className="rounded-2xl border border-line bg-card p-5"
-    >
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <div>
-          <AccountArt kind="device" />
-          <h2 id="passkeys-heading" className="font-semibold">
-            Passkeys
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            Your face, fingerprint or screen lock, instead of a password. Nothing we store can be
-            used to sign in as you.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => void add()}
-          disabled={busy !== null}
-          className="btn-primary shrink-0 rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
-        >
-          {busy === 'add' ? 'Waiting for your device...' : 'Add a passkey'}
-        </button>
+    <section aria-labelledby="passkeys-heading" className="hub-setting hub-passkeys">
+      <div>
+        <AccountArt kind="device" />
+        <h3 id="passkeys-heading" className="hub-setting-title">
+          Passkeys
+        </h3>
+        <p className="hub-setting-description">
+          Your face, fingerprint or screen lock, instead of a password. Nothing we store can be used
+          to sign in as you.
+        </p>
       </div>
 
       {passkeys === null && loading ? (
@@ -115,9 +103,7 @@ export function PasskeyList({
           <Skeleton className="h-12 w-full" />
         </div>
       ) : passkeys?.length === 0 ? (
-        <p className="mt-4 rounded-xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
-          No passkeys yet.
-        </p>
+        <p className="mt-4 text-sm text-muted">No passkeys yet.</p>
       ) : (
         <ul className="mt-4 space-y-2">
           {passkeys?.map((passkey) => (
@@ -158,6 +144,16 @@ export function PasskeyList({
           ))}
         </ul>
       )}
+
+      <button
+        type="button"
+        onClick={() => void add()}
+        disabled={busy !== null}
+        className="hub-passkey-add btn-primary disabled:opacity-60"
+      >
+        <AccountIcon kind="plus" />
+        {busy === 'add' ? 'Waiting for your device…' : 'Add a passkey'}
+      </button>
 
       {loadError && (
         <div className="mt-3">

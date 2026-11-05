@@ -1,0 +1,121 @@
+.legal-content {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  align-items: start;
+  gap: 36px;
+  max-width: 1080px;
+  margin-inline: auto;
+  padding: 36px max(40px, env(safe-area-inset-right)) 10px max(40px, env(safe-area-inset-left));
+}
+.legal-page .hub-footer {
+  padding-top: 24px;
+}
+.legal-contents {
+  min-width: 0;
+  padding-top: 7px;
+}
+.legal-contents h2 {
+  font-size: 14px;
+  font-weight: 500;
+}
+.legal-contents nav,
+.legal-mobile-contents nav {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+}
+.legal-contents a,
+.legal-mobile-contents a {
+  display: block;
+  padding-block: 8px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+.legal-contents a:hover,
+.legal-mobile-contents a:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.legal-mobile-contents {
+  display: none;
+}
+.legal-document {
+  --color-accent: var(--color-paper-ink);
+  border-radius: 12px;
+  padding: 34px 36px 40px;
+  background: var(--color-paper);
+  color: var(--color-paper-ink);
+  font-size: 15px;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.legal-document ::selection {
+  background: var(--color-paper-ink);
+  color: var(--color-paper);
+}
+.legal-document section {
+  margin-top: 30px;
+  scroll-margin-top: 24px;
+}
+.legal-document h2 {
+  margin-bottom: 10px;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.legal-document ul {
+  margin-top: 12px;
+  padding-left: 21px;
+  list-style-type: disc;
+}
+.legal-document li + li {
+  margin-top: 14px;
+}
+.legal-document a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.legal-document strong {
+  font-weight: 500;
+}
+@media (max-width: 600px) {
+  .legal-content {
+    display: block;
+    padding: 22px max(18px, env(safe-area-inset-right)) 0 max(18px, env(safe-area-inset-left));
+  }
+  .legal-contents {
+    display: none;
+  }
+  .legal-mobile-contents {
+    display: block;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--color-line);
+    padding: 0 4px 18px;
+  }
+  .legal-mobile-contents summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    font-weight: 500;
+    list-style: none;
+    cursor: pointer;
+  }
+  .legal-mobile-contents summary::-webkit-details-marker {
+    display: none;
+  }
+  .legal-mobile-contents[open] summary .account-icon:last-child {
+    transform: rotate(180deg);
+  }
+  .legal-document {
+    padding: 25px 22px 30px;
+    line-height: 1.8;
+  }
+  .legal-document h2 {
+    font-size: 19px;
+  }
+}

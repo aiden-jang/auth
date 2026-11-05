@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { ApiError, authApi, googleEnabled, type AuthUser } from '../lib/api';
-import { AccountShell } from '../components/AuthCard';
+import { AccountShell } from '../components/AccountShell';
+import { AccountIcon } from '../components/AccountIcon';
 import { Skeleton } from '../components/Skeleton';
 import { AccountProfile } from '../components/AccountProfile';
 import { AppLauncher } from '../components/AppLauncher';
@@ -201,12 +202,30 @@ export function AccountPage(): ReactNode {
   if (!user) return null;
 
   return (
-    <AccountShell title="Your account" subtitle="One login for all of aidenjang's apps.">
+    <AccountShell
+      title="Your account"
+      subtitle="One login for all of aidenjang's apps."
+      action={
+        <button type="button" onClick={logout} className="hub-logout">
+          <AccountIcon kind="logout" />
+          Log out
+        </button>
+      }
+    >
       {stepUp.prompt}
+      {!changingPw && (
+        <nav className="hub-jumps" aria-label="Account sections">
+          <a href="#account-apps">Apps</a>
+          <a href="#account-profile">Profile</a>
+          <a href="#account-security">Sign-in</a>
+          <a href="#active-sessions">Devices</a>
+          <a href="#account-data">Data</a>
+        </nav>
+      )}
       {securityReview && (
         <section
           aria-labelledby="sign-in-review-heading"
-          className="rounded-2xl border border-accent/30 bg-accent/10 p-4"
+          className="mt-6 rounded-2xl border border-accent/30 bg-accent/10 p-4"
         >
           {securityReviewStatus === 'secured' ? (
             <div className="flex items-start gap-3">
@@ -238,10 +257,7 @@ export function AccountPage(): ReactNode {
             </div>
           ) : (
             <>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
-                New sign-in review
-              </p>
-              <h2 id="sign-in-review-heading" className="mt-1 text-base font-semibold text-ink">
+              <h2 id="sign-in-review-heading" className="text-base font-semibold text-ink">
                 Was that sign-in you?
               </h2>
               <p className="mt-1 text-sm leading-relaxed text-muted">
@@ -272,28 +288,26 @@ export function AccountPage(): ReactNode {
 
       {!changingPw && <AppLauncher />}
 
-      {!changingPw && <hr className="my-6 border-line" />}
-
       <AccountProfile user={user} onUserChange={setUser} />
 
-      <hr className="my-6 border-line" />
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted">
-        Sign-in & security
-      </h2>
-      <PasswordSection
-        user={user}
-        changingPw={changingPw}
-        setChangingPw={setChangingPw}
-        pwDone={pwDone}
-        setPwDone={setPwDone}
-        guard={stepUp.guard}
-        onPasswordAdded={() => setUser({ ...user, hasPassword: true })}
-        onFinished={() => securityReviewStatus === 'secured' && dismissSecurityReview()}
-      />
+      <section
+        id="account-security"
+        className="hub-section"
+        aria-labelledby="account-security-heading"
+      >
+        <h2 id="account-security-heading">Sign-in & security</h2>
+        <PasswordSection
+          user={user}
+          changingPw={changingPw}
+          setChangingPw={setChangingPw}
+          pwDone={pwDone}
+          setPwDone={setPwDone}
+          guard={stepUp.guard}
+          onPasswordAdded={() => setUser({ ...user, hasPassword: true })}
+          onFinished={() => securityReviewStatus === 'secured' && dismissSecurityReview()}
+        />
 
-      {googleEnabled && !changingPw && (
-        <>
-          <hr className="my-6 border-line" />
+        {googleEnabled && !changingPw && (
           <ConnectedAccounts
             user={user}
             googleMsg={googleMsg}
@@ -301,43 +315,23 @@ export function AccountPage(): ReactNode {
             guard={stepUp.guard}
             onDisconnected={() => setUser({ ...user, hasGoogle: false })}
           />
-        </>
-      )}
+        )}
+        {!changingPw && <PasskeyList guard={stepUp.guard} />}
+      </section>
 
       {!changingPw && (
         <>
-          <hr className="my-6 border-line" />
           <SessionList
             sessions={sessions}
             mountedAt={mountedAt}
             timeAgo={timeAgo}
             exactTime={exactTime}
           />
-          <hr className="my-6 border-line" />
-          <PasskeyList guard={stepUp.guard} />
-          <hr className="my-6 border-line" />
           <ExportAccount />
         </>
       )}
 
-      <button
-        type="button"
-        onClick={logout}
-        className="mt-6 min-h-11 w-full rounded-xl border border-line px-4 py-3 text-sm font-medium text-muted transition hover:border-accent hover:text-ink"
-      >
-        Log out
-      </button>
-
       {!changingPw && <DeleteAccount user={user} />}
-
-      <nav className="mt-6 flex justify-center gap-5 text-xs text-muted">
-        <a href="/privacy" className="hover:text-accent hover:underline">
-          Privacy
-        </a>
-        <a href="/terms" className="hover:text-accent hover:underline">
-          Terms
-        </a>
-      </nav>
     </AccountShell>
   );
 }

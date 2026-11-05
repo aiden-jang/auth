@@ -1,4 +1,6 @@
 @import 'tailwindcss';
+@import './account.css';
+@import './legal.css';
 
 @font-face {
   font-family: 'DM Sans';
@@ -36,6 +38,9 @@
   --color-paper-ink: #2d3c53;
   --color-paper-muted: #52627a;
   --color-paper-line: #b9c5d5;
+  --color-paper-selected: #d3deed;
+  --color-paper-hover: #cbd7e8;
+  --color-paper-control: #73839a;
   --color-control-line: #647184;
   --color-neg: #fb7185;
   --color-pos: #a7dbc2;
@@ -348,22 +353,6 @@ button:not(:disabled) {
   color: var(--color-muted);
   font-size: 11px;
 }
-.account-shell > div {
-  max-width: 760px;
-}
-.account-title {
-  font-size: 48px;
-  font-weight: 500;
-  line-height: 1.1;
-  letter-spacing: -0.05em;
-}
-.account-content hr {
-  margin-top: 32px;
-  margin-bottom: 32px;
-}
-.account-content button {
-  min-height: 36px;
-}
 @media (max-width: 900px) and (min-width: 768px) {
   .brand-panel {
     padding-inline: 28px;
@@ -400,18 +389,9 @@ button:not(:disabled) {
     margin: 0 auto auto;
     padding: 48px 0 40px;
   }
-  .account-title {
-    font-size: 40px;
-  }
-  .account-shell {
-    padding: 32px 20px;
-  }
   button,
   input,
   select {
-    min-height: 44px;
-  }
-  .account-content button {
     min-height: 44px;
   }
 }
@@ -425,13 +405,13 @@ button:not(:disabled) {
 }
 
 .auth-form-panel input,
-.account-shell input,
-.account-shell select {
+.hub-shell input,
+.hub-shell select {
   border-color: var(--color-control-line);
 }
 .auth-form-panel input:focus,
-.account-shell input:focus,
-.account-shell select:focus {
+.hub-shell input:focus,
+.hub-shell select:focus {
   border-color: var(--color-accent);
 }
 

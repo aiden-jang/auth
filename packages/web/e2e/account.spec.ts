@@ -109,7 +109,7 @@ test.describe('changing the password', () => {
 test.describe('signed-in devices', () => {
   test('lists this one, and names it something recognisable', async ({ page, browserName }) => {
     await registerAndLand(page);
-    await expect(page.getByRole('region', { name: 'Security' })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Security', exact: true })).toBeVisible();
     // The label is what somebody scans for a device that is not theirs.
     await expect(
       page.getByText(browserName === 'webkit' ? 'Safari on iOS' : /Chrome on/),
@@ -228,7 +228,10 @@ test('tab titles follow authentication and recovery through browser history', as
   await expect(page).toHaveTitle('Reset password · aidenjang accounts');
   await page.goto('/privacy');
   await expect(page).toHaveTitle('Privacy · aidenjang accounts');
-  await page.getByRole('navigation').getByRole('link', { name: 'Terms', exact: true }).click();
+  await page
+    .getByRole('navigation', { name: 'Main navigation' })
+    .getByRole('link', { name: 'Terms', exact: true })
+    .click();
   const terms = page.getByRole('heading', { name: 'Terms of Service', exact: true });
   await expect(terms).toBeInViewport();
   await expect(terms).toBeFocused();

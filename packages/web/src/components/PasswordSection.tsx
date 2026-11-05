@@ -91,12 +91,12 @@ export function PasswordSection({
   }
 
   return (
-    <section aria-label="Security">
+    <section aria-label="Security" className="hub-setting">
       {changingPw ? (
         <form onSubmit={(e) => void submitPassword(e)} className="space-y-3">
-          <h2 className="text-xs font-medium uppercase tracking-wide text-muted">
+          <h3 className="hub-setting-title">
             {user.hasPassword ? 'Change password' : 'Set a password'}
-          </h2>
+          </h3>
           {!user.hasPassword && (
             <p className="text-sm text-muted">
               You signed up with Google. Add a password to also sign in with your email.
@@ -177,17 +177,27 @@ export function PasswordSection({
           </div>
         </form>
       ) : (
-        <button
-          type="button"
-          ref={editPassword}
-          onClick={() => {
-            setPwDone(false);
-            setChangingPw(true);
-          }}
-          className="cursor-pointer text-sm font-medium text-accent hover:underline"
-        >
-          {user.hasPassword ? 'Change password' : 'Set a password'}
-        </button>
+        <div className="hub-setting-row">
+          <div>
+            <h3 className="hub-setting-title">Password</h3>
+            <p className="hub-setting-description">
+              {user.hasPassword
+                ? 'Sign in with your email and password.'
+                : 'Add a password to also sign in with your email.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            ref={editPassword}
+            onClick={() => {
+              setPwDone(false);
+              setChangingPw(true);
+            }}
+            className="cursor-pointer text-sm font-medium text-accent hover:underline"
+          >
+            {user.hasPassword ? 'Change password' : 'Set a password'}
+          </button>
+        </div>
       )}
       {pwDone && !changingPw && (
         <p className="mt-2 text-sm text-pos">

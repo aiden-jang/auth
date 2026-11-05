@@ -40,10 +40,9 @@ export function ConnectedAccounts({
   }
 
   return (
-    <section aria-label="Connected accounts">
-      <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Connected accounts</h2>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-field px-4 py-3">
-        <span className="flex items-center gap-3">
+    <section aria-label="Connected accounts" className="hub-setting">
+      <div className="hub-setting-row">
+        <div className="flex items-center gap-3">
           <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden className="shrink-0">
             <path
               fill="#4285F4"
@@ -62,13 +61,11 @@ export function ConnectedAccounts({
               d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.94l3.02 2.34C4.68 5.16 6.66 3.58 9 3.58z"
             />
           </svg>
-          <span>
-            <span className="block text-sm font-medium text-ink">Google</span>
-            <span className="block text-xs text-muted">
-              {user.hasGoogle ? 'Connected' : 'Not connected'}
-            </span>
-          </span>
-        </span>
+          <div>
+            <h3 className="hub-setting-title">Google</h3>
+            <p className="text-xs text-muted">{user.hasGoogle ? 'Connected' : 'Not connected'}</p>
+          </div>
+        </div>
         {user.hasGoogle ? (
           user.hasPassword ? (
             <button

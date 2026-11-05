@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { useReturnFocus } from '../lib/useReturnFocus';
 import { authApi, type AuthUser } from '../lib/api';
 import { inputClass } from './AuthCard';
+import { AccountIcon } from './AccountIcon';
 
 export function AccountProfile({
   user,
@@ -90,55 +91,59 @@ export function AccountProfile({
   }
 
   return (
-    <section aria-label="Profile">
-      <h2 className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted">Profile</h2>
-      <dl className="space-y-3 text-sm">
+    <section id="account-profile" className="hub-section" aria-label="Profile">
+      <h2>Profile</h2>
+      <dl className="hub-profile text-sm">
         {editingName ? (
-          <div>
+          <div className="hub-profile-edit">
             <dt className="mb-1.5 text-muted">Name</dt>
-            <form
-              onSubmit={(e) => void saveName(e)}
-              className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
-            >
-              <input
-                className={`${inputClass} col-span-2 min-w-0 sm:col-span-1`}
-                value={nameDraft}
-                onChange={(e) => setNameDraft(e.target.value)}
-                maxLength={80}
-                autoFocus
-                aria-label="Display name"
-                aria-invalid={Boolean(nameError)}
-                aria-describedby={nameError ? 'profile-name-error' : undefined}
-              />
-              <button
-                className="btn-primary shrink-0 cursor-pointer rounded-lg px-3.5 py-2.5 text-sm font-semibold disabled:opacity-60"
-                disabled={savingName}
+            <dd>
+              <form
+                onSubmit={(e) => void saveName(e)}
+                className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
               >
-                {savingName ? 'Saving...' : 'Save'}
-              </button>
-              <button
-                type="button"
-                disabled={savingName}
-                onClick={() => setEditingName(false)}
-                className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2.5 text-sm text-muted transition hover:text-ink"
-              >
-                Cancel
-              </button>
-            </form>
-            {nameError && (
-              <p
-                id="profile-name-error"
-                role="alert"
-                className="mt-1.5 text-xs font-medium text-neg"
-              >
-                {nameError}
-              </p>
-            )}
+                <input
+                  className={`${inputClass} col-span-2 min-w-0 sm:col-span-1`}
+                  value={nameDraft}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  maxLength={80}
+                  name="displayName"
+                  autoComplete="off"
+                  autoFocus
+                  aria-label="Display name"
+                  aria-invalid={Boolean(nameError)}
+                  aria-describedby={nameError ? 'profile-name-error' : undefined}
+                />
+                <button
+                  className="btn-primary shrink-0 cursor-pointer rounded-lg px-3.5 py-2.5 text-sm font-semibold disabled:opacity-60"
+                  disabled={savingName}
+                >
+                  {savingName ? 'Saving…' : 'Save'}
+                </button>
+                <button
+                  type="button"
+                  disabled={savingName}
+                  onClick={() => setEditingName(false)}
+                  className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2.5 text-sm text-muted transition hover:text-ink"
+                >
+                  Cancel
+                </button>
+              </form>
+              {nameError && (
+                <p
+                  id="profile-name-error"
+                  role="alert"
+                  className="mt-1.5 text-xs font-medium text-neg"
+                >
+                  {nameError}
+                </p>
+              )}
+            </dd>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-4">
+          <div>
             <dt className="text-muted">Name</dt>
-            <dd className="flex min-w-0 items-center gap-2 break-words font-medium">
+            <dd className="hub-profile-value">
               <span className="min-w-0 break-words">{user.displayName}</span>
               <button
                 type="button"
@@ -151,10 +156,10 @@ export function AccountProfile({
             </dd>
           </div>
         )}
-        <div className="flex items-center justify-between gap-4">
+        <div>
           <dt className="text-muted">Email</dt>
-          <dd className="flex min-w-0 items-center gap-2 font-medium">
-            <span className="truncate">{user.email}</span>
+          <dd className="hub-profile-value">
+            <span className="min-w-0 break-words">{user.email}</span>
             <button
               type="button"
               onClick={() => void copyEmail()}
@@ -164,11 +169,12 @@ export function AccountProfile({
             </button>
           </dd>
         </div>
-        <div className="flex items-center justify-between gap-4">
+        <div>
           <dt className="text-muted">Email status</dt>
           <dd>
             {user.emailVerified ? (
-              <span className="rounded-full border border-pos/30 bg-pos/10 px-2.5 py-0.5 text-xs font-medium text-pos">
+              <span className="hub-verified">
+                <AccountIcon kind="check" />
                 verified
               </span>
             ) : (

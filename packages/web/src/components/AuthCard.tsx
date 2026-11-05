@@ -2,8 +2,8 @@ import type { CSSProperties, ReactNode } from 'react';
 import { APPS, appHref } from '../lib/apps';
 import type { ReturnApp } from '../lib/returnTo';
 import { themeFor, themeStyle } from '../lib/theme';
-import { BrandMark } from './BrandMark';
 import { AccountArt } from './AccountArt';
+import { MadeBy, Wordmark } from './AccountBrand';
 
 export const inputClass =
   'w-full rounded-[10px] border border-line bg-field px-3.5 py-2.5 text-ink outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20';
@@ -12,37 +12,6 @@ export const buttonClass =
   'btn-primary w-full cursor-pointer rounded-[10px] px-5 py-3 font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60';
 
 export const labelClass = 'mb-1.5 block text-sm font-medium text-muted';
-
-function Wordmark({ accounts = false }: { accounts?: boolean }): ReactNode {
-  // Links home — accounts.aidenjang.com in prod, the local root in dev.
-  return (
-    <a
-      href="/"
-      className="inline-flex items-center gap-2 font-semibold tracking-tight transition-opacity hover:opacity-80"
-    >
-      <BrandMark /> <span translate="no">aidenjang</span>
-      {accounts && <span className="wordmark-section">Accounts</span>}
-    </a>
-  );
-}
-
-// Credit line linking to the personal site, matching the bloomnote footer.
-function MadeBy({ className }: { className?: string }): ReactNode {
-  return (
-    <p className={className}>
-      made by{' '}
-      <a
-        href="https://www.aidenjang.com"
-        target="_blank"
-        aria-describedby="external-link-hint"
-        rel="noreferrer"
-        className="hover:text-accent hover:underline"
-      >
-        aiden jang
-      </a>
-    </p>
-  );
-}
 
 function BrandPanel(): ReactNode {
   return (
@@ -80,31 +49,6 @@ function BrandPanel(): ReactNode {
 }
 
 const brandPanel = <BrandPanel />;
-
-/** Single column for the signed-in hub; app navigation remains visible on phones. */
-export function AccountShell({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: ReactNode;
-}): ReactNode {
-  return (
-    <main className="account-shell min-h-screen px-5 py-12 sm:px-10">
-      <div className="animate-enter mx-auto w-full max-w-xl">
-        <Wordmark />
-        <h1 tabIndex={-1} className="account-title mt-10">
-          {title}
-        </h1>
-        {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
-        <div className="account-content mt-8">{children}</div>
-        <MadeBy className="mt-10 text-center text-xs text-muted" />
-      </div>
-    </main>
-  );
-}
 
 export function AuthCard({
   title,

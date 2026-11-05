@@ -33,8 +33,7 @@ export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
   }
 
   return (
-    <section aria-label="Danger zone" className="mt-8">
-      <hr className="mb-6 border-line" />
+    <section aria-label="Danger zone" className="hub-danger">
       {showDelete ? (
         <form
           onSubmit={(e) => void submitDelete(e)}

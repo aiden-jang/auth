@@ -17,8 +17,18 @@ Google sign-in, Turnstile and the existing return-destination handling. Buttons 
 modest rounded corners. Forms have a narrow reading width, clear labels and compact headings.
 Desktop sign-in/sign-up links sit above the form; phones keep them below the submit action.
 The credit and legal links share a footer. A skip link bypasses the desktop app directory.
-The account hub uses a wider single column, an app grid, separated settings sections and clear
-security/deletion controls. Policies use the existing readable document layout.
+The account hub continues Quiet split with a cool paper masthead above a wider slate single
+column. Account, Privacy and Terms share this header, active-page navigation and a footer.
+The account section links lead to apps, profile, sign-in, active devices and data. The app grid
+keeps every destination visible. Profile labels and values align, sign-in methods share one
+section, and passkey setup retains the filled primary action. Device rows expand for the existing
+session details, lifetime and renaming controls. Log out sits in the masthead; account deletion
+keeps its separate confirmation below the data export section.
+
+Policies use cool paper reading surfaces on slate, with the existing wording and update dates.
+Section links are derived from the document headings. Desktop uses a contents column; phones
+use an expandable contents list above the document. Headings, paragraphs and lists have a shared
+reading rhythm, and links remain underlined on paper.
 
 The dry humor stays in the brand panel: “One account. Fewer keys.” and “The keyring was
 getting ridiculous.” Security reviews, account recovery, errors and destructive confirmations
@@ -30,7 +40,7 @@ recognizable on sign-in. No auth API, cookie, password or session contract chang
 Desktop and phone evidence is in [Quality checks](quality.md). The
 [visitor walkthrough](visitor-review.md) separates prepared tasks from completed browser checks.
 
-The account launcher keeps every app visible in two columns on phones, with taglines reserved for wider screens. Profile and sign-in security have explicit headings. Log out uses a quiet outlined control so passkey setup retains visual priority.
+The account launcher keeps every app visible in two columns on phones, with taglines reserved for wider screens. Profile and sign-in security have explicit headings. The masthead's Log out control uses a quiet outline so passkey setup retains visual priority.
 
 Owewell’s verified return destination uses a light teal accent on Accounts’ dark surface, matching its current identity. The shared house palette stays slate and ice-blue.
 

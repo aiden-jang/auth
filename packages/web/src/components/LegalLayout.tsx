@@ -1,12 +1,13 @@
-import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import { BrandMark } from './BrandMark';
+import { Children, isValidElement, type ReactNode } from 'react';
+import { AccountShell } from './AccountShell';
+import { AccountIcon } from './AccountIcon';
 
-/**
- * Shared shell for the legal pages (/privacy, /terms). Wider than AuthCard since these are
- * documents, not forms. One home for both keeps the copy in sync and gives every app a single
- * URL to link at (accounts.aidenjang.com/privacy, /terms).
- */
+function sectionId(heading: string): string {
+  return `legal-${heading
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')}`;
+}
 export function LegalLayout({
   title,
   updated,
@@ -16,37 +17,39 @@ export function LegalLayout({
   updated: string;
   children: ReactNode;
 }): ReactNode {
+  const headings = Children.toArray(children).flatMap((child) =>
+    isValidElement<{ heading: string }>(child) && child.type === Section
+      ? [child.props.heading]
+      : [],
+  );
+  const links = headings.map((heading) => (
+    <a href={`#${sectionId(heading)}`} key={heading}>
+      {heading}
+    </a>
+  ));
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-5 py-10">
-      <Link to="/account" className="mb-6 flex items-center gap-2 font-semibold tracking-tight">
-        <BrandMark />
-        aidenjang
-      </Link>
-
-      <div className="rounded-3xl border border-line bg-card p-6 sm:p-8">
-        <h1 tabIndex={-1} className="text-3xl font-semibold tracking-tight">
-          {title}
-        </h1>
-        <p className="mt-1 text-sm text-muted">Last updated: {updated}</p>
-        <div className="mt-6 space-y-6 text-sm leading-relaxed text-ink/90">{children}</div>
+    <AccountShell title={title} subtitle={`Last updated: ${updated}`} legal>
+      <aside className="legal-contents">
+        <h2>On this page</h2>
+        <nav aria-label={`${title} sections`}>{links}</nav>
+      </aside>
+      <div className="min-w-0">
+        <details className="legal-mobile-contents">
+          <summary>
+            <AccountIcon kind="list" />
+            On this page
+            <AccountIcon kind="chevron" />
+          </summary>
+          <nav aria-label={`${title} sections`}>{links}</nav>
+        </details>
+        <article className="legal-document" aria-label={title}>
+          {children}
+        </article>
       </div>
-
-      <nav className="mt-6 flex justify-center gap-5 text-sm text-muted">
-        <Link to="/privacy" className="hover:text-accent hover:underline">
-          Privacy
-        </Link>
-        <Link to="/terms" className="hover:text-accent hover:underline">
-          Terms
-        </Link>
-        <Link to="/account" className="hover:text-accent hover:underline">
-          Account
-        </Link>
-      </nav>
-    </main>
+    </AccountShell>
   );
 }
 
-/** A titled section within a legal document. */
 export function Section({
   heading,
   children,
@@ -55,8 +58,8 @@ export function Section({
   children: ReactNode;
 }): ReactNode {
   return (
-    <section className="space-y-2">
-      <h2 className="text-lg font-semibold tracking-tight text-ink">{heading}</h2>
+    <section id={sectionId(heading)}>
+      <h2>{heading}</h2>
       {children}
     </section>
   );

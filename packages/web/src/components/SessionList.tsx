@@ -5,6 +5,7 @@ import { reassurance } from '../lib/reassurance';
 import { sessionHorizon } from '../lib/sessionHorizon';
 import { inputClass } from './AuthCard';
 import { Skeleton } from './Skeleton';
+import { AccountIcon } from './AccountIcon';
 
 /* State lives in useSessions, not here: the security-review banner acts on the same devices, and
    two copies could disagree about which are still signed in. */
@@ -54,11 +55,11 @@ export function SessionList({
       ref={section}
       id="active-sessions"
       aria-label="Active sessions"
-      className="scroll-mt-4"
+      className="hub-section"
     >
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-xs font-medium uppercase tracking-wide text-muted">Active sessions</h2>
-        <div className="flex items-center gap-3">
+      <div className="hub-section-top">
+        <h2>Active devices</h2>
+        <div className="hub-device-tools">
           <button
             type="button"
             onClick={() => void refreshSessions(true)}
@@ -74,7 +75,7 @@ export function SessionList({
               disabled={revokingOthers || savingSessionName}
               className="cursor-pointer text-xs font-medium text-accent hover:underline disabled:opacity-60"
             >
-              {revokingOthers ? 'Signing out...' : 'Sign out everywhere else'}
+              {revokingOthers ? 'Signing out…' : 'Sign out everywhere else'}
             </button>
           )}
         </div>
@@ -103,39 +104,37 @@ export function SessionList({
             const recentlyAdded =
               !s.current && mountedAt - new Date(s.createdAt).getTime() < 24 * 60 * 60 * 1000;
             return (
-              <li key={s.id} className="rounded-xl border border-line bg-field px-4 py-3">
+              <li key={s.id} className="hub-device">
                 <div className="flex items-center justify-between gap-4">
                   <button
                     type="button"
                     disabled={savingSessionName}
                     onClick={() => setExpandedSessionId(expanded ? null : s.id)}
                     aria-expanded={expanded}
-                    className="min-w-0 flex-1 cursor-pointer text-left"
+                    className="hub-device-trigger"
                   >
-                    <span className="flex items-center gap-2">
-                      <span className="truncate text-sm font-medium text-ink">
-                        {s.device ?? 'Unknown device'}
+                    <AccountIcon
+                      kind={/iphone|ipad|ios|android/i.test(s.device ?? '') ? 'phone' : 'monitor'}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className="break-words text-sm font-medium text-ink">
+                          {s.device ?? 'Unknown device'}
+                        </span>
+                        {s.current && (
+                          <span className="shrink-0 text-xs text-pos">this device</span>
+                        )}
+                        {recentlyAdded && <span className="shrink-0 text-xs text-accent">new</span>}
+                        {horizon.tone === 'soon' && (
+                          <span className="shrink-0 text-xs text-neg">expires soon</span>
+                        )}
                       </span>
-                      {s.current && (
-                        <span className="shrink-0 rounded-full border border-pos/30 bg-pos/10 px-2 py-0.5 text-xs font-medium text-pos">
-                          this device
-                        </span>
-                      )}
-                      {recentlyAdded && (
-                        <span className="shrink-0 rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-accent">
-                          new
-                        </span>
-                      )}
-                      {horizon.tone === 'soon' && (
-                        <span className="shrink-0 rounded-full border border-neg/25 bg-neg/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-neg">
-                          expires soon
-                        </span>
-                      )}
+                      <span className="mt-1 block text-xs text-muted">
+                        {[s.location, timeAgo(s.lastSeenAt)].filter(Boolean).join(' · ')} ·{' '}
+                        {expanded ? 'hide details' : 'details'}
+                      </span>
                     </span>
-                    <span className="block text-xs text-muted">
-                      {[s.location, timeAgo(s.lastSeenAt)].filter(Boolean).join(' · ')} ·{' '}
-                      {expanded ? 'hide details' : 'details'}
-                    </span>
+                    <AccountIcon kind="chevron" />
                   </button>
                   {!s.current && (
                     <button
@@ -144,13 +143,13 @@ export function SessionList({
                       disabled={revokingId === s.id || savingSessionName}
                       className="shrink-0 cursor-pointer rounded-lg border border-line px-3 py-2 text-sm text-muted transition hover:text-ink disabled:opacity-60"
                     >
-                      {revokingId === s.id ? '...' : 'Sign out'}
+                      {revokingId === s.id ? 'Signing out…' : 'Sign out'}
                     </button>
                   )}
                 </div>
                 {expanded && (
                   <div className="mt-3 border-t border-line pt-3">
-                    <dl className="grid gap-2 text-xs sm:grid-cols-4">
+                    <dl className="grid grid-cols-2 gap-4 text-xs">
                       <div>
                         <dt className="text-muted">First signed in</dt>
                         <dd className="mt-0.5 font-medium text-ink">{exactTime(s.createdAt)}</dd>

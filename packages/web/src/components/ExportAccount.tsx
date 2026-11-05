@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { authApi } from '../lib/api';
+import { AccountIcon } from './AccountIcon';
 
 /*
  * "Take a copy of everything." Its own component because the whole feature is one button, one
@@ -37,18 +38,10 @@ export function ExportAccount(): ReactNode {
   }
 
   return (
-    <section
-      aria-labelledby="your-data-heading"
-      className="flex flex-wrap items-center justify-between gap-4"
-    >
+    <section aria-labelledby="your-data-heading" id="account-data" className="hub-section hub-data">
       <div>
-        <h2
-          id="your-data-heading"
-          className="text-xs font-medium uppercase tracking-wide text-muted"
-        >
-          Your data
-        </h2>
-        <p className="mt-1 max-w-sm text-xs leading-relaxed text-muted">
+        <h2 id="your-data-heading">Your data</h2>
+        <p className="hub-data-description">
           Download your profile, sign-in methods, active devices, and security history as JSON.
           Passwords and session credentials are never included.
         </p>
@@ -62,8 +55,9 @@ export function ExportAccount(): ReactNode {
         type="button"
         onClick={() => void downloadAccountData()}
         disabled={exportStatus !== null}
-        className="shrink-0 rounded-full border border-line px-4 py-2 text-xs font-semibold text-ink transition hover:border-accent hover:text-accent disabled:cursor-default disabled:opacity-60"
+        className="hub-outline disabled:cursor-default disabled:opacity-60"
       >
+        <AccountIcon kind="download" />
         {exportStatus === 'exporting'
           ? 'Preparing…'
           : exportStatus === 'downloaded'
