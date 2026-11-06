@@ -3,12 +3,24 @@ import { useReturnFocus } from '../lib/useReturnFocus';
 import { authApi, type AuthUser } from '../lib/api';
 import { inputClass, labelClass } from './AuthCard';
 import { PasswordInput } from './PasswordInput';
+import type { StepUp } from './StepUpPrompt';
 import { forgetRecentAccount } from '../lib/recentAccount';
+import { announceSessionChange } from '../lib/sessionChanges';
+
+const confirmDeletionPath = '/account?delete=confirm#delete-account';
 
 /* What this asks for depends on how the account signs in, and the server asks again either way --
    see the delete-account route for which proof it demands and why. */
-export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
-  const [showDelete, setShowDelete] = useState(false);
+export function DeleteAccount({
+  user,
+  guard,
+}: {
+  user: AuthUser;
+  guard: StepUp['guard'];
+}): ReactNode {
+  const [showDelete, setShowDelete] = useState(
+    () => new URLSearchParams(window.location.search).get('delete') === 'confirm',
+  );
   const deleteTrigger = useRef<HTMLButtonElement>(null);
   useReturnFocus(showDelete, () => deleteTrigger.current);
   const [deletePw, setDeletePw] = useState('');
@@ -18,22 +30,47 @@ export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
 
   async function submitDelete(e: FormEvent): Promise<void> {
     e.preventDefault();
+    if (deleting) return;
+    const trigger = (e.nativeEvent as SubmitEvent).submitter;
     setDeleting(true);
     setDeleteError(null);
     try {
-      await authApi.deleteAccount(
-        user.hasPassword ? { password: deletePw } : { confirm: deleteConfirm },
+      const deleted = await guard(
+        'delete your account',
+        async () => {
+          await authApi.deleteAccount(
+            user.hasPassword ? { password: deletePw } : { confirm: deleteConfirm },
+          );
+        },
+        trigger,
+        confirmDeletionPath,
       );
+      if (!deleted) return;
       forgetRecentAccount(user.email);
+      announceSessionChange();
       window.location.replace('/login');
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'Could not delete your account.');
+    } finally {
       setDeleting(false);
     }
   }
 
+  function closeDelete(): void {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('delete')) {
+      url.searchParams.delete('delete');
+      if (url.hash === '#delete-account') url.hash = '';
+      window.history.replaceState(window.history.state, '', url);
+    }
+    setShowDelete(false);
+    setDeleteError(null);
+    setDeletePw('');
+    setDeleteConfirm('');
+  }
+
   return (
-    <section aria-label="Danger zone" className="hub-danger">
+    <section id="delete-account" aria-label="Danger zone" className="hub-danger">
       {showDelete ? (
         <form
           onSubmit={(e) => void submitDelete(e)}
@@ -75,6 +112,8 @@ export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
                 onChange={(e) => setDeleteConfirm(e.target.value)}
                 placeholder={user.email}
                 autoComplete="off"
+                readOnly={deleting}
+                required
               />
             </div>
           )}
@@ -93,12 +132,7 @@ export function DeleteAccount({ user }: { user: AuthUser }): ReactNode {
             <button
               type="button"
               disabled={deleting}
-              onClick={() => {
-                setShowDelete(false);
-                setDeleteError(null);
-                setDeletePw('');
-                setDeleteConfirm('');
-              }}
+              onClick={closeDelete}
               className="cursor-pointer rounded-full border border-line px-4 py-2.5 text-sm text-muted transition hover:text-ink"
             >
               Cancel

@@ -18,7 +18,7 @@ export interface Sessions {
   setNameDraft: (value: string) => void;
   refresh: (manual?: boolean) => Promise<void>;
   revoke: (id: string) => Promise<void>;
-  revokeOthers: () => Promise<boolean>;
+  revokeOthers: (options?: { reportError?: boolean }) => Promise<boolean>;
   beginRename: (session: SessionInfo) => void;
   cancelRename: () => void;
   rename: (event: FormEvent, id: string) => Promise<void>;
@@ -95,7 +95,7 @@ export function useSessions(): Sessions {
     }
   }, []);
 
-  const revokeOthers = useCallback(async (): Promise<boolean> => {
+  const revokeOthers = useCallback(async ({ reportError = true } = {}): Promise<boolean> => {
     setRevokingOthers(true);
     setError(null);
     try {
@@ -105,7 +105,7 @@ export function useSessions(): Sessions {
       setList((s) => s?.filter((x) => x.current) ?? null);
       return true;
     } catch {
-      setError('Couldn’t sign the other devices out. Try again.');
+      if (reportError) setError('Couldn’t sign the other devices out. Try again.');
       return false;
     } finally {
       setRevokingOthers(false);

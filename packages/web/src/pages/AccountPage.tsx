@@ -14,6 +14,7 @@ import { PasswordSection } from '../components/PasswordSection';
 import { SessionList } from '../components/SessionList';
 import { useStepUp } from '../components/StepUpPrompt';
 import { safeReturnTo } from '../lib/returnTo';
+import { SESSION_CHANGE_CHANNEL } from '../lib/sessionChanges';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -91,9 +92,9 @@ export function AccountPage(): ReactNode {
   const [securityReview, setSecurityReview] = useState(
     () => new URLSearchParams(window.location.search).get('security') === 'review',
   );
-  const [securityReviewStatus, setSecurityReviewStatus] = useState<'securing' | 'secured' | null>(
-    null,
-  );
+  const [securityReviewStatus, setSecurityReviewStatus] = useState<
+    'securing' | 'secured' | 'failed' | null
+  >(null);
 
   function dismissSecurityReview(): void {
     setSecurityReview(false);
@@ -103,11 +104,11 @@ export function AccountPage(): ReactNode {
   }
 
   async function secureAccount(): Promise<void> {
-    if (!user || securityReviewStatus === 'securing') return;
+    if (!user || sessions.revokingOthers) return;
     setSecurityReviewStatus('securing');
-    const secured = await sessions.revokeOthers();
+    const secured = await sessions.revokeOthers({ reportError: false });
     if (!secured) {
-      setSecurityReviewStatus(null);
+      setSecurityReviewStatus('failed');
       return;
     }
     setSecurityReviewStatus('secured');
@@ -119,20 +120,25 @@ export function AccountPage(): ReactNode {
 
   useEffect(() => {
     let active = true;
+    let accountId: string | undefined;
+    const redirectIfSignedOut = (error: unknown): boolean => {
+      if (!(error instanceof ApiError) || error.status !== 401) return false;
+      window.location.replace(`/login?return_to=${encodeURIComponent(window.location.href)}`);
+      return true;
+    };
     const checkAuth = (): void => {
       authApi
         .me()
         .then((r) => {
           if (active) {
+            accountId = r.user.id;
             setUser(r.user);
             setLoadError(null);
           }
         })
         .catch((error: unknown) => {
           if (!active) return;
-          if (error instanceof ApiError && error.status === 401) {
-            window.location.replace(`/login?return_to=${encodeURIComponent(window.location.href)}`);
-          } else {
+          if (!redirectIfSignedOut(error)) {
             setLoadError(
               error instanceof Error ? error.message : 'Could not load your account. Try again.',
             );
@@ -150,10 +156,30 @@ export function AccountPage(): ReactNode {
         checkAuth();
       }
     };
+    const checkSession = (): void => {
+      // A background check must never replace profile or sign-in changes being saved here.
+      void authApi
+        .me()
+        .then(({ user: current }) => {
+          if (active && accountId && current.id !== accountId) window.location.reload();
+        })
+        .catch((error: unknown) => {
+          if (active) redirectIfSignedOut(error);
+        });
+    };
+    const onVisible = (): void => {
+      if (document.visibilityState === 'visible') checkSession();
+    };
+    const sessionChanges =
+      typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel(SESSION_CHANGE_CHANNEL);
+    sessionChanges?.addEventListener('message', checkSession);
     window.addEventListener('pageshow', onPageShow);
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       active = false;
+      sessionChanges?.close();
       window.removeEventListener('pageshow', onPageShow);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [loadAttempt]);
 
@@ -276,7 +302,7 @@ export function AccountPage(): ReactNode {
                 <button
                   type="button"
                   onClick={() => void secureAccount()}
-                  disabled={securityReviewStatus === 'securing'}
+                  disabled={sessions.revokingOthers}
                   className="btn-primary rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
                 >
                   {securityReviewStatus === 'securing' ? 'Securing account…' : 'That was not me'}
@@ -284,11 +310,17 @@ export function AccountPage(): ReactNode {
                 <button
                   type="button"
                   onClick={dismissSecurityReview}
-                  className="rounded-full border border-line px-4 py-2 text-sm font-medium text-muted transition hover:text-ink"
+                  disabled={securityReviewStatus === 'securing'}
+                  className="rounded-full border border-line px-4 py-2 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-60"
                 >
                   Yes, it was me
                 </button>
               </div>
+              {securityReviewStatus === 'failed' && (
+                <p role="alert" className="mt-3 text-sm font-medium text-neg">
+                  Couldn’t sign out the other devices. Try again here.
+                </p>
+              )}
             </>
           )}
         </section>
@@ -343,7 +375,7 @@ export function AccountPage(): ReactNode {
         </>
       )}
 
-      {!changingPw && <DeleteAccount user={user} />}
+      {!changingPw && <DeleteAccount user={user} guard={stepUp.guard} />}
     </AccountShell>
   );
 }

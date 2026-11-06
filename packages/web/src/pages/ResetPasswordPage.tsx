@@ -1,10 +1,11 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { returnAppFor, safeReturnTo } from '../lib/returnTo';
 import { ApiError, authApi } from '../lib/api';
 import { AuthCard, buttonClass, labelClass } from '../components/AuthCard';
 import { PasswordInput } from '../components/PasswordInput';
 import { PasswordStrength } from '../components/PasswordStrength';
+import { announceSessionChange } from '../lib/sessionChanges';
 
 export function ResetPasswordPage(): ReactNode {
   const [params] = useSearchParams();
@@ -19,6 +20,10 @@ export function ResetPasswordPage(): ReactNode {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [invalidLink, setInvalidLink] = useState(false);
+  const freshLink = useRef<HTMLAnchorElement>(null);
+  useLayoutEffect(() => {
+    if (invalidLink) freshLink.current?.focus();
+  }, [invalidLink]);
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
@@ -31,25 +36,34 @@ export function ResetPasswordPage(): ReactNode {
     setLoading(true);
     try {
       await authApi.reset(token, password);
+      announceSessionChange();
       setDone(true);
     } catch (err) {
-      setInvalidLink(err instanceof ApiError && err.code === 'INVALID_TOKEN');
+      if (err instanceof ApiError && err.code === 'INVALID_TOKEN') {
+        setInvalidLink(true);
+        setPassword('');
+        setConfirmPassword('');
+      }
       setError(err instanceof Error ? err.message : 'Could not reset your password.');
       setLoading(false);
     }
   }
 
-  if (!token) {
+  if (!token || invalidLink) {
     return (
       <AuthCard title="Reset your password" returnApp={returnApp}>
-        <p className="text-sm text-muted">
-          This reset link is missing its token. Request a new one from the login page.
+        <p
+          role={invalidLink ? 'alert' : undefined}
+          className={invalidLink ? 'text-sm text-neg' : 'text-sm text-muted'}
+        >
+          {invalidLink ? error : 'This reset link is incomplete. Request a fresh link below.'}
         </p>
         <Link
+          ref={freshLink}
           to={withReturn('/forgot-password')}
-          className="mt-4 inline-block font-medium text-accent hover:underline"
+          className={`${buttonClass} mt-4 block text-center no-underline`}
         >
-          Request a new link
+          Request a new reset link
         </Link>
       </AuthCard>
     );
@@ -125,18 +139,9 @@ export function ResetPasswordPage(): ReactNode {
             </p>
           )}
 
-          {invalidLink ? (
-            <Link
-              to={withReturn('/forgot-password')}
-              className={`${buttonClass} block text-center no-underline`}
-            >
-              Request a new reset link
-            </Link>
-          ) : (
-            <button className={buttonClass} disabled={loading}>
-              {loading ? 'Saving...' : 'Set new password'}
-            </button>
-          )}
+          <button className={buttonClass} disabled={loading}>
+            {loading ? 'Saving...' : 'Set new password'}
+          </button>
         </form>
       )}
     </AuthCard>

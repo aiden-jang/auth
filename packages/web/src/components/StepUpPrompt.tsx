@@ -22,6 +22,7 @@ interface Pending {
   resolve: (confirmed: boolean) => void;
   trigger: HTMLElement | null;
   canUsePassword: boolean;
+  returnTo: string | undefined;
   /** What the person was trying to do, so the prompt can say why it is asking. */
   label: string;
 }
@@ -35,6 +36,7 @@ export interface StepUp {
     label: string,
     run: () => Promise<void>,
     trigger?: HTMLElement | null,
+    returnTo?: string,
   ) => Promise<boolean>;
   prompt: ReactNode;
 }
@@ -65,6 +67,7 @@ export function useStepUp(user: AuthUser | null, returnTo: string): StepUp {
       label: string,
       run: () => Promise<void>,
       opener?: HTMLElement | null,
+      actionReturnTo?: string,
     ): Promise<boolean> => {
       if (pendingRef.current) return false;
       const trigger =
@@ -78,7 +81,13 @@ export function useStepUp(user: AuthUser | null, returnTo: string): StepUp {
         // Keep the first prompt and let the other caller clear its pending state.
         if (!mounted.current || pendingRef.current) return false;
         const confirmed = await new Promise<boolean>((resolve) => {
-          const next = { resolve, trigger, canUsePassword: reauthCanUsePassword(err), label };
+          const next = {
+            resolve,
+            trigger,
+            canUsePassword: reauthCanUsePassword(err),
+            returnTo: actionReturnTo,
+            label,
+          };
           pendingRef.current = next;
           setPending(next);
         });
@@ -97,7 +106,14 @@ export function useStepUp(user: AuthUser | null, returnTo: string): StepUp {
     <StepUpDialog
       pending={pending}
       email={user?.email}
-      googleHref={googleEnabled && user?.hasGoogle ? googleLoginUrl(returnTo) : null}
+      googleHref={
+        googleEnabled && user?.hasGoogle ? googleLoginUrl(pending.returnTo ?? returnTo) : null
+      }
+      recoveryHref={
+        pending.returnTo
+          ? `/forgot-password?return_to=${encodeURIComponent(pending.returnTo)}`
+          : '/forgot-password'
+      }
       onClose={cancel}
       onConfirmed={confirm}
     />
@@ -110,12 +126,14 @@ function StepUpDialog({
   pending,
   email,
   googleHref,
+  recoveryHref,
   onClose,
   onConfirmed,
 }: {
   pending: Pending;
   email: string | undefined;
   googleHref: string | null;
+  recoveryHref: string;
   onClose: () => void;
   onConfirmed: () => void;
 }): ReactNode {
@@ -276,7 +294,7 @@ function StepUpDialog({
               </a>
             )}
             <Link
-              to="/forgot-password"
+              to={recoveryHref}
               state={email ? { email } : undefined}
               className={`flex-auto rounded-xl px-3 py-2.5 text-center text-sm font-semibold ${googleHref ? 'border border-line text-accent' : 'btn-primary'}`}
             >

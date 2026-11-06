@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { returnAppFor, safeReturnTo } from '../lib/returnTo';
@@ -25,12 +25,15 @@ export function SignupPage(): ReactNode {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const turnstile = useTurnstile();
+  const signupRequest = useRef<AbortController | null>(null);
+  useLayoutEffect(() => () => signupRequest.current?.abort(), []);
 
   const withReturn = (p: string) =>
     returnTo ? `${p}?return_to=${encodeURIComponent(returnTo)}` : p;
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
+    if (signupRequest.current) return;
     // Confirm the two emails match before hitting the server, so a typo in
     // the address they will need for verification and password resets gets
     // caught here. Compared trimmed + lowercased, the same way the backend
@@ -43,13 +46,25 @@ export function SignupPage(): ReactNode {
       setError('Those passwords do not match.');
       return;
     }
+    const request = new AbortController();
+    signupRequest.current = request;
     setError(null);
     setLoading(true);
     try {
-      await authApi.register(email, password, displayName, turnstile.token, returnTo);
+      await authApi.register(
+        email,
+        password,
+        displayName,
+        turnstile.token,
+        returnTo,
+        request.signal,
+      );
+      if (request.signal.aborted) return;
       // replace: back should not return to a signup form for an account that now exists.
       window.location.replace(safeReturnTo(returnTo) ?? '/account');
     } catch (err) {
+      if (request.signal.aborted) return;
+      signupRequest.current = null;
       setError(err instanceof Error ? err.message : 'Could not create your account.');
       setLoading(false);
       turnstile.discard();

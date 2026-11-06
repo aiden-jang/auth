@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { passkeyUsedOnThisDevice, passkeysLikely, signInWithPasskey } from '../lib/passkeys';
 import { safeReturnTo } from '../lib/returnTo';
 import { reassurance } from '../lib/reassurance';
@@ -13,6 +13,8 @@ export function PasskeySignIn({ returnTo }: { returnTo?: string | null }): React
   const [offer, setOffer] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pending = useRef<AbortController | null>(null);
+  useLayoutEffect(() => () => pending.current?.abort(), []);
 
   useEffect(() => {
     let live = true;
@@ -28,14 +30,19 @@ export function PasskeySignIn({ returnTo }: { returnTo?: string | null }): React
   if (!offer) return null;
 
   async function go(): Promise<void> {
+    if (pending.current) return;
+    const request = new AbortController();
+    pending.current = request;
     setBusy(true);
     setError(null);
-    const outcome = await signInWithPasskey();
+    const outcome = await signInWithPasskey({ signal: request.signal });
+    if (request.signal.aborted) return;
     if (outcome.kind === 'ok') {
       // replace, not assign: back should not return to the sign-in form once you are through it.
       window.location.replace(safeReturnTo(returnTo ?? null) ?? '/account');
       return;
     }
+    pending.current = null;
     setBusy(false);
     if (outcome.kind === 'error') setError(outcome.message);
   }

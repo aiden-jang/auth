@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { WebAuthnAbortService } from '@simplewebauthn/browser';
 import { authApi } from '../lib/api';
 import { returnAppFor, safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
@@ -41,12 +42,22 @@ export function LoginPage(): ReactNode {
   );
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(
-    params.get('error') === 'google_failed' ? 'Google sign-in failed. Please try again.' : null,
+    params.get('error') === 'google_failed'
+      ? params.get('reason') === 'provider_access_denied'
+        ? 'Google sign-in was canceled. Try again or use another sign-in method.'
+        : 'Google sign-in failed. Please try again.'
+      : null,
   );
   const [loading, setLoading] = useState(false);
   const turnstile = useTurnstile();
   const loginRequest = useRef<AbortController | null>(null);
-  useLayoutEffect(() => () => loginRequest.current?.abort(), []);
+  useLayoutEffect(
+    () => () => {
+      loginRequest.current?.abort();
+      WebAuthnAbortService.cancelCeremony();
+    },
+    [],
+  );
 
   /* Silent: a browser holding no passkey for this origin shows nothing, which is the difference
      between being offered your own key and being asked for a security key you do not own. */
@@ -54,7 +65,7 @@ export function LoginPage(): ReactNode {
     const abort = new AbortController();
     void passkeyAutofillAvailable().then((available) => {
       if (!available || abort.signal.aborted) return;
-      void signInWithPasskey({ autofill: true }).then((outcome) => {
+      void signInWithPasskey({ autofill: true, signal: abort.signal }).then((outcome) => {
         if (outcome.kind !== 'ok' || abort.signal.aborted) return;
         window.location.replace(safeReturnTo(returnTo) ?? '/account');
       });

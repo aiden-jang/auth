@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { authApi } from '../lib/api';
 import { safeReturnTo } from '../lib/returnTo';
 import { AuthCard, buttonClass } from '../components/AuthCard';
+import { announceSessionChange } from '../lib/sessionChanges';
 
 export function LogoutPage(): ReactNode {
   const [attempt, setAttempt] = useState(0);
@@ -12,7 +13,7 @@ export function LogoutPage(): ReactNode {
     let active = true;
     // StrictMode subscribes twice, but the session mutation must run only once per attempt.
     if (request.current?.attempt !== attempt)
-      request.current = { attempt, promise: authApi.logout() };
+      request.current = { attempt, promise: authApi.logout().then(announceSessionChange) };
     void request.current.promise
       .then(() => {
         if (!active) return;

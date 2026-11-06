@@ -76,13 +76,22 @@ app.get('/auth/google/callback', async (c) => {
     saved = null;
   }
   const isLink = saved?.link === true;
+  const state = c.req.query('state');
   // Log the exact failure stage (visible in `wrangler tail` / the dev console) and pass a reason
   // in the URL, so a black-box "Google sign-in failed" becomes debuggable. Link failures return to
   // the account page (where the user started); login failures to /login.
   const fail = (reason: string): Response => {
     console.error('[google/callback] failed:', reason);
-    const dest = isLink ? '/account' : '/login';
-    return c.redirect(new URL(`${dest}?error=google_failed&reason=${reason}`, uiBase).toString());
+    const dest = new URL(isLink ? '/account' : '/login', uiBase);
+    dest.searchParams.set('error', 'google_failed');
+    dest.searchParams.set('reason', reason);
+    if (!isLink && state && saved?.s === state && saved.r) {
+      const target = safeAppRedirect(saved.r, uiBase);
+      if (target !== new URL('/account', uiBase).toString()) {
+        dest.searchParams.set('return_to', target);
+      }
+    }
+    return c.redirect(dest.toString());
   };
 
   const clientId = c.env.GOOGLE_CLIENT_ID;
@@ -92,7 +101,6 @@ app.get('/auth/google/callback', async (c) => {
   const providerError = c.req.query('error');
   if (providerError) return fail(`provider_${providerError}`);
   const code = c.req.query('code');
-  const state = c.req.query('state');
   if (!code || !state) return fail('missing_params');
 
   if (!saved) return fail('no_state_cookie');

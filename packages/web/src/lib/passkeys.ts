@@ -96,16 +96,20 @@ export async function addPasskey(label?: string): Promise<Outcome<Passkey>> {
 
 /** `autofill` offers this from the email field rather than as a prompt, so nobody without a
  *  passkey is interrupted by one. */
-export async function signInWithPasskey({ autofill = false }: { autofill?: boolean } = {}): Promise<
-  Outcome<AuthUser>
-> {
+export async function signInWithPasskey({
+  autofill = false,
+  signal,
+}: { autofill?: boolean; signal?: AbortSignal } = {}): Promise<Outcome<AuthUser>> {
   try {
-    const { options } = await authApi.passkeyLoginOptions();
+    const { options } = await authApi.passkeyLoginOptions(signal);
+    if (signal?.aborted) return { kind: 'cancelled' };
     const response = await startAuthentication({
       optionsJSON: options as never,
       useBrowserAutofill: autofill,
     });
-    const { user } = await authApi.passkeyLoginVerify(response);
+    if (signal?.aborted) return { kind: 'cancelled' };
+    const { user } = await authApi.passkeyLoginVerify(response, signal);
+    if (signal?.aborted) return { kind: 'cancelled' };
     rememberPasskeyOnThisDevice();
     return { kind: 'ok', value: user };
   } catch (err) {

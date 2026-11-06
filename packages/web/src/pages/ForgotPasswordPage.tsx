@@ -1,4 +1,11 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { AuthCard, buttonClass, inputClass, labelClass } from '../components/AuthCard';
@@ -18,6 +25,10 @@ export function ForgotPasswordPage(): ReactNode {
   const [turnstileToken, setTurnstileToken] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const confirmation = useRef<HTMLParagraphElement>(null);
+  useLayoutEffect(() => {
+    if (sentTo) confirmation.current?.focus();
+  }, [sentTo]);
   const [resent, setResent] = useState(false);
   const [loading, setLoading] = useState(false);
   const inbox = sentTo ? inboxFor(sentTo) : null;
@@ -89,6 +100,8 @@ export function ForgotPasswordPage(): ReactNode {
       {sentTo ? (
         <div className="space-y-4">
           <p
+            ref={confirmation}
+            tabIndex={-1}
             className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-sm text-pos"
             role="status"
           >

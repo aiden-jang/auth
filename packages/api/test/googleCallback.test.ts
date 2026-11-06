@@ -75,6 +75,33 @@ let n = 0;
 const freshEmail = () => `cb-${n++}-${crypto.randomUUID().slice(0, 8)}@test.dev`;
 
 describe('the Google callback', () => {
+  it.each([
+    ['https://worth.aidenjang.com/lists', 'st_1', 'https://worth.aidenjang.com/lists'],
+    [
+      '/account?delete=confirm#delete-account',
+      'st_1',
+      'https://accounts.aidenjang.com/account?delete=confirm#delete-account',
+    ],
+    ['https://example.test/', 'st_1', null],
+    ['https://worth.aidenjang.com/lists', 'wrong-state', null],
+  ])('handles Google cancellation for %s with state %s', async (target, state, expected) => {
+    const cookie = `g_oauth=${encodeURIComponent(JSON.stringify({ s: 'st_1', r: target }))}`;
+    const res = await app.fetch(
+      new Request(`${BASE}/auth/google/callback?error=access_denied&state=${state}`, {
+        headers: { cookie },
+      }),
+      { ...googleEnv(), APP_URL: 'https://accounts.aidenjang.com' },
+      createExecutionContext(),
+    );
+    const destination = new URL(res.headers.get('location') ?? BASE);
+    expect(res.status).toBe(302);
+    expect(destination.origin).toBe('https://accounts.aidenjang.com');
+    expect(destination.pathname).toBe('/login');
+    expect(destination.searchParams.get('reason')).toBe('provider_access_denied');
+    expect(destination.searchParams.get('return_to')).toBe(expected);
+    expect(signedIn(res)).toBe(false);
+  });
+
   it('signs in a verified identity', async () => {
     const email = freshEmail();
     expectTokenExchange({ sub: 'g-1', email, email_verified: true, name: 'Verified' });

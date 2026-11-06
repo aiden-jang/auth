@@ -114,6 +114,7 @@ export function AccountProfile({
                 <input
                   className={`${inputClass} col-span-2 min-w-0 sm:col-span-1`}
                   value={nameDraft}
+                  readOnly={savingName}
                   onChange={(e) => setNameDraft(e.target.value)}
                   maxLength={80}
                   name="displayName"

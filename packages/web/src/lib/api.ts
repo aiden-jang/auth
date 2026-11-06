@@ -202,14 +202,14 @@ export const authApi = {
     displayName: string,
     turnstileToken?: string,
     returnTo?: string | null,
+    signal?: AbortSignal,
   ) =>
-    req<{ user: AuthUser }>('/auth/register', 'POST', {
-      email,
-      password,
-      displayName,
-      turnstileToken,
-      returnTo: returnTo ?? undefined,
-    }),
+    req<{ user: AuthUser }>(
+      '/auth/register',
+      'POST',
+      { email, password, displayName, turnstileToken, returnTo: returnTo ?? undefined },
+      signal,
+    ),
   logout: () => req<{ ok: boolean }>('/auth/logout', 'POST'),
   forgot: (email: string, turnstileToken?: string, returnTo?: string | null) =>
     req<{ ok: boolean }>('/auth/forgot-password', 'POST', {
@@ -231,11 +231,15 @@ export const authApi = {
     req<{ options: unknown }>('/auth/passkeys/register/options', 'POST'),
   passkeyRegisterVerify: (response: unknown, label?: string) =>
     req<{ passkey: Passkey }>('/auth/passkeys/register/verify', 'POST', { response, label }),
-  passkeyLoginOptions: () => req<{ options: unknown }>('/auth/passkeys/login/options', 'POST'),
-  passkeyLoginVerify: (response: unknown) =>
-    req<{ user: AuthUser; usedPasskey: string }>('/auth/passkeys/login/verify', 'POST', {
-      response,
-    }),
+  passkeyLoginOptions: (signal?: AbortSignal) =>
+    req<{ options: unknown }>('/auth/passkeys/login/options', 'POST', undefined, signal),
+  passkeyLoginVerify: (response: unknown, signal?: AbortSignal) =>
+    req<{ user: AuthUser; usedPasskey: string }>(
+      '/auth/passkeys/login/verify',
+      'POST',
+      { response },
+      signal,
+    ),
   renamePasskey: (id: string, label: string) =>
     req<{ ok: boolean }>('/auth/passkeys/rename', 'POST', { id, label }),
   deletePasskey: (id: string) => req<{ ok: boolean }>('/auth/passkeys/delete', 'POST', { id }),

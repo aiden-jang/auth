@@ -269,7 +269,9 @@ test('a pending reset keeps the address tied to the request', async ({ page }) =
   } finally {
     finish();
   }
-  await expect(page.getByRole('status')).toContainText(user.email);
+  const confirmation = page.getByRole('status');
+  await expect(confirmation).toContainText(user.email);
+  await expect(confirmation).toBeFocused();
 });
 
 test('leaving a pending sign-in keeps the visitor on password recovery', async ({ page }) => {
@@ -464,6 +466,8 @@ test('an expired password reset offers a fresh link while service failures prese
   await submit.click();
   const fresh = page.getByRole('link', { name: 'Request a new reset link', exact: true });
   await expect(fresh).toBeVisible();
+  await expect(fresh).toBeFocused();
+  await expect(page.getByLabel('New password', { exact: true })).toHaveCount(0);
   await expect(submit).toHaveCount(0);
   await expect(fresh).toHaveAttribute(
     'href',
@@ -483,4 +487,207 @@ test('an expired password reset offers a fresh link while service failures prese
   await fresh.click();
   await expect(page.getByRole('button', { name: 'Send reset link', exact: true })).toBeVisible();
   await expect(page.getByLabel('Email', { exact: true })).toHaveAttribute('autocomplete', 'email');
+});
+
+test('a passwordless deletion can return from Google to a fresh confirmation', async ({ page }) => {
+  await account(page, { hasPassword: false });
+  let attempts = 0;
+  await page.route('**/auth/delete-account', (route) => {
+    attempts += 1;
+    return route.fulfill({
+      status: 403,
+      json: { error: 'REAUTH_REQUIRED', canUsePassword: false },
+    });
+  });
+  await page.goto('/account');
+  await page.getByRole('button', { name: 'Delete account', exact: true }).click();
+  await page.getByLabel('Type your email to confirm').fill(user.email);
+  await page.getByRole('button', { name: 'Delete my account' }).click();
+  const prompt = page.getByRole('dialog');
+  const returnTo = '/account?delete=confirm#delete-account';
+  await expect(prompt.getByRole('link', { name: 'Sign in with Google' })).toHaveAttribute(
+    'href',
+    `/auth/google?return_to=${encodeURIComponent(returnTo)}`,
+  );
+  await expect(prompt.getByRole('link', { name: 'Reset by email' })).toHaveAttribute(
+    'href',
+    `/forgot-password?return_to=${encodeURIComponent(returnTo)}`,
+  );
+  await prompt.getByRole('button', { name: 'Not now' }).click();
+  await expect(page.getByLabel('Type your email to confirm')).toHaveValue(user.email);
+  await page.goto(returnTo);
+  await expect(page.getByLabel('Type your email to confirm')).toHaveValue('');
+  expect(attempts).toBe(1);
+  await page
+    .getByRole('region', { name: 'Danger zone' })
+    .getByRole('button', { name: 'Cancel' })
+    .click();
+  await expect(page).toHaveURL(/\/account$/);
+});
+
+test('a profile save keeps its pending name visible and read-only', async ({ page }) => {
+  await account(page);
+  let finish!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  await page.route('**/auth/update-profile', async (route) => {
+    await pending;
+    await route.fulfill({ json: { user: { ...user, displayName: 'Updated name' } } });
+  });
+  await page.goto('/account');
+  const profile = page.getByRole('region', { name: 'Profile', exact: true });
+  await profile.getByRole('button', { name: 'Edit', exact: true }).click();
+  const name = profile.getByRole('textbox', { name: 'Display name' });
+  await name.fill('Updated name');
+  await profile.getByRole('button', { name: 'Save', exact: true }).click();
+  try {
+    await expect(name).toHaveValue('Updated name');
+    await expect(name).not.toBeEditable();
+  } finally {
+    finish();
+  }
+  await expect(profile.getByText('Updated name', { exact: true })).toBeVisible();
+});
+
+test('security review shows a failed sign-out beside its retry action', async ({ page }) => {
+  await account(page, { hasPassword: false });
+  let attempts = 0;
+  await page.route('**/auth/sessions/revoke-others', (route) =>
+    ++attempts === 1
+      ? route.fulfill({ status: 503, json: { error: 'UNAVAILABLE' } })
+      : route.fulfill({ json: { ok: true } }),
+  );
+  await page.goto('/account?security=review');
+  const review = page.getByRole('region', { name: 'Was that sign-in you?' });
+  const retry = review.getByRole('button', { name: 'That was not me' });
+  await retry.click();
+  await expect(review.getByRole('alert')).toContainText('Couldn’t sign out the other devices.');
+  await retry.click();
+  await expect(page.getByRole('heading', { name: 'Other devices are signed out' })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+test('sign-out in another tab clears the account view without a reload', async ({
+  page,
+  context,
+}) => {
+  await account(page);
+  let signedIn = true;
+  await page.route('**/auth/me', (route) =>
+    signedIn
+      ? route.fulfill({ json: { user } })
+      : route.fulfill({ status: 401, json: { error: 'UNAUTHENTICATED' } }),
+  );
+  await page.goto('/account');
+  await expect(page.getByText(user.email, { exact: true })).toBeVisible();
+  const otherTab = await context.newPage();
+  await otherTab.route('**/auth/logout', (route) => {
+    signedIn = false;
+    return route.fulfill({ json: { ok: true } });
+  });
+  await otherTab.goto('/logout');
+  await expect(otherTab).toHaveURL(/\/login$/);
+  await expect(page).toHaveURL(/\/login\?return_to=/);
+});
+
+async function observeCancellation(page: Page, path: string): Promise<void> {
+  await page.evaluate((requestPath) => {
+    const fetchRequest = window.fetch;
+    window.fetch = (input, init) => {
+      if (String(input).endsWith(requestPath)) {
+        init?.signal?.addEventListener(
+          'abort',
+          () => {
+            document.documentElement.dataset.requestCancelled = 'true';
+          },
+          { once: true },
+        );
+      }
+      return fetchRequest(input, init);
+    };
+  }, path);
+}
+
+test('leaving sign-up cancels its pending navigation', async ({ page }) => {
+  let finish!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  await page.route('**/auth/register', async (route) => {
+    await pending;
+    await route.fulfill({ status: 201, json: { user } }).catch(() => {});
+  });
+  await page.goto('/signup');
+  await observeCancellation(page, '/auth/register');
+  await page.getByLabel('Name', { exact: true }).fill(user.displayName);
+  await page.getByLabel('Email', { exact: true }).fill(user.email);
+  await page.getByLabel('Confirm email', { exact: true }).fill(user.email);
+  await page.getByLabel('Password', { exact: true }).fill('test passphrase');
+  await page.getByLabel('Confirm password', { exact: true }).fill('test passphrase');
+  const request = page.waitForRequest('**/auth/register');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  try {
+    await request;
+    await page.getByRole('link', { name: 'Log in', exact: true }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-request-cancelled', 'true');
+    await expect(page).toHaveURL(/\/login$/);
+  } finally {
+    finish();
+  }
+});
+
+test('leaving passkey sign-in cancels its pending navigation', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('aidenjang:passkey-on-this-device', '1');
+    Object.defineProperty(window, 'PublicKeyCredential', {
+      configurable: true,
+      value: class {
+        static async isUserVerifyingPlatformAuthenticatorAvailable() {
+          return true;
+        }
+        static async isConditionalMediationAvailable() {
+          return false;
+        }
+      },
+    });
+    Object.defineProperty(navigator, 'credentials', {
+      configurable: true,
+      value: {
+        get: async () => {
+          const bytes = new Uint8Array([1, 2, 3]).buffer;
+          return {
+            id: 'fixture',
+            rawId: bytes,
+            type: 'public-key',
+            response: { authenticatorData: bytes, clientDataJSON: bytes, signature: bytes },
+            getClientExtensionResults: () => ({}),
+          };
+        },
+      },
+    });
+  });
+  let finish!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  await page.route('**/auth/passkeys/login/options', (route) =>
+    route.fulfill({ json: { options: { challenge: 'AQID', allowCredentials: [] } } }),
+  );
+  await page.route('**/auth/passkeys/login/verify', async (route) => {
+    await pending;
+    await route.fulfill({ json: { user, usedPasskey: 'fixture' } }).catch(() => {});
+  });
+  await page.goto('/login');
+  await observeCancellation(page, '/auth/passkeys/login/verify');
+  const request = page.waitForRequest('**/auth/passkeys/login/verify');
+  await page.getByRole('button', { name: 'Sign in with a passkey' }).click();
+  try {
+    await request;
+    await page.getByRole('link', { name: 'Forgot password?', exact: true }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-request-cancelled', 'true');
+    await expect(page).toHaveURL(/\/forgot-password$/);
+  } finally {
+    finish();
+  }
 });
