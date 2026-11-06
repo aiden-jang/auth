@@ -8,7 +8,7 @@ export function BrandMark(): ReactNode {
   return (
     <span
       aria-hidden
-      className="inline-grid h-8 w-8 place-items-center rounded-[10px]"
+      className="inline-grid size-[32px] shrink-0 place-items-center rounded-[10px]"
       style={{ background: 'var(--brand-mark-background, #14171c)' }}
     >
       <svg width="20" height="20" viewBox="0 0 512 512" fill="none" aria-hidden>

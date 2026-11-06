@@ -5,7 +5,7 @@ export function Wordmark({ accounts = false }: { accounts?: boolean }): ReactNod
   return (
     <a
       href="/"
-      className="inline-flex items-center gap-2 font-semibold tracking-tight transition-opacity hover:opacity-80"
+      className="inline-flex max-w-full flex-wrap items-center gap-x-[8px] gap-y-1 font-semibold tracking-tight transition-opacity hover:opacity-80"
     >
       <BrandMark /> <span translate="no">aidenjang</span>
       {accounts && <span className="wordmark-section">Accounts</span>}

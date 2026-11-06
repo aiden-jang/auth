@@ -35,7 +35,15 @@ export function useStepUp(): StepUp {
   const [pending, setPending] = useState<Pending | null>(null);
 
   const pendingRef = useRef<Pending | null>(null);
-  useEffect(() => () => pendingRef.current?.resolve(false), []);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      pendingRef.current?.resolve(false);
+      pendingRef.current = null;
+    };
+  }, []);
 
   const settle = useCallback((confirmed: boolean) => {
     const current = pendingRef.current;
@@ -58,6 +66,9 @@ export function useStepUp(): StepUp {
         return true;
       } catch (err) {
         if (!isReauthRequired(err)) throw err;
+        // Another action can reach this point while the first request is in flight.
+        // Keep the first prompt and let the other caller clear its pending state.
+        if (!mounted.current || pendingRef.current) return false;
         const confirmed = await new Promise<boolean>((resolve) => {
           const next = { resolve, trigger, canUsePassword: reauthCanUsePassword(err), label };
           pendingRef.current = next;
@@ -72,12 +83,10 @@ export function useStepUp(): StepUp {
     [],
   );
 
+  const cancel = useCallback(() => settle(false), [settle]);
+  const confirm = useCallback(() => settle(true), [settle]);
   const prompt = pending ? (
-    <StepUpDialog
-      pending={pending}
-      onClose={() => settle(false)}
-      onConfirmed={() => settle(true)}
-    />
+    <StepUpDialog pending={pending} onClose={cancel} onConfirmed={confirm} />
   ) : null;
 
   return { guard, prompt };
@@ -151,7 +160,7 @@ function StepUpDialog({
    */
   return createPortal(
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-canvas/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center bg-canvas/80 p-4 backdrop-blur-sm"
       // A click on the backdrop closes, but only when it started there, or dragging to select text
       // inside the dialog and releasing outside counts as "clicked away".
       onMouseDown={(e) => {
@@ -164,7 +173,7 @@ function StepUpDialog({
         aria-modal="true"
         aria-labelledby="stepup-title"
         aria-describedby="stepup-why"
-        className="w-full max-w-sm rounded-2xl border border-line bg-card p-6 shadow-2xl shadow-black/60"
+        className="max-h-full w-full min-w-0 max-w-sm overflow-y-auto overscroll-contain rounded-2xl border border-line bg-card p-4 shadow-2xl shadow-black/60 sm:p-6"
       >
         <h2 id="stepup-title" className="text-lg font-semibold">
           Quick check, is this you?
@@ -208,18 +217,18 @@ function StepUpDialog({
                 {error}
               </p>
             )}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-muted transition hover:text-ink"
+                className="flex-auto rounded-xl border border-line px-3 py-2.5 text-sm font-medium text-muted transition hover:text-ink"
               >
                 Not now
               </button>
               <button
                 type="submit"
                 disabled={busy || password.length === 0}
-                className="btn-primary flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50"
+                className="btn-primary flex-auto rounded-xl px-3 py-2.5 text-sm font-semibold transition disabled:opacity-50"
               >
                 {busy ? 'Checking...' : 'Confirm'}
               </button>
@@ -231,17 +240,17 @@ function StepUpDialog({
             )}
           </form>
         ) : (
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-muted transition hover:text-ink"
+              className="flex-auto rounded-xl border border-line px-3 py-2.5 text-sm font-medium text-muted transition hover:text-ink"
             >
               Not now
             </button>
             <a
               href="/forgot-password"
-              className="btn-primary flex-1 rounded-xl px-4 py-2.5 text-center text-sm font-semibold"
+              className="btn-primary flex-auto rounded-xl px-3 py-2.5 text-center text-sm font-semibold"
             >
               Email me a link
             </a>
