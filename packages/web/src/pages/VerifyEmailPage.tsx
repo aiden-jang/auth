@@ -10,6 +10,9 @@ export function VerifyEmailPage(): ReactNode {
   const token = params.get('token');
   const returnTo = safeReturnTo(params.get('return_to'));
   const returnApp = returnAppFor(returnTo);
+  const resendHref = returnTo
+    ? `/account?verify_return_to=${encodeURIComponent(returnTo)}`
+    : '/account';
   // A link with no token is already an error, so say so on the first render rather than flashing
   // "Confirming your email..." at somebody whose link was truncated.
   const [status, setStatus] = useState<'pending' | 'ok' | 'error'>(token ? 'pending' : 'error');
@@ -85,7 +88,7 @@ export function VerifyEmailPage(): ReactNode {
               Try again
             </button>
           )}
-          <Link to="/account" className="font-medium text-accent hover:underline">
+          <Link to={resendHref} className="font-medium text-accent hover:underline">
             Go to your account to resend it
           </Link>
         </div>

@@ -160,13 +160,21 @@ test('cancelling reauthentication keeps the password draft without claiming succ
   await page.getByLabel('New password', { exact: true }).fill('a fresh secure passphrase');
   await page.getByLabel('Confirm new password').fill('a fresh secure passphrase');
   await page.getByRole('button', { name: 'Set password', exact: true }).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  const prompt = page.getByRole('dialog');
+  await expect(prompt.getByRole('link', { name: 'Sign in with Google' })).toHaveAttribute(
+    'href',
+    '/auth/google?return_to=%2Faccount%3Fpassword%3Dchange',
+  );
+  await expect(prompt.getByRole('link', { name: 'Reset by email' })).toBeVisible();
   await expect(page.getByText(/Password changed|Password set\./)).toBeHidden();
   await page.getByRole('button', { name: 'Not now', exact: true }).click();
   await expect(page.getByLabel('New password', { exact: true })).toHaveValue(
     'a fresh secure passphrase',
   );
   await expect(page.getByText(/Password changed|Password set\./)).toBeHidden();
+  await page.getByRole('button', { name: 'Set password', exact: true }).click();
+  await prompt.getByRole('link', { name: 'Reset by email' }).click();
+  await expect(page.getByLabel('Email', { exact: true })).toHaveValue(user.email);
 });
 
 test('reauthentication keeps keyboard focus inside and restores it on cancellation', async ({
@@ -239,6 +247,90 @@ test('a reset-request outage preserves the email and does not promise a sent lin
   unavailable = false;
   await page.getByRole('button', { name: 'Send reset link', exact: true }).click();
   await expect(page.getByText('check that inbox', { exact: false })).toBeVisible();
+});
+
+test('a pending reset keeps the address tied to the request', async ({ page }) => {
+  let finish!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  await page.route('**/auth/forgot-password', async (route) => {
+    await pending;
+    await route.fulfill({ json: { ok: true } });
+  });
+  await page.goto('/forgot-password');
+  const email = page.getByLabel('Email', { exact: true });
+  await email.fill(user.email);
+  const request = page.waitForRequest('**/auth/forgot-password');
+  await page.getByRole('button', { name: 'Send reset link', exact: true }).click();
+  try {
+    expect((await request).postDataJSON()).toMatchObject({ email: user.email });
+    await expect(email).not.toBeEditable();
+  } finally {
+    finish();
+  }
+  await expect(page.getByRole('status')).toContainText(user.email);
+});
+
+test('leaving a pending sign-in keeps the visitor on password recovery', async ({ page }) => {
+  let finish!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  await page.route('**/auth/login', async (route) => {
+    await pending;
+    await route.fulfill({ json: { user } }).catch(() => {});
+  });
+  await page.goto('/login');
+  await page.evaluate(() => {
+    const fetchRequest = window.fetch;
+    window.fetch = (input, init) => {
+      if (String(input).endsWith('/auth/login')) {
+        init?.signal?.addEventListener(
+          'abort',
+          () => {
+            document.documentElement.dataset.loginCancelled = 'true';
+          },
+          { once: true },
+        );
+      }
+      return fetchRequest(input, init);
+    };
+  });
+  await page.getByLabel('Email', { exact: true }).fill(user.email);
+  await page.getByLabel('Password', { exact: true }).fill('test passphrase');
+  const request = page.waitForRequest('**/auth/login');
+  await page.getByRole('button', { name: 'Log in', exact: true }).click();
+  try {
+    await request;
+    await page.getByRole('link', { name: 'Forgot password?', exact: true }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-login-cancelled', 'true');
+    await expect(page.getByRole('heading', { name: 'Reset your password' })).toBeVisible();
+  } finally {
+    finish();
+  }
+});
+
+test('verification resend reports delivery failure and reconciles an already verified address', async ({
+  page,
+}) => {
+  await account(page, { emailVerified: false });
+  let unavailable = true;
+  await page.route('**/auth/resend-verification', (route) =>
+    unavailable
+      ? route.fulfill({ status: 503, json: { error: 'EMAIL_UNAVAILABLE' } })
+      : route.fulfill({ json: { ok: true, alreadyVerified: true } }),
+  );
+  await page.goto('/account');
+  const resend = page.getByRole('button', { name: 'Resend verification email' });
+  await resend.click();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.getByText('Verification email sent', { exact: true })).toHaveCount(0);
+  unavailable = false;
+  await resend.click();
+  await expect(page.getByText('verified', { exact: true })).toBeVisible();
+  await expect(page.getByText('Your email is already verified.', { exact: true })).toBeVisible();
+  await expect(resend).toHaveCount(0);
 });
 
 test('a device-list failure does not claim there are no active sessions', async ({ page }) => {

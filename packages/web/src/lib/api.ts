@@ -126,8 +126,21 @@ function describeStatus(status: number): string {
   return 'That did not go through. Try again in a moment.';
 }
 
-async function req<T>(path: string, method: string, body?: unknown): Promise<T> {
-  const init: RequestInit = { method, credentials: 'include', signal: AbortSignal.timeout(15_000) };
+async function req<T>(
+  path: string,
+  method: string,
+  body?: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  const timeout = AbortSignal.timeout(15_000);
+  const init: RequestInit = {
+    method,
+    credentials: 'include',
+    signal:
+      signal && typeof AbortSignal.any === 'function'
+        ? AbortSignal.any([signal, timeout])
+        : timeout,
+  };
   if (body !== undefined) {
     init.headers = { 'Content-Type': 'application/json' };
     init.body = JSON.stringify(body);
@@ -181,8 +194,8 @@ export const authApi = {
   /** Re-confirm the current session with a password, re-opening the step-up window. */
   reauth: (password: string) =>
     req<{ ok: boolean; sudoUntil: string | null }>('/auth/reauth', 'POST', { password }),
-  login: (email: string, password: string, turnstileToken?: string) =>
-    req<{ user: AuthUser }>('/auth/login', 'POST', { email, password, turnstileToken }),
+  login: (email: string, password: string, turnstileToken?: string, signal?: AbortSignal) =>
+    req<{ user: AuthUser }>('/auth/login', 'POST', { email, password, turnstileToken }, signal),
   register: (
     email: string,
     password: string,
@@ -238,5 +251,10 @@ export const authApi = {
   deleteAccount: (body: { password?: string; confirm?: string }) =>
     req<{ ok: boolean }>('/auth/delete-account', 'POST', body),
   verifyEmail: (token: string) => req<{ ok: boolean }>('/auth/verify-email', 'POST', { token }),
-  resendVerification: () => req<{ ok: boolean }>('/auth/resend-verification', 'POST'),
+  resendVerification: (returnTo: string | null) =>
+    req<{ ok: boolean; alreadyVerified?: boolean }>(
+      '/auth/resend-verification',
+      'POST',
+      returnTo ? { returnTo } : undefined,
+    ),
 };

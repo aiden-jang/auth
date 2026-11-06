@@ -1,6 +1,7 @@
-import { SELF, env } from 'cloudflare:test';
+import { SELF, createExecutionContext, env } from 'cloudflare:test';
 import { and, eq } from 'drizzle-orm';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import app from '../src/index.js';
 import { createDb } from '../src/db/client.js';
 import {
   authTokens,
@@ -188,6 +189,37 @@ describe('profile', () => {
 });
 
 describe('email verification tokens', () => {
+  it('keeps the app destination in a resend and reports delivery failures', async () => {
+    const { cookie } = await register();
+    const destination = 'https://worth.aidenjang.com/lists';
+    const provider = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }));
+    vi.stubGlobal('fetch', provider);
+    const resend = () =>
+      app.fetch(
+        new Request(`${BASE}/auth/resend-verification`, {
+          method: 'POST',
+          headers: { ...json, cookie },
+          body: JSON.stringify({ returnTo: destination }),
+        }),
+        { ...testEnv, APP_URL: 'https://accounts.aidenjang.com', RESEND_API_KEY: 'fixture' },
+        createExecutionContext(),
+      );
+    try {
+      const failed = await resend();
+      expect(failed.status).toBe(503);
+      expect(await failed.json()).toMatchObject({ error: 'EMAIL_UNAVAILABLE' });
+      const success = await resend();
+      expect(success.status).toBe(200);
+      const body = JSON.parse(String(provider.mock.calls[1]?.[1]?.body));
+      expect(body.text).toContain(`return_to=${encodeURIComponent(destination)}`);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('verifies with a valid token and is single-use', async () => {
     const { id, cookie } = await register();
     const token = await issueToken(db(), id, 'verify');

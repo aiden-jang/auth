@@ -322,19 +322,10 @@
   padding-top: 22px;
 }
 .hub-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 20px;
   padding-top: 30px;
   padding-bottom: max(40px, env(safe-area-inset-bottom));
   color: var(--color-muted);
   font-size: 12px;
-}
-.hub-footer nav {
-  display: flex;
-  gap: 24px;
 }
 .hub-footer a {
   display: inline-flex;
@@ -438,9 +429,6 @@
     align-items: start;
     flex-direction: column;
     gap: 16px;
-  }
-  .hub-footer {
-    gap: 4px;
   }
 }
 @media (max-width: 359px) {

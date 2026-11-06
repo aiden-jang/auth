@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { authApi, isReauthRequired, reauthCanUsePassword } from '../lib/api';
+import { Link } from 'react-router-dom';
+import {
+  authApi,
+  googleEnabled,
+  googleLoginUrl,
+  isReauthRequired,
+  reauthCanUsePassword,
+  type AuthUser,
+} from '../lib/api';
 import { PasswordInput } from './PasswordInput';
 import { reassurance } from '../lib/reassurance';
 
@@ -31,7 +39,7 @@ export interface StepUp {
   prompt: ReactNode;
 }
 
-export function useStepUp(): StepUp {
+export function useStepUp(user: AuthUser | null, returnTo: string): StepUp {
   const [pending, setPending] = useState<Pending | null>(null);
 
   const pendingRef = useRef<Pending | null>(null);
@@ -86,7 +94,13 @@ export function useStepUp(): StepUp {
   const cancel = useCallback(() => settle(false), [settle]);
   const confirm = useCallback(() => settle(true), [settle]);
   const prompt = pending ? (
-    <StepUpDialog pending={pending} onClose={cancel} onConfirmed={confirm} />
+    <StepUpDialog
+      pending={pending}
+      email={user?.email}
+      googleHref={googleEnabled && user?.hasGoogle ? googleLoginUrl(returnTo) : null}
+      onClose={cancel}
+      onConfirmed={confirm}
+    />
   ) : null;
 
   return { guard, prompt };
@@ -94,10 +108,14 @@ export function useStepUp(): StepUp {
 
 function StepUpDialog({
   pending,
+  email,
+  googleHref,
   onClose,
   onConfirmed,
 }: {
   pending: Pending;
+  email: string | undefined;
+  googleHref: string | null;
   onClose: () => void;
   onConfirmed: () => void;
 }): ReactNode {
@@ -186,9 +204,10 @@ function StepUpDialog({
             </>
           ) : (
             <>
-              You are about to {pending.label}, and this browser has been signed in a while. Sign in
-              with Google again, or send yourself a password reset link, and it will go straight
-              through.
+              You are about to {pending.label}, and this browser has been signed in a while.{' '}
+              {googleHref
+                ? 'Sign in again with your linked Google account, then retry here. You can also reset by email.'
+                : 'Use a password reset link to set a password and sign in again.'}
             </>
           )}
         </p>
@@ -248,12 +267,21 @@ function StepUpDialog({
             >
               Not now
             </button>
-            <a
-              href="/forgot-password"
-              className="btn-primary flex-auto rounded-xl px-3 py-2.5 text-center text-sm font-semibold"
+            {googleHref && (
+              <a
+                href={googleHref}
+                className="btn-primary flex-auto rounded-xl px-3 py-2.5 text-center text-sm font-semibold"
+              >
+                Sign in with Google
+              </a>
+            )}
+            <Link
+              to="/forgot-password"
+              state={email ? { email } : undefined}
+              className={`flex-auto rounded-xl px-3 py-2.5 text-center text-sm font-semibold ${googleHref ? 'border border-line text-accent' : 'btn-primary'}`}
             >
-              Email me a link
-            </a>
+              Reset by email
+            </Link>
           </div>
         )}
       </div>

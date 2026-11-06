@@ -7,11 +7,15 @@ import { AccountIcon } from './AccountIcon';
 export function AccountProfile({
   user,
   onUserChange,
+  verificationReturnTo,
 }: {
   user: AuthUser;
-  onUserChange: (user: AuthUser) => void;
+  onUserChange: (change: Partial<Pick<AuthUser, 'displayName' | 'emailVerified'>>) => void;
+  verificationReturnTo: string | null;
 }): ReactNode {
-  const [verificationStatus, setVerificationStatus] = useState<'sending' | 'sent' | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<
+    'sending' | 'sent' | 'already-verified' | null
+  >(null);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [emailCopied, setEmailCopied] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -37,8 +41,13 @@ export function AccountProfile({
     setVerificationStatus('sending');
     setVerificationError(null);
     try {
-      await authApi.resendVerification();
-      setVerificationStatus('sent');
+      const result = await authApi.resendVerification(verificationReturnTo);
+      if (result.alreadyVerified) {
+        onUserChange({ emailVerified: true });
+        setVerificationStatus('already-verified');
+      } else {
+        setVerificationStatus('sent');
+      }
     } catch (err) {
       setVerificationStatus(null);
       setVerificationError(
@@ -81,7 +90,7 @@ export function AccountProfile({
     setNameError(null);
     try {
       const r = await authApi.updateProfile(next);
-      onUserChange(r.user);
+      onUserChange({ displayName: r.user.displayName });
       setEditingName(false);
     } catch (err) {
       setNameError(err instanceof Error ? err.message : 'Could not save your name.');
@@ -186,6 +195,11 @@ export function AccountProfile({
         </div>
       </dl>
 
+      {verificationStatus === 'already-verified' && (
+        <p role="status" className="mt-4 text-sm text-pos">
+          Your email is already verified.
+        </p>
+      )}
       {!user.emailVerified && (
         <div className="mt-4">
           <button

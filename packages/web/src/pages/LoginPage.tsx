@@ -1,4 +1,11 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { authApi } from '../lib/api';
 import { returnAppFor, safeReturnTo } from '../lib/returnTo';
@@ -38,6 +45,8 @@ export function LoginPage(): ReactNode {
   );
   const [loading, setLoading] = useState(false);
   const turnstile = useTurnstile();
+  const loginRequest = useRef<AbortController | null>(null);
+  useLayoutEffect(() => () => loginRequest.current?.abort(), []);
 
   /* Silent: a browser holding no passkey for this origin shows nothing, which is the difference
      between being offered your own key and being asked for a security key you do not own. */
@@ -58,14 +67,20 @@ export function LoginPage(): ReactNode {
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
+    if (loginRequest.current) return;
+    const request = new AbortController();
+    loginRequest.current = request;
     setError(null);
     setLoading(true);
     try {
-      await authApi.login(email, password, turnstile.token);
+      await authApi.login(email, password, turnstile.token, request.signal);
+      if (request.signal.aborted) return;
       rememberRecentAccount(email);
       // replace: once signed in, back should not return to the login form.
       window.location.replace(safeReturnTo(returnTo) ?? '/account');
     } catch (err) {
+      if (request.signal.aborted) return;
+      loginRequest.current = null;
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setLoading(false);
       turnstile.discard();
@@ -148,7 +163,11 @@ export function LoginPage(): ReactNode {
                         forgetRecentAccount(account.email);
                         const next = readRecentAccounts();
                         setRecentAccounts(next);
-                        if (selected) setEmail(next[0]?.email ?? '');
+                        if (selected) {
+                          setEmail(next[0]?.email ?? '');
+                          setPassword('');
+                          setError(null);
+                        }
                       }}
                       className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted transition hover:bg-card hover:text-ink"
                       aria-label={`Forget ${account.email} on this device`}

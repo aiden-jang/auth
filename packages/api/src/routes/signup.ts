@@ -181,25 +181,40 @@ app.post('/auth/verify-email', async (c) => {
   return c.json({ ok: true });
 });
 
+const resendBody = z.object({ returnTo: z.string().optional() });
+
 app.post('/auth/resend-verification', async (c) => {
   if (await overLimit(c, 'resend-verify', 5, 60 * MIN)) return rateLimited(c);
   const db = createDb(c.env);
   const user = await signedIn(c, db);
   if (!user) return unauthenticated(c);
   if (user.emailVerified) return c.json({ ok: true, alreadyVerified: true });
+  const parsed = resendBody.safeParse(c.req.raw.body ? await c.req.json().catch(() => null) : {});
+  if (!parsed.success) return c.json({ error: 'ValidationError' }, 400);
+  const { returnTo } = parsed.data;
   const token = await issueToken(db, user.id, 'verify');
-  await sendEmail(c.env, {
+  const sent = await sendEmail(c.env, {
     to: user.email,
     subject: 'Verify your email',
     ...renderEmail({
       reason: 'sign-up',
       preheader: 'Confirm this address for your aidenjang account.',
       heading: 'Confirm your email',
-      paragraphs: ['Here is a fresh link. The previous one no longer works.'],
-      action: { label: 'Confirm my email', url: link(c.env, '/verify-email', token) },
+      paragraphs: ['Here is a fresh link to confirm your email.'],
+      action: { label: 'Confirm my email', url: link(c.env, '/verify-email', token, returnTo) },
       footnote: 'This link lasts 24 hours.',
+      app: returnAppName(returnTo),
     }),
   });
+  if (!sent) {
+    return c.json(
+      {
+        error: 'EMAIL_UNAVAILABLE',
+        message: 'Couldn’t send the verification email. Try again shortly.',
+      },
+      503,
+    );
+  }
   return c.json({ ok: true });
 });
 

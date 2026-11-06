@@ -16,7 +16,7 @@ export const labelClass = 'mb-1.5 block text-sm font-medium text-muted';
 function BrandPanel(): ReactNode {
   return (
     <aside className="brand-panel">
-      <Wordmark accounts />
+      <Wordmark />
       <div className="brand-panel-story">
         <h2>
           One account.
@@ -83,7 +83,7 @@ export function AuthCard({
       <div className="auth-form-panel">
         <header className="auth-form-header">
           <div className="auth-mobile-wordmark">
-            <Wordmark accounts />
+            <Wordmark />
           </div>
           {header && <div className="auth-header-action">{header}</div>}
         </header>

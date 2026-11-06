@@ -17,9 +17,10 @@ export function ForgotPasswordPage(): ReactNode {
   const [email, setEmail] = useState(typeof carriedEmail === 'string' ? carriedEmail : '');
   const [turnstileToken, setTurnstileToken] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [resent, setResent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const inbox = sentTo ? inboxFor(sentTo) : null;
   const [resendIn, setResendIn] = useState(0);
   const [resetSignal, setResetSignal] = useState(0);
 
@@ -35,10 +36,10 @@ export function ForgotPasswordPage(): ReactNode {
     return () => window.clearInterval(timer);
   }, [counting]);
 
-  async function requestReset(): Promise<boolean> {
+  async function requestReset(address: string): Promise<boolean> {
     setError(null);
     try {
-      await authApi.forgot(email, turnstileToken, returnTo);
+      await authApi.forgot(address, turnstileToken, returnTo);
       return true;
     } catch (err) {
       // The server answers identically for known and unknown accounts; transport failures need a retry.
@@ -53,17 +54,19 @@ export function ForgotPasswordPage(): ReactNode {
 
   async function onSubmit(e: FormEvent): Promise<void> {
     e.preventDefault();
+    if (loading) return;
+    const address = email.trim();
     setLoading(true);
-    if (!(await requestReset())) return;
-    setSent(true);
+    if (!(await requestReset(address))) return;
+    setSentTo(address);
     setResent(false);
     setResendIn(30);
   }
 
   async function resend(): Promise<void> {
-    if (loading || resendIn > 0 || (turnstileEnabled && !turnstileToken)) return;
+    if (!sentTo || loading || resendIn > 0 || (turnstileEnabled && !turnstileToken)) return;
     setLoading(true);
-    if (!(await requestReset())) return;
+    if (!(await requestReset(sentTo))) return;
     setResent(true);
     setResendIn(30);
   }
@@ -83,25 +86,25 @@ export function ForgotPasswordPage(): ReactNode {
           {error}
         </p>
       )}
-      {sent ? (
+      {sentTo ? (
         <div className="space-y-4">
           <p
             className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-sm text-pos"
             role="status"
           >
-            {resent ? 'A fresh reset link is on its way. ' : ''}
-            If an account exists for <span className="font-medium">{email}</span>, check that inbox.
-            The link expires in an hour.
+            {resent ? 'Another reset link was requested. ' : ''}
+            If an account exists for <span className="font-medium">{sentTo}</span>, check that
+            inbox. The link expires in an hour.
           </p>
-          {inboxFor(email) && (
+          {inbox && (
             <a
-              href={inboxFor(email)!.href}
+              href={inbox.href}
               target="_blank"
               aria-describedby="external-link-hint"
               rel="noopener noreferrer"
               className={`${buttonClass} flex items-center justify-center gap-2 text-center no-underline`}
             >
-              {inboxFor(email)!.label} <span aria-hidden>↗</span>
+              {inbox.label} <span aria-hidden>↗</span>
             </a>
           )}
           {resendIn === 0 && <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />}
@@ -124,7 +127,7 @@ export function ForgotPasswordPage(): ReactNode {
               type="button"
               disabled={loading}
               onClick={() => {
-                setSent(false);
+                setSentTo(null);
                 setResent(false);
               }}
               className="font-medium text-muted hover:text-ink hover:underline"
@@ -133,7 +136,7 @@ export function ForgotPasswordPage(): ReactNode {
             </button>
             <Link
               to={returnTo ? `/login?return_to=${encodeURIComponent(returnTo)}` : '/login'}
-              state={{ email }}
+              state={{ email: sentTo }}
               className="font-medium text-muted hover:text-ink hover:underline"
             >
               Back to login
@@ -153,6 +156,7 @@ export function ForgotPasswordPage(): ReactNode {
               type="email"
               placeholder="Email"
               value={email}
+              readOnly={loading}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               inputMode="email"
@@ -162,7 +166,7 @@ export function ForgotPasswordPage(): ReactNode {
               autoFocus
             />
           </div>
-          <EmailSuggestion value={email} onAccept={setEmail} />
+          {!loading && <EmailSuggestion value={email} onAccept={setEmail} />}
           <Turnstile onToken={setTurnstileToken} resetSignal={resetSignal} />
           <button
             className={buttonClass}

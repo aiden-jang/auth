@@ -23,7 +23,7 @@ export function AccountShell({
       <header className="hub-masthead">
         <div className="hub-width">
           <div className="hub-topline">
-            <Wordmark accounts />
+            <Wordmark />
             <nav className="hub-pages" aria-label="Main navigation">
               <NavLink to="/account">Account</NavLink>
               <NavLink to="/privacy">Privacy</NavLink>
@@ -49,11 +49,6 @@ export function AccountShell({
       </div>
       <footer className="hub-footer hub-width">
         <MadeBy />
-        <nav aria-label="Legal">
-          {legal && <NavLink to="/account">Account</NavLink>}
-          <NavLink to="/privacy">Privacy</NavLink>
-          <NavLink to="/terms">Terms</NavLink>
-        </nav>
       </footer>
     </main>
   );

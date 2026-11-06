@@ -1,15 +1,12 @@
 import type { ReactNode } from 'react';
 import { BrandMark } from './BrandMark';
 
-export function Wordmark({ accounts = false }: { accounts?: boolean }): ReactNode {
+export function Wordmark(): ReactNode {
   return (
-    <a
-      href="/"
-      className="inline-flex max-w-full flex-wrap items-center gap-x-[8px] gap-y-1 font-semibold tracking-tight transition-opacity hover:opacity-80"
-    >
+    <span className="inline-flex max-w-full flex-wrap items-center gap-x-[8px] gap-y-1 font-semibold tracking-tight">
       <BrandMark /> <span translate="no">aidenjang</span>
-      {accounts && <span className="wordmark-section">Accounts</span>}
-    </a>
+      <span className="wordmark-section">Accounts</span>
+    </span>
   );
 }
 

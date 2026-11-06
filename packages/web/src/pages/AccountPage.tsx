@@ -13,6 +13,7 @@ import { PasskeyList } from '../components/PasskeyList';
 import { PasswordSection } from '../components/PasswordSection';
 import { SessionList } from '../components/SessionList';
 import { useStepUp } from '../components/StepUpPrompt';
+import { safeReturnTo } from '../lib/returnTo';
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -54,8 +55,6 @@ function readGoogleLinkError(): string | null {
 }
 
 export function AccountPage(): ReactNode {
-  // Intercepts a REAUTH_REQUIRED refusal from the server and re-runs the action once confirmed.
-  const stepUp = useStepUp();
   const sessions = useSessions();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +63,15 @@ export function AccountPage(): ReactNode {
   const [changingPw, updateChangingPw] = useState(
     () => new URLSearchParams(window.location.search).get('password') === 'change',
   );
+  const stepUp = useStepUp(user, changingPw ? '/account?password=change' : '/account');
+  const verificationReturnTo = safeReturnTo(
+    new URLSearchParams(window.location.search).get('verify_return_to'),
+  );
+
+  function updateUser(change: Partial<AuthUser>): void {
+    setUser((current) => (current ? { ...current, ...change } : current));
+  }
+
   function setChangingPw(open: boolean): void {
     updateChangingPw(open);
     if (!open) {
@@ -288,7 +296,11 @@ export function AccountPage(): ReactNode {
 
       {!changingPw && <AppLauncher />}
 
-      <AccountProfile user={user} onUserChange={setUser} />
+      <AccountProfile
+        user={user}
+        onUserChange={updateUser}
+        verificationReturnTo={verificationReturnTo}
+      />
 
       <section
         id="account-security"
@@ -303,7 +315,7 @@ export function AccountPage(): ReactNode {
           pwDone={pwDone}
           setPwDone={setPwDone}
           guard={stepUp.guard}
-          onPasswordAdded={() => setUser({ ...user, hasPassword: true })}
+          onPasswordAdded={() => updateUser({ hasPassword: true })}
           onFinished={() => securityReviewStatus === 'secured' && dismissSecurityReview()}
         />
 
@@ -313,7 +325,7 @@ export function AccountPage(): ReactNode {
             googleMsg={googleMsg}
             setGoogleMsg={setGoogleMsg}
             guard={stepUp.guard}
-            onDisconnected={() => setUser({ ...user, hasGoogle: false })}
+            onDisconnected={() => updateUser({ hasGoogle: false })}
           />
         )}
         {!changingPw && <PasskeyList guard={stepUp.guard} />}
