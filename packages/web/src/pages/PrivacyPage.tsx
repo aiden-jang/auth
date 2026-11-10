@@ -3,7 +3,7 @@ import { LegalLayout, Section } from '../components/LegalLayout';
 
 export function PrivacyPage(): ReactNode {
   return (
-    <LegalLayout title="Privacy Policy" updated="November 2, 2026">
+    <LegalLayout title="Privacy Policy" updated="November 10, 2026">
       <p>
         Aiden Jang builds a small collection of personal apps under the name aidenjang. This is what
         they store, why, and who else sees it. Written to actually be read, because a privacy policy
@@ -60,9 +60,11 @@ export function PrivacyPage(): ReactNode {
             of you ends it.
           </li>
           <li>
-            <strong>wherever:</strong> the room code, the restaurant options, and everyone&rsquo;s
-            votes. Tied to a temporary room rather than an identity account. Shared result links
-            last seven days; expiry clears the room and its visited-place history.
+            <strong>wherever:</strong> the room code, the search area, restaurant options, and votes
+            are stored in a temporary room. wherever keeps individual ballots private from other
+            participants. The room sees the group result, and the host can choose to show who has
+            finished voting. People in small rooms may infer votes from the result. Rooms expire
+            after seven days, along with their visited-place history.
           </li>
           <li>
             <strong>iguess:</strong> the room code, names, avatars, drawings, scores and game
@@ -111,6 +113,25 @@ export function PrivacyPage(): ReactNode {
             send drawings and masked hints to Cloudflare Workers AI, or to OpenAI or Anthropic when
             those providers are configured. Worth’s photo-text recognition stays on-device. Send
             only what you are fine sharing with those services.
+          </li>
+          <li>
+            <strong>Google Maps in wherever:</strong> When you search by town or ZIP code, wherever
+            sends the text you enter to Google’s Geocoding service to find its coordinates. To find
+            restaurants, wherever sends Google Places the search area’s latitude, longitude, and
+            search radius. The area can come from your device location if you allow and use it, a
+            town or ZIP code you searched for, an NYC neighborhood you chose, or the default search
+            area in New York City. See{' '}
+            <a className="text-accent hover:underline" href="https://policies.google.com/privacy">
+              Google’s Privacy Policy
+            </a>{' '}
+            and{' '}
+            <a
+              className="text-accent hover:underline"
+              href="https://wherever.aidenjang.com/privacy.html"
+            >
+              wherever’s privacy policy
+            </a>
+            .
           </li>
           <li>
             <strong>Cloudflare Turnstile</strong> runs a bot check on sign-in, sign-up, and password

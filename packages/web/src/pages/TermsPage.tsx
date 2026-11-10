@@ -3,7 +3,7 @@ import { LegalLayout, Section } from '../components/LegalLayout';
 
 export function TermsPage(): ReactNode {
   return (
-    <LegalLayout title="Terms of Service" updated="October 26, 2026">
+    <LegalLayout title="Terms of Service" updated="November 10, 2026">
       <p>
         By using Accounts and aidenjang&rsquo;s apps (including Worth, owewell, bloomnote, mrrp,
         wherever, and iguess), you agree to these terms. Individual apps may also explain their own
@@ -32,9 +32,10 @@ export function TermsPage(): ReactNode {
 
       <Section heading="Play nice">
         Do not use the apps to break the law, harass people, upload other people&rsquo;s private
-        information without permission, or attack the service. The multiplayer apps (wherever and
-        iguess) put your drawings, guesses, and votes in front of everyone in the room, so keep it
-        to something you would happily show a stranger. Misbehaving is a quick way to lose access.
+        information without permission, or attack the service. In iguess, people in your room can
+        see your drawings and guesses as the game reveals them. Individual votes in wherever stay
+        private. The room sees the group result, and the host can choose to show who has finished
+        voting. Misbehaving is a quick way to lose access.
       </Section>
 
       <Section heading="On the math (owewell)">
