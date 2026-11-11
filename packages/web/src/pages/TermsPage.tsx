@@ -5,9 +5,8 @@ export function TermsPage(): ReactNode {
   return (
     <LegalLayout title="Terms of Service" updated="November 10, 2026">
       <p>
-        By using Accounts and aidenjang&rsquo;s apps (including Worth, owewell, bloomnote, mrrp,
-        wherever, and iguess), you agree to these terms. Individual apps may also explain their own
-        features and data handling in their terms and privacy pages.
+        By using Accounts or an aidenjang app, you agree to these terms. Individual apps may also
+        explain their own features and data handling in their terms and privacy pages.
       </p>
 
       <Section heading="The deal">
@@ -25,9 +24,10 @@ export function TermsPage(): ReactNode {
 
       <Section heading="Your content is yours">
         You keep ownership of what you put in: expenses, notes, gardens, names, drawings, guesses,
-        votes. You grant us only the permission needed to store it and show it back to you and to
-        the people you share a link or a room with. We do not claim it, sell it, or train anything
-        on it.
+        votes. You grant us permission to store and process your content as needed to provide the
+        features you use, including showing it to the people you share a link or room with and
+        sending it to an AI provider for features described in the Privacy Policy. We do not claim
+        ownership of your content, sell it, or use it to train models.
       </Section>
 
       <Section heading="Play nice">
@@ -44,10 +44,9 @@ export function TermsPage(): ReactNode {
         is between you and your friends.
       </Section>
 
-      <Section heading="On the AI (bloomnote and receipts)">
-        Some features are powered by AI, which is confidently wrong on a regular basis. Generated
-        gardens are for fun, and scanned receipt totals should be reviewed. Treat both as a helpful
-        first draft, not gospel.
+      <Section heading="On the AI">
+        Bloomnote uses AI to design gardens, and iGuess can use AI to guess drawings. Both are for
+        fun, and the AI can get things wrong.
       </Section>
 
       <Section heading="No warranty, limited liability">
@@ -59,10 +58,12 @@ export function TermsPage(): ReactNode {
       <Section heading="Ending things">
         You can stop using the apps and delete your identity account in Accounts. App data is
         managed separately, so delete it in each app before removing your shared sign-in or contact
-        us for help. The room-based apps end on their own once everyone leaves. An mrrp room lasts
+        us for help. You can rejoin a wherever room until it expires seven days after it was
+        created. iguess keeps recovery checkpoints for up to a day of inactivity. An mrrp room lasts
         until someone ends it: whoever made it can delete it for both people, with a week to change
-        their mind before it is erased, and the other one can leave it, with a week to come back. We
-        can suspend access if these terms are broken or if a feature is retired.
+        their mind before it is erased, and the other one can undo leaving within a week while the
+        seat remains free. We can suspend access if these terms are broken or if a feature is
+        retired.
       </Section>
 
       <Section heading="Questions">

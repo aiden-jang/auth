@@ -22,11 +22,13 @@ export function PrivacyPage(): ReactNode {
         <ul className="list-disc space-y-1.5 pl-5">
           <li>
             <strong>Account:</strong> your email and display name, plus a securely hashed password
-            if you sign up with one (never the password itself). You can also continue with Google,
-            in which case Google confirms your email and name for you and no password is stored.
-            Email is used for verification, password recovery, and security notifications. If you
-            add a passkey, we store its public credential, label, and usage metadata. Your private
-            key and biometric checks stay with your device or passkey provider.
+            if you set one. We never store the password itself. If you continue with Google, Google
+            confirms your email and name and we store your Google account identifier. Creating an
+            account with Google does not require a password. Linking Google to an existing password
+            account keeps its password hash. Email is used for verification, password recovery, and
+            security notifications. If you add a passkey, we store its public credential, label, and
+            usage metadata. Your private key and biometric checks stay with your device or passkey
+            provider.
           </li>
           <li>
             <strong>Worth:</strong> the records, notes, photos, receipts, activity entries, and
@@ -40,24 +42,28 @@ export function PrivacyPage(): ReactNode {
           </li>
           <li>
             <strong>owewell:</strong> the groups, expenses, splits, and settlements you enter,
-            including names you add for people without accounts. Scanned receipts are sent to an AI
-            service to read the line items and are not kept afterward.
+            including names you add for people without accounts. You enter receipt line items by
+            hand. Anyone with a group’s read-only summary link can see its member names, spending
+            totals, balances, and suggested payments. The group owner can revoke the link.
+            Signed-out splits, drafts, and changes waiting to sync can stay in this browser until
+            you remove them or clear the site’s data.
           </li>
           <li>
             <strong>bloomnote:</strong> the notes and gardens you make and the short links you share
             them through. Works signed out; signed in, the gardens you send and open are tied to
-            your account so you can find them again.
+            your account so you can find them again. Messaging apps that preview a garden link can
+            show the sender’s and recipient’s names before someone opens it.
           </li>
           <li>
             <strong>mrrp:</strong> a room is one private link shared by two people, so anyone
             holding that link can watch the cat. In it: the two names you type in, her timezone and
-            the hour she is usually home, the mood she taps (kept for that day only), one line she
-            leaves and the notes he writes for her, a drawing either of you puts in the frame, and a
-            date you can ask the room to remember. Also how long the room has been going and a
-            short, capped list of recent visits, which is what makes the cat seem to know you. If
-            you tie a seat to your account, the room stores which account it is and nothing else
-            about you. Unlike the rooms below, an mrrp room is meant to last, so it stays until one
-            of you ends it.
+            the hour she is usually home, the mood she taps (kept until midnight in the room’s time
+            zone when she set it), one line she leaves and the notes he writes for her, a drawing
+            either of you puts in the frame, and a date you can ask the room to remember. Also how
+            long the room has been going and a short, capped list of recent visits, which is what
+            makes the cat seem to know you. If you tie a seat to your account, the room stores which
+            account it is and nothing else about you. Unlike the rooms below, an mrrp room is meant
+            to last, so it stays until one of you ends it.
           </li>
           <li>
             <strong>wherever:</strong> the room code, the search area, restaurant options, and votes
@@ -109,10 +115,9 @@ export function PrivacyPage(): ReactNode {
           </li>
           <li>
             <strong>AI providers:</strong> bloomnote sends your note text to Google (Gemini) to grow
-            a garden, and owewell sends receipt images to a vision model to read them. iguess can
-            send drawings and masked hints to Cloudflare Workers AI, or to OpenAI or Anthropic when
-            those providers are configured. Worth’s photo-text recognition stays on-device. Send
-            only what you are fine sharing with those services.
+            a garden. iguess can send drawings and masked hints to Cloudflare Workers AI, or to
+            OpenAI or Anthropic when those providers are configured. Worth’s photo-text recognition
+            stays on-device. Send only what you are fine sharing with those services.
           </li>
           <li>
             <strong>Google Maps in wherever:</strong> When you search by town or ZIP code, wherever
@@ -150,25 +155,36 @@ export function PrivacyPage(): ReactNode {
         Account data stays until you remove it or ask us to. Accounts lets you download or delete
         your identity account. App data is held separately: remove it in each app before deleting
         your shared sign-in, or contact us for help. Worth has its own export, Trash, and
-        data-deletion controls. owewell supports expense removal and reversal of recorded payments;
-        contact us for group-wide or account-data removal. Removing a Bloomnote library entry leaves
-        its shared garden link working; contact us to request a copy or removal of stored gardens.
-        wherever rooms expire after seven days, and iguess recovery checkpoints after a day of
-        inactivity. Browser copies and downloaded files are separate from server data and can be
-        removed through this browser’s site-data controls or your device’s file manager. An mrrp
-        room is built to last, and both people in it have a way out: whoever made the room can
-        delete the whole thing, and the other one can leave, which takes their side of it and leaves
-        the room standing. Both take effect at once, and both can be undone for a week. A deleted
-        room is unreachable straight away and erased for good a week later, and only the person who
-        deleted it can put it back inside that week. Someone who has left can put their side back
-        for a week too, for as long as nobody else has taken the seat they freed. For deletion or
-        data-access requests, email{' '}
+        data-deletion controls. In owewell you can remove expenses or reverse recorded payments, and
+        group owners can delete an entire group. Contact us for account-data removal. Removing a
+        Bloomnote library entry leaves its shared garden link working; contact us to request a copy
+        or removal of stored gardens. wherever rooms expire after seven days, and iguess recovery
+        checkpoints after a day of inactivity. Browser copies and downloaded files are separate from
+        server data and can be removed through this browser’s site-data controls or your device’s
+        file manager. An mrrp room is built to last, and both people in it have a way out: whoever
+        made the room can delete the whole thing, and the other one can leave, which takes their
+        side of it and leaves the room standing. Both take effect at once, and both can be undone
+        for a week. A deleted room is unreachable straight away and erased for good a week later,
+        and only the person who deleted it can put it back inside that week. Someone who has left
+        can put their side back for a week too, for as long as nobody else has taken the seat they
+        freed. For deletion or data-access requests, email{' '}
         <a className="text-accent hover:underline" href="mailto:privacy@aidenjang.com">
           privacy@aidenjang.com
         </a>
         . You can also ask for a copy of what we hold, and in mrrp you do not have to ask: open
         &ldquo;delete this room&rdquo; or &ldquo;leave this room&rdquo; and the &ldquo;Take a copy
         first&rdquo; link hands you the lot as a file.
+      </Section>
+
+      <Section heading="Coast saves">
+        The current illustrated Coast remembers your last view in this browser. In the earlier
+        driving version, you could sync your saved progress to Cloudflare under your Accounts ID.
+        Those synced saves are stored separately from your shared sign-in. If you previously synced
+        a save and want it removed, email{' '}
+        <a className="text-accent hover:underline" href="mailto:privacy@aidenjang.com">
+          privacy@aidenjang.com
+        </a>
+        . Deleting your Accounts identity does not remove that save.
       </Section>
 
       <Section heading="A note on other people's data">
