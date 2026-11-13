@@ -1,54 +1,9 @@
 # Accounts UI
 
-Accounts has its own slate, ice-blue and cool paper identity, with a key as its mark.
-It serves every registered app equally. Worth retains its butter accent only when it is the
-verified return destination or appears in the app directory.
-DM Sans is bundled locally under its included license. App-specific accents still come from
-verified return destinations and are adjusted for readable contrast.
+The canonical design guide is [DESIGN.md](../DESIGN.md) at the project root.
+It records the approved light Accounts system, extracted tokens, responsive layouts
+and component behavior. The former split-layout guide is superseded.
 
-Sign-in and recovery use the Quiet split layout: a cool paper brand panel on the left and a
-slate form panel on the right. The desktop columns use a 43:57 ratio. The brand panel pairs
-“One account. Fewer keys.” with a compact app directory; the key stays in the wordmark.
-Phones show the wordmark and form first, without the desktop brand panel.
-Recovery and verification use a small mail illustration; passkey setup uses a device sketch.
-These static, decorative marks share the house palette and leave status and security copy in text.
-Forms retain visible labels, password visibility controls, errors, status messages, passkeys,
-Google sign-in, Turnstile and the existing return-destination handling. Buttons use flat fills and
-modest rounded corners. Forms have a narrow reading width, clear labels and compact headings.
-Desktop sign-in/sign-up links sit above the form; phones keep them below the submit action.
-The credit and legal links share a footer. A skip link bypasses the desktop app directory.
-The account hub continues Quiet split with a cool paper masthead above a wider slate single
-column. Account, Privacy and Terms share this header, active-page navigation and a footer.
-The account section links lead to apps, profile, sign-in, active devices and data. The app grid
-keeps every destination visible. Profile labels and values align, sign-in methods share one
-section, and passkey setup retains the filled primary action. Device rows expand for the existing
-session details, lifetime and renaming controls. Log out sits in the masthead; account deletion
-keeps its separate confirmation below the data export section.
-
-Policies use cool paper reading surfaces on slate, with the existing wording and update dates.
-Section links are derived from the document headings. Desktop uses a contents column; phones
-use an expandable contents list above the document. Headings, paragraphs and lists have a shared
-reading rhythm, and links remain underlined on paper.
-
-The dry humor stays in the brand panel: “One account. Fewer keys.” and “The keyring was
-getting ridiculous.” Security reviews, account recovery, errors and destructive confirmations
-remain factual. Motion is a brief existing entrance and respects reduced motion.
-
-Worth is now present in the app registry, which also makes its verified return destination
-recognizable on sign-in. No auth API, cookie, password or session contract changes are needed.
-
-Desktop and phone evidence is in [Quality checks](quality.md). The
-[visitor walkthrough](visitor-review.md) separates prepared tasks from completed browser checks.
-
-The account launcher keeps every app visible in two columns on phones, with taglines reserved for wider screens. Profile and sign-in security have explicit headings. The masthead's Log out control uses a quiet outline so passkey setup retains visual priority.
-
-Owewell’s verified return destination uses a light teal accent on Accounts’ dark surface, matching its current identity. The shared house palette stays slate and ice-blue.
-
-Validated app destinations travel through verification and password-reset email links. Recovery retains the destination when signing in again; verification offers an explicit Continue to app link rather than redirecting automatically.
-
-Inline profile, password, device-name and deletion forms return keyboard focus to their
-opening control after closing. Name editing gives the field its own row on phones.
-Closing the password form clears its opening URL flag, so reload keeps it closed.
-Pending saves and deletion keep their form visible and disable controls that would
-falsely suggest the request can be canceled. Password recovery keeps its email label
-visible after typing.
+Keep this path for existing links. Update the root guide and its
+`.impeccable/design.json` companion when an approved system change lands.
+See [Quality checks](quality.md) for the evidence behind the current implementation.

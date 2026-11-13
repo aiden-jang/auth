@@ -1,6 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { ApiError, authApi, googleEnabled, type AuthUser } from '../lib/api';
 import { AccountShell } from '../components/AccountShell';
+import { AccountNavigation } from '../components/AccountNavigation';
+import { SecurityReview } from '../components/SecurityReview';
+import { useAccountNavigation } from '../lib/useAccountNavigation';
 import { AccountIcon } from '../components/AccountIcon';
 import { Skeleton } from '../components/Skeleton';
 import { AccountProfile } from '../components/AccountProfile';
@@ -57,6 +60,7 @@ function readGoogleLinkError(): string | null {
 
 export function AccountPage(): ReactNode {
   const sessions = useSessions();
+  const navigation = useAccountNavigation();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -74,6 +78,7 @@ export function AccountPage(): ReactNode {
   }
 
   function setChangingPw(open: boolean): void {
+    navigation.select('signin', true);
     updateChangingPw(open);
     if (!open) {
       const url = new URL(window.location.href);
@@ -189,6 +194,7 @@ export function AccountPage(): ReactNode {
       const url = new URL(window.location.href);
       url.searchParams.delete('error');
       url.searchParams.delete('reason');
+      url.hash = 'account-security';
       window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
     }
   }, [googleLinkError]);
@@ -237,8 +243,20 @@ export function AccountPage(): ReactNode {
 
   return (
     <AccountShell
-      title="Your account"
-      subtitle="One login for all of aidenjang's apps."
+      title={navigation.selected.title}
+      subtitle={navigation.selected.subtitle}
+      navigation={<AccountNavigation navigation={navigation} />}
+      identity={
+        <div className="hub-identity">
+          <span className="account-avatar" aria-hidden>
+            {Array.from(user.displayName).slice(0, 2).join('')}
+          </span>
+          <div>
+            <strong>{user.displayName}</strong>
+            <p>{user.email}</p>
+          </div>
+        </div>
+      }
       action={
         <button type="button" onClick={logout} className="hub-logout">
           <AccountIcon kind="logout" />
@@ -247,99 +265,37 @@ export function AccountPage(): ReactNode {
       }
     >
       {stepUp.prompt}
-      {!changingPw && (
-        <nav className="hub-jumps" aria-label="Account sections">
-          <a href="#account-apps">Apps</a>
-          <a href="#account-profile">Profile</a>
-          <a href="#account-security">Sign-in</a>
-          <a href="#active-sessions">Devices</a>
-          <a href="#account-data">Data</a>
-        </nav>
-      )}
       {securityReview && (
-        <section
-          aria-labelledby="sign-in-review-heading"
-          className="mt-6 rounded-2xl border border-accent/30 bg-accent/10 p-4"
-        >
-          {securityReviewStatus === 'secured' ? (
-            <div className="flex items-start gap-3">
-              <span
-                aria-hidden
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-pos/15 font-bold text-pos"
-              >
-                ✓
-              </span>
-              <div className="min-w-0 flex-1">
-                <h2 id="sign-in-review-heading" className="text-sm font-semibold text-ink">
-                  Other devices are signed out
-                </h2>
-                <p className="mt-1 text-xs leading-relaxed text-muted">
-                  {user.hasPassword
-                    ? 'Finish by changing your password below. This device will stay signed in.'
-                    : 'This device stayed signed in. Your Google account remains your sign-in method.'}
-                </p>
-                {!user.hasPassword && (
-                  <button
-                    type="button"
-                    onClick={dismissSecurityReview}
-                    className="mt-2 text-xs font-semibold text-accent hover:underline"
-                  >
-                    Done
-                  </button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <>
-              <h2 id="sign-in-review-heading" className="text-base font-semibold text-ink">
-                Was that sign-in you?
-              </h2>
-              <p className="mt-1 text-sm leading-relaxed text-muted">
-                If the device or location in the email looked wrong, lock every other session out
-                now.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => void secureAccount()}
-                  disabled={sessions.revokingOthers}
-                  className="btn-primary rounded-full px-4 py-2 text-sm font-semibold disabled:opacity-60"
-                >
-                  {securityReviewStatus === 'securing' ? 'Securing account…' : 'That was not me'}
-                </button>
-                <button
-                  type="button"
-                  onClick={dismissSecurityReview}
-                  disabled={securityReviewStatus === 'securing'}
-                  className="rounded-full border border-line px-4 py-2 text-sm font-medium text-muted transition hover:text-ink disabled:opacity-60"
-                >
-                  Yes, it was me
-                </button>
-              </div>
-              {securityReviewStatus === 'failed' && (
-                <p role="alert" className="mt-3 text-sm font-medium text-neg">
-                  Couldn’t sign out the other devices. Try again here.
-                </p>
-              )}
-            </>
-          )}
-        </section>
+        <SecurityReview
+          status={securityReviewStatus}
+          hasPassword={user.hasPassword}
+          busy={sessions.revokingOthers}
+          onDismiss={dismissSecurityReview}
+          onSecure={secureAccount}
+        />
       )}
 
-      {!changingPw && <AppLauncher />}
+      <div hidden={navigation.selected.id !== 'apps'}>
+        <AppLauncher />
+      </div>
 
-      <AccountProfile
-        user={user}
-        onUserChange={updateUser}
-        verificationReturnTo={verificationReturnTo}
-      />
+      <div hidden={navigation.selected.id !== 'profile'}>
+        <AccountProfile
+          user={user}
+          onUserChange={updateUser}
+          verificationReturnTo={verificationReturnTo}
+        />
+      </div>
 
       <section
+        hidden={navigation.selected.id !== 'signin'}
         id="account-security"
         className="hub-section"
         aria-labelledby="account-security-heading"
       >
-        <h2 id="account-security-heading">Sign-in & security</h2>
+        <h2 id="account-security-heading" className="sr-only">
+          Sign-in & security
+        </h2>
         <PasswordSection
           user={user}
           changingPw={changingPw}
@@ -363,19 +319,18 @@ export function AccountPage(): ReactNode {
         {!changingPw && <PasskeyList guard={stepUp.guard} />}
       </section>
 
-      {!changingPw && (
-        <>
-          <SessionList
-            sessions={sessions}
-            mountedAt={mountedAt}
-            timeAgo={timeAgo}
-            exactTime={exactTime}
-          />
-          <ExportAccount />
-        </>
-      )}
-
-      {!changingPw && <DeleteAccount user={user} guard={stepUp.guard} />}
+      <div hidden={navigation.selected.id !== 'devices'}>
+        <SessionList
+          sessions={sessions}
+          mountedAt={mountedAt}
+          timeAgo={timeAgo}
+          exactTime={exactTime}
+        />
+      </div>
+      <div hidden={navigation.selected.id !== 'data'}>
+        <ExportAccount />
+        <DeleteAccount user={user} guard={stepUp.guard} />
+      </div>
     </AccountShell>
   );
 }

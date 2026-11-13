@@ -5,7 +5,13 @@ import { googleEnabled, googleLoginUrl } from '../lib/api';
  * "Continue with Google" — a full-page redirect (no embedded SDK, so no CSP changes) plus an "or"
  * divider. Renders nothing unless the build opts in via VITE_GOOGLE_ENABLED.
  */
-export function GoogleSignIn({ returnTo }: { returnTo?: string | null }): ReactNode {
+export function GoogleSignIn({
+  returnTo,
+  divider = true,
+}: {
+  returnTo?: string | null;
+  divider?: boolean;
+}): ReactNode {
   if (!googleEnabled) return null;
   return (
     <>
@@ -33,11 +39,13 @@ export function GoogleSignIn({ returnTo }: { returnTo?: string | null }): ReactN
         </svg>
         Continue with Google
       </a>
-      <div className="my-5 flex items-center gap-3 text-xs text-muted">
-        <span className="h-px flex-1 bg-line" />
-        or use your email
-        <span className="h-px flex-1 bg-line" />
-      </div>
+      {divider && (
+        <div className="my-5 flex items-center gap-3 text-xs text-muted">
+          <span className="h-px flex-1 bg-line" />
+          or use your email
+          <span className="h-px flex-1 bg-line" />
+        </div>
+      )}
     </>
   );
 }

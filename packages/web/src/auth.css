@@ -1,0 +1,313 @@
+.auth-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.auth-skip-link {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  transform: translateY(-200%);
+  border-radius: 6px;
+  padding: 12px 16px;
+  background: var(--color-card);
+  color: var(--color-ink);
+}
+.auth-skip-link:focus {
+  transform: none;
+}
+.auth-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  min-height: 76px;
+  padding: 18px max(36px, env(safe-area-inset-right)) 18px max(36px, env(safe-area-inset-left));
+  background: var(--color-card);
+  border-bottom: 1px solid var(--color-line);
+}
+.auth-header-action {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+.auth-header-action a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  margin-left: 4px;
+  color: var(--color-accent);
+}
+.auth-header-action a:hover,
+.auth-switch a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.auth-form-body {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 48px 20px 0;
+}
+.auth-intro {
+  display: flow-root;
+  margin-bottom: 26px;
+}
+.auth-title {
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.16;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.auth-subtitle {
+  margin-top: 10px;
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.auth-destination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.app-mark {
+  display: block;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 10px;
+}
+.app-mark-letter {
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  background: #e9e6ce;
+  color: #253349;
+}
+.auth-destination .app-mark {
+  width: 36px;
+  height: 36px;
+}
+.account-support-art {
+  float: right;
+  width: 64px;
+  height: 58px;
+  margin: 0 0 8px 16px;
+  pointer-events: none;
+}
+.auth-sheet {
+  padding: 28px;
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  background: var(--color-card);
+}
+.auth-sheet input {
+  min-height: 48px;
+  font-size: 16px;
+}
+.auth-sheet input::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
+}
+.auth-sheet input,
+.hub-shell input,
+.hub-shell select {
+  border-color: var(--color-control-line);
+}
+.auth-sheet input:focus,
+.hub-shell input:focus,
+.hub-shell select:focus {
+  border-color: var(--color-accent);
+}
+.auth-switch {
+  margin-top: 18px;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+.auth-switch a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-accent);
+}
+.auth-switch-mobile {
+  display: block;
+}
+.auth-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  padding: 28px 20px 24px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+.auth-footer nav {
+  display: flex;
+  gap: 22px;
+}
+.auth-footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+}
+.auth-footer a:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+.auth-form-body + .auth-footer {
+  margin-top: auto;
+}
+@media (max-width: 600px) {
+  .auth-form-header {
+    min-height: 72px;
+    padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 16px
+      max(20px, env(safe-area-inset-left));
+  }
+  .auth-header-action {
+    display: none;
+  }
+  .auth-form-body {
+    padding-top: 34px;
+  }
+  .auth-title {
+    font-size: 29px;
+  }
+  .auth-sheet {
+    padding: 22px;
+  }
+  button,
+  input,
+  select {
+    min-height: 44px;
+  }
+}
+@media (max-width: 359px) {
+  /* Turnstile needs 300px; the challenge must fit without scaling or clipping. */
+  .auth-form-body {
+    padding-inline: 10px;
+  }
+  .auth-sheet {
+    padding-inline: 0;
+    border: 0;
+    background: transparent;
+  }
+}
+
+.account-avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--color-paper-selected);
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.recent-accounts > li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-line);
+}
+.recent-accounts > li:last-child {
+  border-bottom: 0;
+}
+.recent-account-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+  min-height: 82px;
+  padding-block: 14px;
+  text-align: left;
+}
+.recent-account-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.recent-account-copy strong {
+  font-size: 14px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.recent-account-copy small {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+.recent-account-continue {
+  color: var(--color-accent);
+  font-size: 12px;
+}
+.recent-forget {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  min-height: 44px;
+  color: var(--color-muted);
+  border-radius: 8px;
+}
+.recent-forget:hover {
+  background: var(--color-paper-selected);
+  color: var(--color-ink);
+}
+.auth-switch button {
+  min-height: 44px;
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.chosen-account {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.chosen-account strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  font-weight: 500;
+}
+.chosen-account > button {
+  margin-left: auto;
+  min-height: 44px;
+  color: var(--color-accent);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.password-option {
+  margin-top: 16px;
+}
+.password-option > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--color-accent);
+  font-size: 13px;
+  cursor: pointer;
+}
+.password-option[open] > summary {
+  margin-bottom: 16px;
+}
+@media (max-width: 380px) {
+  .recent-account-continue {
+    display: none;
+  }
+}

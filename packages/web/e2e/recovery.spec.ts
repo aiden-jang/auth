@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './fixtures';
+import { expect, test, openEmailSignIn, type Page } from './fixtures';
 import { linkEmailedTo } from './mail';
 
 /* Forgetting a password and getting back in: the one flow where a break locks people out with no
@@ -19,7 +19,7 @@ async function register(page: Page): Promise<string> {
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByLabel('Confirm password').fill(password);
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your apps' })).toBeVisible();
   await page.getByRole('button', { name: 'Log out' }).click();
   await expect(page).toHaveURL(/\/login/);
   return email;
@@ -47,10 +47,11 @@ test('reset a forgotten password and sign in with the new one', async ({ page })
   await page.getByRole('button', { name: 'Set new password' }).click();
 
   await page.goto('/login');
+  await openEmailSignIn(page);
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(next);
   await page.getByRole('button', { name: 'Log in' }).click();
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your apps' })).toBeVisible();
 });
 
 /* The old password has to stop working, or a reset does not recover an account somebody else knows
@@ -66,6 +67,7 @@ test('the old password stops working once it has been reset', async ({ page }) =
   await page.getByRole('button', { name: 'Set new password' }).click();
 
   await page.goto('/login');
+  await openEmailSignIn(page);
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Log in' }).click();

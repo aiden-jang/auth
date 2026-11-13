@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './fixtures';
+import { expect, test, openEmailSignIn, selectAccountSection, type Page } from './fixtures';
 
 /*
  * The account page's own features, which the journey suite never touches. They assert what a person
@@ -20,12 +20,13 @@ async function registerAndLand(page: Page): Promise<string> {
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByLabel('Confirm password').fill(password);
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your apps' })).toBeVisible();
   return email;
 }
 
 async function signIn(page: Page, email: string, pw: string): Promise<void> {
   await page.goto('/login');
+  await openEmailSignIn(page);
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(pw);
   await page.getByRole('button', { name: 'Log in' }).click();
@@ -34,26 +35,34 @@ async function signIn(page: Page, email: string, pw: string): Promise<void> {
 test.describe('the display name', () => {
   test('saves, and is still there after a reload', async ({ page }) => {
     await registerAndLand(page);
+    await selectAccountSection(page, 'Profile');
 
     await page.getByRole('button', { name: 'Edit' }).click();
     const field = page.getByLabel('Display name');
     await field.fill('Renamed Person');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
 
-    await expect(page.getByText('Renamed Person')).toBeVisible();
+    await expect(
+      page.getByRole('region', { name: 'Profile', exact: true }).getByText('Renamed Person'),
+    ).toBeVisible();
     // Reloaded, because a name that only changed on screen has not been saved.
     await page.reload();
-    await expect(page.getByText('Renamed Person')).toBeVisible();
+    await expect(
+      page.getByRole('region', { name: 'Profile', exact: true }).getByText('Renamed Person'),
+    ).toBeVisible();
   });
 
   test('refuses an empty name rather than saving a blank one', async ({ page }) => {
     await registerAndLand(page);
+    await selectAccountSection(page, 'Profile');
     await page.getByRole('button', { name: 'Edit' }).click();
     await page.getByLabel('Display name').fill('   ');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
 
     await page.reload();
-    await expect(page.getByText('Account Person')).toBeVisible();
+    await expect(
+      page.getByRole('region', { name: 'Profile', exact: true }).getByText('Account Person'),
+    ).toBeVisible();
   });
 });
 
@@ -64,6 +73,7 @@ test.describe('changing the password', () => {
    */
   test('replaces the password everywhere, not just on screen', async ({ page }) => {
     const email = await registerAndLand(page);
+    await selectAccountSection(page, 'Sign-in');
     const next = 'a completely different passphrase';
 
     await page.getByRole('button', { name: 'Change password' }).click();
@@ -80,11 +90,12 @@ test.describe('changing the password', () => {
     await expect(page.getByRole('alert')).toBeVisible();
 
     await signIn(page, email, next);
-    await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Your apps' })).toBeVisible();
   });
 
   test('will not accept a wrong current password', async ({ page }) => {
     await registerAndLand(page);
+    await selectAccountSection(page, 'Sign-in');
     await page.getByRole('button', { name: 'Change password' }).click();
     await page.getByLabel('Current password').fill('not the password');
     await page.getByLabel('New password', { exact: true }).fill('some new passphrase');
@@ -96,6 +107,7 @@ test.describe('changing the password', () => {
 
   test('will not accept a confirmation that does not match', async ({ page }) => {
     await registerAndLand(page);
+    await selectAccountSection(page, 'Sign-in');
     await page.getByRole('button', { name: 'Change password' }).click();
     await page.getByLabel('Current password').fill(password);
     await page.getByLabel('New password', { exact: true }).fill('some new passphrase');
@@ -109,7 +121,8 @@ test.describe('changing the password', () => {
 test.describe('signed-in devices', () => {
   test('lists this one, and names it something recognisable', async ({ page, browserName }) => {
     await registerAndLand(page);
-    await expect(page.getByRole('region', { name: 'Security', exact: true })).toBeVisible();
+    await selectAccountSection(page, 'Devices');
+    await expect(page.getByRole('region', { name: 'Active sessions', exact: true })).toBeVisible();
     // The label is what somebody scans for a device that is not theirs.
     await expect(
       page.getByText(browserName === 'webkit' ? 'Safari on iOS' : /Chrome on/),
@@ -118,6 +131,7 @@ test.describe('signed-in devices', () => {
 
   test('renames a device, and the new name survives a reload', async ({ page, browserName }) => {
     await registerAndLand(page);
+    await selectAccountSection(page, 'Devices');
     await page
       .getByText(browserName === 'webkit' ? 'Safari on iOS' : /Chrome on/)
       .first()
@@ -135,6 +149,7 @@ test.describe('signed-in devices', () => {
 test.describe('taking your data with you', () => {
   test('offers a copy and says when it is ready', async ({ page }) => {
     await registerAndLand(page);
+    await selectAccountSection(page, 'Data');
     const download = page.waitForEvent('download');
     await page.getByRole('button', { name: 'Download copy' }).click();
     const file = await download;
@@ -159,6 +174,7 @@ test.describe('taking your data with you', () => {
 test.describe('deleting the account', () => {
   test('refuses a wrong password, and deletes nothing', async ({ page }) => {
     const email = await registerAndLand(page);
+    await selectAccountSection(page, 'Data');
     await page.getByRole('button', { name: 'Delete account' }).click();
     await page.getByLabel('Your password').fill('not the password');
     await page.getByRole('button', { name: 'Delete my account' }).click();
@@ -166,13 +182,14 @@ test.describe('deleting the account', () => {
 
     // Still there: a refused deletion must not have deleted anything.
     await page.reload();
-    await expect(page.getByText(email, { exact: true })).toBeVisible();
+    await expect(page.locator('.hub-identity').getByText(email, { exact: true })).toBeVisible();
   });
 
   /* An empty box never reaches the server: the field is required, so the browser stops the submit
      first. Worth pinning, because dropping `required` would send a blank password on a click. */
   test('will not submit at all with the box empty', async ({ page }) => {
     await registerAndLand(page);
+    await selectAccountSection(page, 'Data');
     await page.getByRole('button', { name: 'Delete account' }).click();
     await expect(page.getByLabel('Your password')).toHaveAttribute('required', '');
   });
@@ -180,6 +197,7 @@ test.describe('deleting the account', () => {
   /* The one irreversible action on the page. Afterwards the credentials must not work. */
   test('with the password, really removes the account', async ({ page }) => {
     const email = await registerAndLand(page);
+    await selectAccountSection(page, 'Data');
     await page.evaluate((email) => {
       localStorage.setItem('aidenjang:recent-email', email);
       localStorage.setItem(
@@ -207,6 +225,7 @@ test('password-manager destination survives signing in', async ({ page }) => {
   await expect(page).toHaveURL(/\/login/);
   await page.goto('/account?password=change', { waitUntil: 'domcontentloaded' });
   await expect(page).toHaveURL(/\/login\?return_to=/);
+  await openEmailSignIn(page);
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Log in', exact: true }).click();

@@ -88,6 +88,18 @@ export function SignupPage(): ReactNode {
           </Link>
         </p>
       }
+      footer={
+        <p>
+          Already have an account?{' '}
+          <Link
+            to={withReturn('/login')}
+            state={{ email }}
+            className="font-medium text-accent hover:underline"
+          >
+            Log in
+          </Link>
+        </p>
+      }
     >
       <GoogleSignIn returnTo={returnTo} />
       <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
@@ -246,17 +258,6 @@ export function SignupPage(): ReactNode {
           </p>
         )}
       </form>
-
-      <p className="auth-switch-mobile mt-5 text-center text-sm text-muted">
-        Already have an account?{' '}
-        <Link
-          to={withReturn('/login')}
-          state={{ email }}
-          className="font-medium text-accent hover:underline"
-        >
-          Log in
-        </Link>
-      </p>
     </AuthCard>
   );
 }

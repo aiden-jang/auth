@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 
 const paths = {
+  close: 'M6 6l12 12M6 18 18 6',
+  key: 'M21 2l-9.4 9.4m0 0a5.5 5.5 0 1 1-7.8 7.8 5.5 5.5 0 0 1 7.8-7.8ZM16 7l3 3M18 5l3 3',
   arrow: 'M7 17 17 7M7 7h10v10',
   logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9',
   download: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',

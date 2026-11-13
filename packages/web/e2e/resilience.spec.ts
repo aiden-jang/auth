@@ -30,11 +30,17 @@ test('account save and delete buttons have readable text', async ({ page }) => {
       },
     }),
   );
-  await page.goto('/account');
+  await page.goto('/account#active-sessions');
   await page.getByRole('button', { name: /Personal laptop/ }).click();
   await page.getByRole('button', { name: 'Rename device', exact: true }).click();
-  await page.getByRole('button', { name: 'Delete account', exact: true }).click();
   for (const name of ['Save name', 'Delete my account']) {
+    if (name === 'Delete my account') {
+      await page
+        .getByRole('navigation', { name: 'Account sections' })
+        .getByRole('link', { name: 'Data', exact: true })
+        .click();
+      await page.getByRole('button', { name: 'Delete account', exact: true }).click();
+    }
     const colors = await page.getByRole('button', { name, exact: true }).evaluate((button) => {
       const style = getComputedStyle(button);
       return [style.color, style.backgroundColor];
@@ -86,7 +92,7 @@ test('an account outage stays recoverable without pretending the session expired
   await expect(page).toHaveURL(/\/account$/);
   unavailable = false;
   await page.getByRole('button', { name: 'Try again', exact: true }).click();
-  await expect(page.getByText(user.email, { exact: true })).toBeVisible();
+  await expect(page.locator('.hub-identity').getByText(user.email, { exact: true })).toBeVisible();
 });
 
 test('logout waits for confirmation and offers a retry on failure', async ({ page }) => {
@@ -126,7 +132,7 @@ test('a failed passkey list is an error with a retry, never an empty account', a
           },
     ),
   );
-  await page.goto('/account');
+  await page.goto('/account#account-security');
   const section = page.getByRole('region', { name: 'Passkeys', exact: true });
   await expect(section.getByRole('alert')).toBeVisible();
   await expect(section.getByText('No passkeys yet.', { exact: true })).toBeHidden();
@@ -140,8 +146,8 @@ test('an account remains usable without browser passkey support', async ({ page 
   await page.addInitScript(() => {
     Object.defineProperty(window, 'PublicKeyCredential', { configurable: true, value: undefined });
   });
-  await page.goto('/account');
-  await expect(page.getByText(user.email, { exact: true })).toBeVisible();
+  await page.goto('/account#account-security');
+  await expect(page.locator('.hub-identity').getByText(user.email, { exact: true })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Passkeys', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Change password', exact: true }).click();
   await expect(page.getByLabel('Current password', { exact: true })).toBeVisible();
@@ -155,7 +161,7 @@ test('cancelling reauthentication keeps the password draft without claiming succ
   await page.route('**/auth/set-password', (route) =>
     route.fulfill({ status: 403, json: { error: 'REAUTH_REQUIRED', canUsePassword: false } }),
   );
-  await page.goto('/account');
+  await page.goto('/account#account-security');
   await page.getByRole('button', { name: 'Set a password', exact: true }).click();
   await page.getByLabel('New password', { exact: true }).fill('a fresh secure passphrase');
   await page.getByLabel('Confirm new password').fill('a fresh secure passphrase');
@@ -199,7 +205,7 @@ test('reauthentication keeps keyboard focus inside and restores it on cancellati
   await page.route('**/auth/passkeys/delete', (route) =>
     route.fulfill({ status: 403, json: { error: 'REAUTH_REQUIRED', canUsePassword: true } }),
   );
-  await page.goto('/account');
+  await page.goto('/account#account-security');
   await page.getByRole('button', { name: 'Remove', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
@@ -323,7 +329,7 @@ test('verification resend reports delivery failure and reconciles an already ver
       ? route.fulfill({ status: 503, json: { error: 'EMAIL_UNAVAILABLE' } })
       : route.fulfill({ json: { ok: true, alreadyVerified: true } }),
   );
-  await page.goto('/account');
+  await page.goto('/account#account-profile');
   const resend = page.getByRole('button', { name: 'Resend verification email' });
   await resend.click();
   await expect(page.getByRole('alert')).toBeVisible();
@@ -340,7 +346,7 @@ test('a device-list failure does not claim there are no active sessions', async 
   await page.route('**/auth/sessions', (route) =>
     route.fulfill({ status: 503, json: { error: 'UNAVAILABLE' } }),
   );
-  await page.goto('/account');
+  await page.goto('/account#active-sessions');
   await expect(page.getByText('Couldn’t refresh active devices. Try again.')).toBeVisible();
   await expect(page.getByText('No active sessions.', { exact: true })).toBeHidden();
   await expect(page.getByText('Reading your devices.', { exact: false })).toBeHidden();
@@ -379,7 +385,7 @@ test('a post-confirmation action failure returns to the original error handler',
   await page.route('**/auth/reauth', (route) =>
     route.fulfill({ json: { ok: true, sudoUntil: null } }),
   );
-  await page.goto('/account');
+  await page.goto('/account#account-security');
   await page.getByRole('button', { name: 'Remove', exact: true }).click();
   await page.getByLabel('Your password', { exact: true }).fill('a valid passphrase');
   await page.getByRole('button', { name: 'Confirm', exact: true }).click();
@@ -408,7 +414,7 @@ test('passkey details stay readable with long names and forced colors', async ({
       },
     }),
   );
-  await page.goto('/account');
+  await page.goto('/account#account-security');
   const section = page.getByRole('region', { name: 'Passkeys', exact: true });
   const name = section.getByText(label, { exact: true });
   await expect(name).toBeVisible();
@@ -499,7 +505,7 @@ test('a passwordless deletion can return from Google to a fresh confirmation', a
       json: { error: 'REAUTH_REQUIRED', canUsePassword: false },
     });
   });
-  await page.goto('/account');
+  await page.goto('/account#account-data');
   await page.getByRole('button', { name: 'Delete account', exact: true }).click();
   await page.getByLabel('Type your email to confirm').fill(user.email);
   await page.getByRole('button', { name: 'Delete my account' }).click();
@@ -522,7 +528,7 @@ test('a passwordless deletion can return from Google to a fresh confirmation', a
     .getByRole('region', { name: 'Danger zone' })
     .getByRole('button', { name: 'Cancel' })
     .click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(/\/account#account-data$/);
 });
 
 test('a profile save keeps its pending name visible and read-only', async ({ page }) => {
@@ -535,7 +541,7 @@ test('a profile save keeps its pending name visible and read-only', async ({ pag
     await pending;
     await route.fulfill({ json: { user: { ...user, displayName: 'Updated name' } } });
   });
-  await page.goto('/account');
+  await page.goto('/account#account-profile');
   const profile = page.getByRole('region', { name: 'Profile', exact: true });
   await profile.getByRole('button', { name: 'Edit', exact: true }).click();
   const name = profile.getByRole('textbox', { name: 'Display name' });
@@ -580,7 +586,7 @@ test('sign-out in another tab clears the account view without a reload', async (
       : route.fulfill({ status: 401, json: { error: 'UNAUTHENTICATED' } }),
   );
   await page.goto('/account');
-  await expect(page.getByText(user.email, { exact: true })).toBeVisible();
+  await expect(page.locator('.hub-identity').getByText(user.email, { exact: true })).toBeVisible();
   const otherTab = await context.newPage();
   await otherTab.route('**/auth/logout', (route) => {
     signedIn = false;
@@ -629,7 +635,7 @@ test('leaving sign-up cancels its pending navigation', async ({ page }) => {
   await page.getByRole('button', { name: 'Create account', exact: true }).click();
   try {
     await request;
-    await page.getByRole('link', { name: 'Log in', exact: true }).click();
+    await page.locator('#auth-content').getByRole('link', { name: 'Log in', exact: true }).click();
     await expect(page.locator('html')).toHaveAttribute('data-request-cancelled', 'true');
     await expect(page).toHaveURL(/\/login$/);
   } finally {

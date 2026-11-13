@@ -40,7 +40,9 @@ export function ExportAccount(): ReactNode {
   return (
     <section aria-labelledby="your-data-heading" id="account-data" className="hub-section hub-data">
       <div>
-        <h2 id="your-data-heading">Your data</h2>
+        <h2 id="your-data-heading" className="sr-only">
+          Your data
+        </h2>
         <p className="hub-data-description">
           Download your profile, sign-in methods, active devices, and security history as JSON.
           Passwords and session credentials are never included.

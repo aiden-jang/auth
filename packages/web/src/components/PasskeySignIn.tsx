@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { passkeyUsedOnThisDevice, passkeysLikely, signInWithPasskey } from '../lib/passkeys';
 import { safeReturnTo } from '../lib/returnTo';
 import { reassurance } from '../lib/reassurance';
+import { WebAuthnAbortService } from '@simplewebauthn/browser';
+import { AccountIcon } from './AccountIcon';
 
 /*
  * Offered only where a passkey has been used, not merely where one could exist -- otherwise this
@@ -14,7 +16,15 @@ export function PasskeySignIn({ returnTo }: { returnTo?: string | null }): React
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pending = useRef<AbortController | null>(null);
-  useLayoutEffect(() => () => pending.current?.abort(), []);
+  useLayoutEffect(
+    () => () => {
+      if (pending.current) {
+        pending.current.abort();
+        WebAuthnAbortService.cancelCeremony();
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     let live = true;
@@ -53,9 +63,9 @@ export function PasskeySignIn({ returnTo }: { returnTo?: string | null }): React
         type="button"
         onClick={() => void go()}
         disabled={busy}
-        className="btn-primary flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition disabled:opacity-60"
+        className="btn-primary flex w-full items-center justify-center gap-2 rounded-[9px] px-4 py-3 text-sm font-medium transition disabled:opacity-60"
       >
-        <span aria-hidden>⚿</span>
+        <AccountIcon kind="key" />
         {busy ? 'Waiting for your device...' : 'Sign in with a passkey'}
       </button>
       <p role={busy ? 'status' : undefined} className="mt-2 text-center text-xs text-muted">

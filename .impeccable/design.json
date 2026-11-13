@@ -1,0 +1,360 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-13T22:01:57.524526Z",
+  "title": "Design System: Accounts",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Account blue",
+        "canonical": "#315fc4",
+        "tonalRamp": [
+          "oklch(15% 0.0623 263.3)",
+          "oklch(26% 0.1080 263.3)",
+          "oklch(38% 0.1578 263.3)",
+          "oklch(50% 0.1661 263.3)",
+          "oklch(62% 0.1661 263.3)",
+          "oklch(74% 0.1661 263.3)",
+          "oklch(85% 0.0997 263.3)",
+          "oklch(95% 0.0332 263.3)"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Cool ivory",
+        "canonical": "#f2f4f8",
+        "tonalRamp": [
+          "oklch(15% 0.0022 264.5)",
+          "oklch(26% 0.0037 264.5)",
+          "oklch(38% 0.0055 264.5)",
+          "oklch(50% 0.0058 264.5)",
+          "oklch(62% 0.0058 264.5)",
+          "oklch(74% 0.0058 264.5)",
+          "oklch(85% 0.0035 264.5)",
+          "oklch(95% 0.0012 264.5)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(15% 0.0000 0.0)",
+          "oklch(26% 0.0000 0.0)",
+          "oklch(38% 0.0000 0.0)",
+          "oklch(50% 0.0000 0.0)",
+          "oklch(62% 0.0000 0.0)",
+          "oklch(74% 0.0000 0.0)",
+          "oklch(85% 0.0000 0.0)",
+          "oklch(95% 0.0000 0.0)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Slate ink",
+        "canonical": "#253349",
+        "tonalRamp": [
+          "oklch(15% 0.0164 259.2)",
+          "oklch(26% 0.0285 259.2)",
+          "oklch(38% 0.0417 259.2)",
+          "oklch(50% 0.0439 259.2)",
+          "oklch(62% 0.0439 259.2)",
+          "oklch(74% 0.0439 259.2)",
+          "oklch(85% 0.0263 259.2)",
+          "oklch(95% 0.0088 259.2)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Slate gray",
+        "canonical": "#5d6b7e",
+        "tonalRamp": [
+          "oklch(15% 0.0130 256.1)",
+          "oklch(26% 0.0225 256.1)",
+          "oklch(38% 0.0328 256.1)",
+          "oklch(50% 0.0346 256.1)",
+          "oklch(62% 0.0346 256.1)",
+          "oklch(74% 0.0346 256.1)",
+          "oklch(85% 0.0207 256.1)",
+          "oklch(95% 0.0069 256.1)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Soft divider",
+        "canonical": "#d9e0e9",
+        "tonalRamp": [
+          "oklch(15% 0.0054 254.6)",
+          "oklch(26% 0.0094 254.6)",
+          "oklch(38% 0.0137 254.6)",
+          "oklch(50% 0.0144 254.6)",
+          "oklch(62% 0.0144 254.6)",
+          "oklch(74% 0.0144 254.6)",
+          "oklch(85% 0.0087 254.6)",
+          "oklch(95% 0.0029 254.6)"
+        ]
+      },
+      "control-line": {
+        "role": "neutral",
+        "displayName": "Control slate",
+        "canonical": "#7d8ba1",
+        "tonalRamp": [
+          "oklch(15% 0.0139 259.4)",
+          "oklch(26% 0.0240 259.4)",
+          "oklch(38% 0.0351 259.4)",
+          "oklch(50% 0.0370 259.4)",
+          "oklch(62% 0.0370 259.4)",
+          "oklch(74% 0.0370 259.4)",
+          "oklch(85% 0.0222 259.4)",
+          "oklch(95% 0.0074 259.4)"
+        ]
+      },
+      "paper-selected": {
+        "role": "primary",
+        "displayName": "Pale selection blue",
+        "canonical": "#e8efff",
+        "tonalRamp": [
+          "oklch(15% 0.0086 266.9)",
+          "oklch(26% 0.0148 266.9)",
+          "oklch(38% 0.0217 266.9)",
+          "oklch(50% 0.0228 266.9)",
+          "oklch(62% 0.0228 266.9)",
+          "oklch(74% 0.0228 266.9)",
+          "oklch(85% 0.0137 266.9)",
+          "oklch(95% 0.0046 266.9)"
+        ]
+      },
+      "neg": {
+        "role": "semantic",
+        "displayName": "Muted red",
+        "canonical": "#a34443",
+        "tonalRamp": [
+          "oklch(15% 0.0475 23.2)",
+          "oklch(26% 0.0823 23.2)",
+          "oklch(38% 0.1203 23.2)",
+          "oklch(50% 0.1266 23.2)",
+          "oklch(62% 0.1266 23.2)",
+          "oklch(74% 0.1266 23.2)",
+          "oklch(85% 0.0760 23.2)",
+          "oklch(95% 0.0253 23.2)"
+        ]
+      },
+      "pos": {
+        "role": "semantic",
+        "displayName": "Forest green",
+        "canonical": "#2d7254",
+        "tonalRamp": [
+          "oklch(15% 0.0320 162.1)",
+          "oklch(26% 0.0554 162.1)",
+          "oklch(38% 0.0810 162.1)",
+          "oklch(50% 0.0852 162.1)",
+          "oklch(62% 0.0852 162.1)",
+          "oklch(74% 0.0852 162.1)",
+          "oklch(85% 0.0511 162.1)",
+          "oklch(95% 0.0170 162.1)"
+        ]
+      },
+      "brand-mark-background": {
+        "role": "neutral",
+        "displayName": "Key charcoal",
+        "canonical": "#14171c",
+        "tonalRamp": [
+          "oklch(15% 0.0041 260.7)",
+          "oklch(26% 0.0072 260.7)",
+          "oklch(38% 0.0105 260.7)",
+          "oklch(50% 0.0110 260.7)",
+          "oklch(62% 0.0110 260.7)",
+          "oklch(74% 0.0110 260.7)",
+          "oklch(85% 0.0066 260.7)",
+          "oklch(95% 0.0022 260.7)"
+        ]
+      },
+      "brand-mark-ink": {
+        "role": "neutral",
+        "displayName": "Key ice blue",
+        "canonical": "#aacbfa",
+        "tonalRamp": [
+          "oklch(15% 0.0282 257.2)",
+          "oklch(26% 0.0489 257.2)",
+          "oklch(38% 0.0715 257.2)",
+          "oklch(50% 0.0753 257.2)",
+          "oklch(62% 0.0753 257.2)",
+          "oklch(74% 0.0753 257.2)",
+          "oklch(85% 0.0452 257.2)",
+          "oklch(95% 0.0151 257.2)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page titles, reduced to 29px at the relevant phone breakpoint."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings; legal headings use line-height 1.4."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Supporting copy and account descriptions."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Persistent form labels and compact actions."
+      },
+      "legal": {
+        "displayName": "Legal",
+        "purpose": "Policy prose, reduced to line-height 1.8 on phones."
+      }
+    },
+    "shadows": [
+      {
+        "name": "step-up-panel",
+        "value": "0 18px 54px rgba(37, 51, 73, 0.16)",
+        "purpose": "Reauthentication dialog only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "auth-enter",
+        "value": "450ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Auth content fades in and rises 8px; disabled for reduced motion."
+      },
+      {
+        "name": "skeleton-shimmer",
+        "value": "1500ms infinite",
+        "purpose": "Existing loading placeholder; disabled for reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow-auth",
+        "value": "359px"
+      },
+      {
+        "name": "auth-and-legal-phone",
+        "value": "600px"
+      },
+      {
+        "name": "account-phone",
+        "value": "700px"
+      }
+    ],
+    "tonalRampNote": "Synthesized OKLCH swatch previews only; the frontmatter and source CSS own the implemented palette."
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The shared authentication submit action.",
+      "html": "<button type=\"button\" class=\"ds-primary\">Log in</button>",
+      "css": ".ds-primary{font-family:var(--font-sans, 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif);letter-spacing:-0.011em;width:100%;border:0;border-radius:9px;padding:12px 20px;background:var(--color-accent,#315fc4);color:var(--color-accent-ink,#fff);font-size:16px;font-weight:500;line-height:1.5;cursor:pointer;transition:transform 150ms cubic-bezier(0.4,0,0.2,1)}.ds-primary:hover:not(:disabled){cursor:pointer}.ds-primary:focus-visible{outline:2px solid var(--color-accent,#315fc4);outline-offset:2px;border-radius:2px;}.ds-primary:active:not(:disabled){transform:scale(.98)}.ds-primary:disabled{opacity:.6;cursor:not-allowed}"
+    },
+    {
+      "name": "Outlined button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Quiet account actions such as downloading account data.",
+      "html": "<button type=\"button\" class=\"ds-outline\">Download</button>",
+      "css": ".ds-outline{font-family:var(--font-sans, 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif);letter-spacing:-0.011em;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 14px;border:1px solid var(--color-control-line,#7d8ba1);border-radius:8px;background:var(--color-card,#fff);color:var(--color-ink,#253349);font-size:14px;line-height:1.5;cursor:pointer}.ds-outline:hover{border-color:var(--color-accent,#315fc4);color:var(--color-accent,#315fc4)}.ds-outline:focus-visible{outline:2px solid var(--color-accent,#315fc4);outline-offset:2px;border-radius:2px;}"
+    },
+    {
+      "name": "Google action",
+      "kind": "button",
+      "refersTo": "button-google",
+      "description": "The existing provider link, shown when Google is enabled.",
+      "html": "<a class=\"ds-google\" href=\"#google-preview\"><svg aria-hidden=\"true\" viewBox=\"0 0 18 18\" class=\"ds-google-mark\"><path fill=\"#4285F4\" d=\"M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.71-1.57 2.68-3.89 2.68-6.62Z\"/><path fill=\"#34A853\" d=\"M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.85.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18Z\"/><path fill=\"#FBBC05\" d=\"M3.97 10.72A5.4 5.4 0 0 1 3.68 9c0-.6.1-1.18.29-1.72V4.95H.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.05l3.01-2.33Z\"/><path fill=\"#EA4335\" d=\"M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.47.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z\"/></svg>Continue with Google</a>",
+      "css": ".ds-google{font-family:var(--font-sans, 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif);letter-spacing:-0.011em;display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;width:100%;padding:10px 16px;border:1px solid var(--color-line,#d9e0e9);border-radius:10px;background:transparent;color:var(--color-ink,#253349);font-size:14px;font-weight:500;line-height:20px;text-decoration:none;transition:color 150ms cubic-bezier(0.4,0,0.2,1),background-color 150ms cubic-bezier(0.4,0,0.2,1),border-color 150ms cubic-bezier(0.4,0,0.2,1)}.ds-google-mark{width:16px;height:16px}.ds-google:hover{border-color:color-mix(in oklab,var(--color-accent,#315fc4) 60%,transparent);background:var(--color-field,#fff)}.ds-google:focus-visible{outline:2px solid var(--color-accent,#315fc4);outline-offset:2px;border-radius:2px;}"
+    },
+    {
+      "name": "Destructive button",
+      "kind": "button",
+      "refersTo": "button-destructive",
+      "description": "The explicit account-deletion confirmation.",
+      "html": "<button type=\"button\" class=\"ds-destructive\">Delete my account</button>",
+      "css": ".ds-destructive{font-family:var(--font-sans, 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif);letter-spacing:-0.011em;min-height:44px;border:0;border-radius:8px;padding:10px 20px;background:var(--color-neg,#a34443);color:var(--color-canvas,#f2f4f8);font-size:14px;font-weight:600;line-height:20px;cursor:pointer;transition:transform 150ms cubic-bezier(0.4,0,0.2,1)}.ds-destructive:hover:not(:disabled){cursor:pointer}.ds-destructive:focus-visible{outline:2px solid var(--color-accent,#315fc4);outline-offset:2px;border-radius:2px;}.ds-destructive:active:not(:disabled){transform:scale(.98)}.ds-destructive:disabled{opacity:.6;cursor:not-allowed}"
+    },
+    {
+      "name": "Text action",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "An inline account action with an understated hover underline.",
+      "html": "<button type=\"button\" class=\"ds-text\">Change password</button>",
+      "css": ".ds-text{font-family:var(--font-sans, 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif);letter-spacing:-0.011em;min-height:44px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--color-accent,#315fc4);font-size:14px;font-weight:500;line-height:20px;cursor:pointer}.ds-text:hover{text-decoration:underline}.ds-text:focus-visible{outline:2px solid var(--color-accent,#315fc4);outline-offset:2px;border-radius:2px;}"
+    },
+    {
+      "name": "Labeled field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "The shared field with a persistent label and accent focus treatment.",
+      "html": "<label class=\"ds-label\" for=\"ds-email\">Email</label><input class=\"ds-input\" id=\"ds-email\" type=\"email\" autocomplete=\"email\" value=\"alex@example.test\"/>",
+      "css": ".ds-label{font-family:var(--font-sans, 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif);letter-spacing:-0.011em;display:block;margin-bottom:6px;color:var(--color-ink,#253349);font-size:14px;font-weight:500;line-height:20px}.ds-input{font-family:var(--font-sans, 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif);letter-spacing:-0.011em;display:block;width:100%;min-height:48px;border:1px solid var(--color-control-line,#7d8ba1);border-radius:9px;padding:10px 14px;background:var(--color-field,#fff);color:var(--color-ink,#253349);font-size:16px;line-height:24px;outline:none;transition:border-color 150ms cubic-bezier(0.4,0,0.2,1)}.ds-input::placeholder{color:var(--color-muted,#5d6b7e);opacity:1}.ds-input:focus{border-color:var(--color-accent,#315fc4);box-shadow:0 0 0 2px color-mix(in oklab,var(--color-accent,#315fc4) 20%,transparent)}.ds-input:focus-visible{outline:2px solid var(--color-accent,#315fc4);outline-offset:2px;border-radius:2px;}"
+    },
+    {
+      "name": "Account navigation",
+      "kind": "nav",
+      "refersTo": "navigation-selected",
+      "description": "Section navigation with a pale selected state and a wrapping phone layout.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Account sections\"><a href=\"#apps-preview\">Apps</a><a href=\"#profile-preview\" aria-current=\"page\">Profile</a><a href=\"#signin-preview\">Sign-in</a><a href=\"#devices-preview\">Devices</a><a href=\"#data-preview\">Data</a></nav>",
+      "css": ".ds-nav{font-family:var(--font-sans, 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif);letter-spacing:-0.011em;display:grid;gap:7px;max-width:172px}.ds-nav a{display:flex;align-items:center;min-height:44px;padding:11px 14px;border-radius:8px;color:var(--color-muted,#5d6b7e);font-size:14px;line-height:21px;text-decoration:none}.ds-nav a[aria-current=\"page\"]{color:var(--color-accent,#315fc4);background:var(--color-paper-selected,#e8efff);font-weight:500}.ds-nav a:hover{color:var(--color-accent,#315fc4)}.ds-nav a:focus-visible{outline:2px solid var(--color-accent,#315fc4);outline-offset:2px;border-radius:2px;}@media(max-width:700px){.ds-nav{display:flex;max-width:none;flex-wrap:wrap;gap:5px 7px}.ds-nav a{padding:9px 12px;font-size:13px}}"
+    },
+    {
+      "name": "Unverified badge",
+      "kind": "chip",
+      "refersTo": "chip-unverified",
+      "description": "The noninteractive email-status pill.",
+      "html": "<span class=\"ds-unverified\">unverified</span>",
+      "css": ".ds-unverified{font-family:var(--font-sans, 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif);letter-spacing:-0.011em;border:1px solid var(--color-line,#d9e0e9);border-radius:calc(infinity * 1px);padding:2px 10px;color:var(--color-muted,#5d6b7e);font-size:12px;font-weight:500;line-height:16px}"
+    },
+    {
+      "name": "Authentication sheet",
+      "kind": "card",
+      "refersTo": "card-auth",
+      "description": "The white form container with its implemented phone and narrow-width treatments.",
+      "html": "<section class=\"ds-sheet\" aria-label=\"Authentication form\"><p class=\"ds-sheet-copy\">Sign in with your aidenjang account.</p></section>",
+      "css": ".ds-sheet{font-family:var(--font-sans, 'DM Sans', ui-sans-serif, system-ui, -apple-system, sans-serif);letter-spacing:-0.011em;padding:28px;border:1px solid var(--color-line,#d9e0e9);border-radius:16px;background:var(--color-card,#fff);color:var(--color-ink,#253349)}.ds-sheet-copy{margin:0;font-size:14px;line-height:1.6}@media(max-width:600px){.ds-sheet{padding:22px}}@media(max-width:359px){.ds-sheet{padding-inline:0;border:0;background:transparent}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A focused account home",
+    "overview": "Cool ivory surrounds white forms, slate text and restrained blue actions. The existing key mark, bundled app icons and locally hosted DM Sans carry the identity. The approved light direction replaces the former split layout.\n\nKeep the interface compact and readable. Thin dividers, quiet navigation and clear form labels carry the hierarchy. Security messages and destructive confirmations stay factual.",
+    "keyCharacteristics": [
+      "Light canvas, white forms and slate text.",
+      "Blue actions and pale blue selection.",
+      "Compact rows with visible labels and generous control targets.",
+      "Existing key mark and recognizable app icons."
+    ],
+    "rules": [
+      {
+        "name": "The Verified Destination Rule",
+        "body": "App accents and labels come from the verified app registry. Keep them local to the destination treatment; shared form actions retain account blue.",
+        "section": "colors"
+      },
+      {
+        "name": "The Visible Label Rule",
+        "body": "Keep labels visible after typing. Placeholders and password visibility controls supplement labels.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Surface Rule",
+        "body": "Use borders and spacing for resting hierarchy. Reserve the dialog shadow for the reauthentication overlay.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the shared forms light and the primary actions blue.",
+      "Do preserve visible labels, clear focus and factual security feedback.",
+      "Do keep all app destinations visible on phones.",
+      "Do retain drafts, return focus and reveal the relevant section for deep links.",
+      "Do respect reduced motion, forced colors and safe-area insets."
+    ],
+    "donts": [
+      "Don't restore the superseded split layout or dark form panels.",
+      "Don't take destination branding from unverified URL values.",
+      "Don't use color alone to communicate account status.",
+      "Don't hide an action's callback error in an inactive section.",
+      "Don't imply that an in-flight account change can be canceled."
+    ]
+  }
+}

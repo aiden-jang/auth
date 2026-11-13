@@ -39,6 +39,7 @@ test('profile editing uses the phone width and returns focus after cancel or sav
   });
   await page.goto('/account');
   await capture(page, 'account');
+  await page.goto('/account#account-profile');
   const profile = page.getByRole('region', { name: 'Profile', exact: true });
   const edit = profile.getByRole('button', { name: 'Edit', exact: true });
   await edit.click();
@@ -116,7 +117,7 @@ test('a device rename stays visible while saving and returns to its saved row', 
     device = route.request().postDataJSON().label;
     await route.fulfill({ json: { session: { id: 'current', device } } });
   });
-  await page.goto('/account');
+  await page.goto('/account#active-sessions');
   const sessions = page.getByRole('region', { name: 'Active sessions', exact: true });
   await sessions.getByRole('button', { name: /Personal laptop/ }).click();
   const rename = sessions.getByRole('button', { name: 'Rename device', exact: true });
@@ -140,7 +141,7 @@ test('deletion focuses confirmation and never offers a false cancellation during
   page,
 }) => {
   await account(page);
-  await page.goto('/account');
+  await page.goto('/account#account-data');
   const danger = page.getByRole('region', { name: 'Danger zone', exact: true });
   const open = danger.getByRole('button', { name: 'Delete account', exact: true });
   await open.click();

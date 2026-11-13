@@ -1,4 +1,4 @@
-import { expect, test, type Page } from './fixtures';
+import { expect, test, openEmailSignIn, selectAccountSection, type Page } from './fixtures';
 import { linkEmailedTo } from './mail';
 
 /*
@@ -33,16 +33,18 @@ test('register, verify by the emailed link, sign out and back in', async ({ page
   const email = freshEmail();
 
   await signUp(page, email);
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
-  await expect(page.getByText(email, { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your apps' })).toBeVisible();
+  await expect(page.locator('.hub-identity').getByText(email, { exact: true })).toBeVisible();
 
   // A brand-new account has not proved its address yet, and the page says so.
+  await selectAccountSection(page, 'Profile');
   await expect(page.getByText('unverified')).toBeVisible();
 
   await page.goto(await linkEmailedTo(email, '/verify-email'));
   await expect(page.getByText('Your email is verified. Nothing else to do.')).toBeVisible();
 
   await page.goto('/account');
+  await selectAccountSection(page, 'Profile');
   await expect(page.getByText('verified', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Log out' }).click();
@@ -55,22 +57,25 @@ test('register, verify by the emailed link, sign out and back in', async ({ page
   await page.goto('/account');
   await expect(page).toHaveURL(/\/login/);
 
+  await openEmailSignIn(page);
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Log in' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your apps' })).toBeVisible();
   // Verified once, still verified: confirming survives signing out.
+  await selectAccountSection(page, 'Profile');
   await expect(page.getByText('verified', { exact: true })).toBeVisible();
 });
 
 test('a wrong password says so and signs nobody in', async ({ page }) => {
   const email = freshEmail();
   await signUp(page, email);
-  await expect(page.getByRole('heading', { name: 'Your account' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your apps' })).toBeVisible();
   await page.getByRole('button', { name: 'Log out' }).click();
   await expect(page).toHaveURL(/\/login/);
 
+  await openEmailSignIn(page);
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill('not the password');
   await page.getByRole('button', { name: 'Log in' }).click();

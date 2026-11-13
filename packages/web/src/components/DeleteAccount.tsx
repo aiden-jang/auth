@@ -60,7 +60,7 @@ export function DeleteAccount({
     const url = new URL(window.location.href);
     if (url.searchParams.has('delete')) {
       url.searchParams.delete('delete');
-      if (url.hash === '#delete-account') url.hash = '';
+      if (url.hash === '#delete-account') url.hash = 'account-data';
       window.history.replaceState(window.history.state, '', url);
     }
     setShowDelete(false);

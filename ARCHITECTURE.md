@@ -36,7 +36,10 @@ into the Worker.
 
 ## UI ownership
 
-`AccountPage` composes the signed-in hub. `AccountProfile` owns editing, copying, and verification
+`AccountPage` composes the signed-in hub. `useAccountNavigation` selects a section from the URL hash;
+`AccountNavigation` owns section links and heading focus. Inactive sections stay mounted so switching
+views does not discard drafts. `RecentAccounts` lets returning visitors choose an address before
+choosing a sign-in method; remembering an address never authenticates it. `AccountProfile` owns editing, copying, and verification
 feedback; `PasswordSection`, `ConnectedAccounts`, `PasskeyList`, `SessionList`, `ExportAccount`, and
 `DeleteAccount` own their respective interactions. `useSessions` shares the device list with the
 security-review banner so revocation cannot leave two conflicting lists on screen.
@@ -58,7 +61,8 @@ path. A failed request never manufactures an empty list or a successful credenti
 
 `lib/returnTo.ts` validates redirects; the server enforces the matching boundary in `auth/google.ts`.
 Return context survives sign-in and email flows, including password-manager links. App colors and
-labels come from the verified registry, scoped to the authentication card rather than the hub.
+labels come from the verified registry and identify the destination. Primary actions use the shared
+Accounts blue. `AppMark` maps known app names to bundled icons and uses a letter for unknown names.
 
 ## Validation and deployment
 

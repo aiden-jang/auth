@@ -48,7 +48,7 @@ test('a stale device refresh cannot undo a completed sign-out or rename', async 
     sessions = sessions.map((session) => ({ ...session, device: 'Personal laptop' }));
     return route.fulfill({ json: { session: { id: 'current', device: 'Personal laptop' } } });
   });
-  await page.goto('/account');
+  await page.goto('/account#active-sessions');
   const section = page.getByRole('region', { name: 'Active sessions' });
   await expect(section.getByRole('button', { name: /Other laptop/ })).toBeVisible();
   for (const action of ['sign-out', 'rename']) {

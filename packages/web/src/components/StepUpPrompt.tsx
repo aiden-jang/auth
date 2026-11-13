@@ -209,7 +209,7 @@ function StepUpDialog({
         aria-modal="true"
         aria-labelledby="stepup-title"
         aria-describedby="stepup-why"
-        className="max-h-full w-full min-w-0 max-w-sm overflow-y-auto overscroll-contain rounded-2xl border border-line bg-card p-4 shadow-2xl shadow-black/60 sm:p-6"
+        className="max-h-full w-full min-w-0 max-w-sm overflow-y-auto overscroll-contain rounded-2xl border border-line bg-card p-4 step-up-panel sm:p-6"
       >
         <h2 id="stepup-title" className="text-lg font-semibold">
           Quick check, is this you?

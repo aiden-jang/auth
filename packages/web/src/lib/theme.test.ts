@@ -66,7 +66,7 @@ describe('every app in the launcher', () => {
 
   it('leaves accents alone when they already read on the card', () => {
     for (const { name, accent } of APP_ACCENTS) {
-      if (contrast(accent, CARD) >= 4.5)
+      if (contrast(accent, CARD) >= 4.5 && contrast(accent, CANVAS) >= 4.5)
         expect(themeFor({ name, accent }).accent, name).toBe(accent);
     }
   });
@@ -105,19 +105,19 @@ describe('choosing a theme', () => {
     expect(themeFor(app).accent).not.toBe(themeFor(null).accent);
   });
 
-  // No accent in APPS reaches the lightening path, so it is the code most likely to be wrong when a
+  // No accent in APPS reaches the darkening path, so it is the code most likely to be wrong when a
   // future app finally needs it. Forced here with colours nobody uses.
-  it('raises a too-dark accent until it can be read', () => {
-    const deep = themeFor({ name: 'deep', accent: '#1a2340' });
-    expect(contrast('#1a2340', CARD)).toBeLessThan(4.5); // the premise
+  it('lowers a pale accent until it can be read', () => {
+    const deep = themeFor({ name: 'pale', accent: '#f4f6fa' });
+    expect(contrast('#f4f6fa', CARD)).toBeLessThan(4.5); // the premise
     expect(contrast(deep.accent, CARD)).toBeGreaterThanOrEqual(4.5);
-    expect(deep.accent).not.toBe('#1a2340');
+    expect(deep.accent).not.toBe('#f4f6fa');
   });
 
-  it('gets even black to readable rather than giving up part-way', () => {
+  it('gets even white to readable rather than giving up part-way', () => {
     // The loop is bounded, so the bound has to be enough for the worst input rather than nearly enough.
     expect(
-      contrast(themeFor({ name: 'void', accent: '#000000' }).accent, CARD),
+      contrast(themeFor({ name: 'pale', accent: '#ffffff' }).accent, CARD),
     ).toBeGreaterThanOrEqual(4.5);
   });
 

@@ -31,9 +31,9 @@ export function contrast(a: Hex, b: Hex): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-export const CANVAS: Hex = '#14171c';
-export const CARD: Hex = '#1d222a';
-const HOUSE_ACCENT: Hex = '#aacbfa';
+export const CANVAS: Hex = '#f2f4f8';
+export const CARD: Hex = '#ffffff';
+const HOUSE_ACCENT: Hex = '#315fc4';
 
 const INK: Hex = '#14171c';
 const PAPER: Hex = '#ffffff';
@@ -50,11 +50,15 @@ function mix(from: Hex, to: Hex, amount: number): Hex {
   return `#${hex(blend(ar, br))}${hex(blend(ag, bg))}${hex(blend(ab, bb))}`;
 }
 
-/** Each APPS accent was picked against its own app's background, so a deep one can fail AA here. */
+/** Each APPS accent was picked against its own app's background, so a pale one can fail AA here. */
 function legibleOnCard(accent: Hex): Hex {
   let candidate = accent;
-  for (let step = 0; step < 20 && contrast(candidate, CARD) < 4.5; step += 1) {
-    candidate = mix(candidate, PAPER, 0.08);
+  for (
+    let step = 0;
+    step < 20 && (contrast(candidate, CARD) < 4.5 || contrast(candidate, CANVAS) < 4.5);
+    step += 1
+  ) {
+    candidate = mix(candidate, INK, 0.08);
   }
   return candidate;
 }

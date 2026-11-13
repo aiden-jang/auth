@@ -101,7 +101,6 @@ export function AccountProfile({
 
   return (
     <section id="account-profile" className="hub-section" aria-label="Profile">
-      <h2>Profile</h2>
       <dl className="hub-profile text-sm">
         {editingName ? (
           <div className="hub-profile-edit">

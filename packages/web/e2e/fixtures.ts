@@ -1,4 +1,4 @@
-import { test as base } from '@playwright/test';
+import { expect, test as base, type Page } from '@playwright/test';
 
 /*
  * A distinct client address per test, because rate limits key on cf-connecting-ip and local dev
@@ -23,5 +23,19 @@ export const test = base.extend({
     await use(context);
   },
 });
+
+export async function openEmailSignIn(page: Page): Promise<void> {
+  await expect(page.locator('main h1')).toBeVisible();
+  const another = page.getByRole('button', { name: 'Use another account', exact: true });
+  if (await another.isVisible()) await another.click();
+  await expect(page.getByLabel('Email', { exact: true })).toBeVisible();
+}
+
+export async function selectAccountSection(page: Page, name: string): Promise<void> {
+  await page
+    .getByRole('navigation', { name: 'Account sections' })
+    .getByRole('link', { name, exact: true })
+    .click();
+}
 
 export { expect, type Page } from '@playwright/test';

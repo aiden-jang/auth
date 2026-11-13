@@ -16,6 +16,7 @@ import { Turnstile, turnstileEnabled } from '../components/Turnstile';
 import { useTurnstile } from '../lib/useTurnstile';
 import { GoogleSignIn } from '../components/GoogleSignIn';
 import { PasskeySignIn } from '../components/PasskeySignIn';
+import { RecentAccounts } from '../components/RecentAccounts';
 import { passkeyAutofillAvailable, signInWithPasskey } from '../lib/passkeys';
 import { reassurance } from '../lib/reassurance';
 import { welcomeLine } from '../lib/welcome';
@@ -24,7 +25,6 @@ import {
   forgetRecentAccount,
   maskEmail,
   readRecentAccounts,
-  recentAccountTimeLabel,
   rememberRecentAccount,
 } from '../lib/recentAccount';
 
@@ -35,6 +35,14 @@ export function LoginPage(): ReactNode {
   const returnApp = returnAppFor(returnTo);
   const carriedEmail = (location.state as { email?: unknown } | null)?.email;
   const [recentAccounts, setRecentAccounts] = useState(readRecentAccounts);
+  const [step, setStep] = useState<'choose' | 'methods' | 'email'>(() =>
+    typeof carriedEmail === 'string' || recentAccounts.length === 0 ? 'email' : 'choose',
+  );
+  const previousStep = useRef(step);
+  useEffect(() => {
+    if (previousStep.current !== step) document.querySelector<HTMLElement>('main h1')?.focus();
+    previousStep.current = step;
+  }, [step]);
   const [greeting] = useState(() => welcomeLine(readRecentAccounts()));
   const recentEmail = recentAccounts[0]?.email ?? null;
   const [email, setEmail] = useState(
@@ -98,205 +106,182 @@ export function LoginPage(): ReactNode {
     }
   }
 
+  const passwordForm = (
+    <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
+      <div>
+        <label htmlFor="email" className={labelClass}>
+          Email
+        </label>
+        <input
+          id="email"
+          name="email"
+          className={inputClass}
+          type="email"
+          autoComplete="email webauthn"
+          inputMode="email"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            setError(null);
+          }}
+          required
+          autoFocus={step === 'email'}
+        />
+        <EmailSuggestion
+          value={email}
+          onAccept={(value) => {
+            setEmail(value);
+            setError(null);
+          }}
+        />
+      </div>
+
+      <div>
+        <div className="mb-1.5 flex items-baseline justify-between">
+          <label htmlFor="password" className="text-sm font-medium text-muted">
+            Password
+          </label>
+          <Link
+            to={withReturn('/forgot-password')}
+            state={{ email }}
+            className="text-xs text-muted hover:text-ink"
+          >
+            Forgot password?
+          </Link>
+        </div>
+        <PasswordInput
+          id="password"
+          name="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(value) => {
+            setPassword(value);
+            setError(null);
+          }}
+          required
+        />
+      </div>
+
+      <Turnstile onToken={turnstile.setToken} resetSignal={turnstile.resetSignal} />
+
+      <button className={buttonClass} disabled={loading || (turnstileEnabled && !turnstile.token)}>
+        {loading ? 'Signing in…' : 'Log in'}
+      </button>
+      {loading && (
+        <p role="status" className="text-center text-xs text-muted">
+          {reassurance('password-login')}
+        </p>
+      )}
+    </form>
+  );
+
+  const chooseAnotherAccount = () => {
+    setEmail('');
+    setPassword('');
+    setError(null);
+    setStep('email');
+  };
+  const heading =
+    step === 'choose'
+      ? 'Choose your account'
+      : step === 'methods'
+        ? 'Welcome back'
+        : returnApp
+          ? `Continue to ${returnApp.name}`
+          : 'Sign in';
+  const footer =
+    step === 'choose' || step === 'methods' ? (
+      <button type="button" disabled={loading} onClick={chooseAnotherAccount}>
+        Use another account
+      </button>
+    ) : (
+      <p>
+        New here?{' '}
+        <Link to={withReturn('/signup')} state={{ email }}>
+          Create an account
+        </Link>
+      </p>
+    );
+
   return (
     <AuthCard
-      title="Welcome back"
-      {...(!returnApp ? { subtitle: greeting } : {})}
+      title={heading}
+      subtitle={
+        step === 'choose'
+          ? 'Remembered only on this device.'
+          : returnApp
+            ? 'Sign in with your aidenjang account.'
+            : greeting
+      }
       returnApp={returnApp}
       header={
-        <p>
-          First time here?{' '}
-          <Link to={withReturn('/signup')} state={{ email }}>
-            Create an account
-          </Link>
-        </p>
+        <Link to={withReturn('/signup')} state={{ email }}>
+          Create an account
+        </Link>
       }
+      footer={footer}
     >
-      <>
-        {/* Above Google and the form: nothing to type, and nothing on our side worth stealing. */}
-        <PasskeySignIn returnTo={returnTo} />
-        <GoogleSignIn returnTo={returnTo} />
-        {recentAccounts.length > 0 && (
-          <section aria-labelledby="recent-accounts-heading" className="mb-4">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <h2
-                id="recent-accounts-heading"
-                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted"
-              >
-                Recent on this device
-              </h2>
-              <span className="text-[10px] text-muted">stored only here</span>
-            </div>
-            <ul className="space-y-1.5">
-              {recentAccounts.map((account) => {
-                const selected = email.trim().toLowerCase() === account.email;
-                return (
-                  <li
-                    key={account.email}
-                    className={`flex items-center gap-2 rounded-xl border p-1.5 transition ${
-                      selected ? 'border-accent/35 bg-accent/10' : 'border-line bg-field'
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEmail(account.email);
-                        setPassword('');
-                        setError(null);
-                      }}
-                      className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1.5 text-left"
-                      aria-label={`Continue as ${account.email}`}
-                    >
-                      <span
-                        aria-hidden
-                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent/15 text-xs font-bold uppercase text-accent"
-                      >
-                        {account.email.split('@')[0]?.slice(0, 2) || '?'}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <strong className="block truncate text-sm font-semibold text-ink">
-                          {maskEmail(account.email)}
-                        </strong>
-                        <small className="block text-[10px] text-muted">
-                          {recentAccountTimeLabel(account.lastUsedAt)}
-                        </small>
-                      </span>
-                      <span
-                        aria-hidden
-                        className={`text-sm ${selected ? 'text-accent' : 'text-muted'}`}
-                      >
-                        {selected ? '✓' : '→'}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        forgetRecentAccount(account.email);
-                        const next = readRecentAccounts();
-                        setRecentAccounts(next);
-                        if (selected) {
-                          setEmail(next[0]?.email ?? '');
-                          setPassword('');
-                          setError(null);
-                        }
-                      }}
-                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted transition hover:bg-card hover:text-ink"
-                      aria-label={`Forget ${account.email} on this device`}
-                    >
-                      ×
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+      {error && (
+        <p
+          role="alert"
+          className="mb-4 rounded-lg border border-neg/30 bg-neg/10 px-3 py-2 text-sm font-medium text-neg"
+        >
+          {error}
+        </p>
+      )}
+      {step === 'choose' ? (
+        <RecentAccounts
+          accounts={recentAccounts}
+          onChoose={(chosen) => {
+            setEmail(chosen);
+            setPassword('');
+            setError(null);
+            setStep('methods');
+          }}
+          onForget={(forgotten) => {
+            forgetRecentAccount(forgotten);
+            const next = readRecentAccounts();
+            setRecentAccounts(next);
+            if (!next.length) chooseAnotherAccount();
+          }}
+        />
+      ) : step === 'methods' ? (
+        <>
+          <div className="chosen-account">
+            <span className="account-avatar" aria-hidden>
+              {email.slice(0, 2)}
+            </span>
+            <strong>{maskEmail(email)}</strong>
             <button
               type="button"
+              disabled={loading}
               onClick={() => {
-                setEmail('');
                 setPassword('');
                 setError(null);
-                window.setTimeout(() => document.getElementById('email')?.focus(), 0);
+                setStep('choose');
               }}
-              className="mt-2 text-xs font-medium text-accent hover:underline"
             >
-              Use another account
+              Change
             </button>
-          </section>
-        )}
-        <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
-          <div>
-            <label htmlFor="email" className={labelClass}>
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              className={inputClass}
-              type="email"
-              autoComplete="email webauthn"
-              inputMode="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setError(null);
-              }}
-              required
-              autoFocus
-            />
-            <EmailSuggestion
-              value={email}
-              onAccept={(value) => {
-                setEmail(value);
-                setError(null);
-              }}
-            />
           </div>
-
-          <div>
-            <div className="mb-1.5 flex items-baseline justify-between">
-              <label htmlFor="password" className="text-sm font-medium text-muted">
-                Password
-              </label>
-              <Link
-                to={withReturn('/forgot-password')}
-                state={{ email }}
-                className="text-xs text-muted hover:text-ink"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <PasswordInput
-              id="password"
-              name="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(value) => {
-                setPassword(value);
-                setError(null);
-              }}
-              required
-            />
-          </div>
-
-          {error && (
-            <p
-              role="alert"
-              className="rounded-lg border border-neg/30 bg-neg/10 px-3 py-2 text-sm font-medium text-neg"
-            >
-              {error}
-            </p>
-          )}
-
-          <Turnstile onToken={turnstile.setToken} resetSignal={turnstile.resetSignal} />
-
-          <button
-            className={buttonClass}
-            disabled={loading || (turnstileEnabled && !turnstile.token)}
-          >
-            {loading ? 'Signing in…' : 'Log in'}
-          </button>
-          {loading && (
-            <p role="status" className="text-center text-xs text-muted">
-              {reassurance('password-login')}
-            </p>
-          )}
-        </form>
-
-        <p className="auth-switch-mobile mt-5 text-center text-sm text-muted">
-          First time here?{' '}
-          <Link
-            to={withReturn('/signup')}
-            state={{ email }}
-            className="font-medium text-accent hover:underline"
-          >
-            Create an account
-          </Link>
-        </p>
-      </>
+          <PasskeySignIn returnTo={returnTo} />
+          <GoogleSignIn returnTo={returnTo} divider={false} />
+          <details className="password-option">
+            <summary>Use your password</summary>
+            {passwordForm}
+          </details>
+        </>
+      ) : (
+        <>
+          <PasskeySignIn returnTo={returnTo} />
+          <GoogleSignIn returnTo={returnTo} />
+          {passwordForm}
+        </>
+      )}
     </AuthCard>
   );
 }
