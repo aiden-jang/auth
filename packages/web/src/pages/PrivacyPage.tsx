@@ -3,7 +3,7 @@ import { LegalLayout, Section } from '../components/LegalLayout';
 
 export function PrivacyPage(): ReactNode {
   return (
-    <LegalLayout title="Privacy Policy" updated="November 10, 2026">
+    <LegalLayout title="Privacy Policy" updated="November 14, 2026">
       <p>
         Aiden Jang builds a small collection of personal apps under the name aidenjang. This is what
         they store, why, and who else sees it. Written to actually be read, because a privacy policy
@@ -89,6 +89,28 @@ export function PrivacyPage(): ReactNode {
             feature-use counts.
           </li>
         </ul>
+      </Section>
+
+      <Section heading="Location in Everything is fine">
+        <p>
+          Everything is fine can start the globe and map near your approximate area. Cloudflare
+          supplies an estimate from your network connection; your browser receives only latitude and
+          longitude rounded to 0.1 degree, not your IP address or city name. This estimate can be
+          wrong. An existing shared view, saved view, or your own camera movement takes priority.
+        </p>
+        <p>
+          Device location is optional. We request it only when you choose the location button and
+          your browser permits access. The coordinates are rounded on your device to 0.1 degree
+          before being used to frame the globe or map; precise device coordinates are not saved. You
+          can revoke permission in your browser’s site settings and explore without it.
+        </p>
+        <p>
+          We do not continuously track you, store these location estimates in an app database, or
+          include them in our analytics. The chosen camera coordinates can appear after the # in the
+          page address and in a shared view link, so sharing that link can reveal the area you are
+          viewing. You can move the view before sharing. Cloudflare still processes the connection
+          and ordinary request information described elsewhere in this policy.
+        </p>
       </Section>
 
       <Section heading="Cookies and analytics">
