@@ -1,5 +1,18 @@
 import { test, expect } from './fixtures';
 
+for (const [path, anchor, heading] of [
+  ['/privacy', 'legal-location-in-everything-is-fine', 'Location in Everything is fine'],
+  ['/terms', 'legal-questions', 'Questions'],
+]) {
+  test(`${heading} direct link reaches its section on load and reload`, async ({ page }) => {
+    await page.goto(`${path}#${anchor}`);
+    const target = page.getByRole('heading', { name: heading, exact: true });
+    await expect(target).toBeInViewport();
+    await page.reload();
+    await expect(target).toBeInViewport();
+  });
+}
+
 for (const [path, title, heading] of [
   ['/privacy', 'Privacy Policy', 'Children and changes'],
   ['/terms', 'Terms of Service', 'Questions'],

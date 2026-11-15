@@ -13,7 +13,7 @@ import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 
 export function App(): ReactNode {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const previousPath = useRef(pathname);
   usePageAnalytics(pageForPath(pathname), pathname);
   useLayoutEffect(() => {
@@ -25,14 +25,20 @@ export function App(): ReactNode {
     };
   }, []);
   useLayoutEffect(() => {
-    if (previousPath.current === pathname) return;
+    const changedPath = previousPath.current !== pathname;
     previousPath.current = pathname;
+    const anchor = hash ? document.getElementById(hash.slice(1)) : null;
+    if (anchor) {
+      anchor.scrollIntoView({ block: 'start', behavior: 'instant' });
+      return;
+    }
+    if (!changedPath) return;
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     // Keep a form's autofocus; document routes need their new heading announced instead.
     if (!document.activeElement?.matches('main input, main textarea, main select')) {
       document.querySelector<HTMLHeadingElement>('main h1')?.focus({ preventScroll: true });
     }
-  }, [pathname]);
+  }, [pathname, hash]);
   useEffect(() => {
     const titles: Record<string, string> = {
       '/login': 'Sign in',
