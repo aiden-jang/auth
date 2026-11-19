@@ -9,17 +9,17 @@ For the identity service itself, see [Accounts architecture](ARCHITECTURE.md),
 
 ## Applications and storage
 
-| App                | Identity and access                                                   | Runtime and storage                                                                               |
-| ------------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| Accounts (`auth`)  | Passwords, Google and passkeys; shared session                        | Worker, D1 identity/session records, Durable Object rate limits                                   |
-| owewell            | Accounts for saved groups; public calculator and limited shared views | Worker, D1 ledger and live-group Durable Objects                                                  |
-| Bloomnote          | Anonymous gift links; Accounts for the connected archive              | Worker, KV gardens, Durable Object counters                                                       |
-| mrrp               | Private room/seat credentials; optional Accounts connection           | Worker and a Durable Object per room with durable state                                           |
-| Worth              | Accounts for the private archive; explicit reviewed shares            | Worker, D1 records and private media                                                              |
-| Wherever           | Room/participant credentials independent of Accounts                  | Worker, session Durable Objects, D1 and usage meters                                              |
-| iguess             | Room/player reconnect credentials independent of Accounts             | Game Durable Objects with expiring checkpoints and a separate vision Worker                       |
-| Everything Is Fine | Public, no account                                                    | Browser-rendered globe and direct public feeds; static assets and a small aggregate-events Worker |
-| Portfolio          | Public, no account                                                    | Static Vite site on Vercel, with browser-rendered 3D                                              |
+| App               | Identity and access                                                   | Runtime and storage                                                                               |
+| ----------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Accounts (`auth`) | Passwords, Google and passkeys; shared session                        | Worker, D1 identity/session records, Durable Object rate limits                                   |
+| owewell           | Accounts for saved groups; public calculator and limited shared views | Worker, D1 ledger and live-group Durable Objects                                                  |
+| Bloomnote         | Anonymous gift links; Accounts for the connected archive              | Worker, KV gardens, Durable Object counters                                                       |
+| mrrp              | Private room/seat credentials; optional Accounts connection           | Worker and a Durable Object per room with durable state                                           |
+| Worth             | Accounts for the private archive; explicit reviewed shares            | Worker, D1 records and private media                                                              |
+| Wherever          | Room/participant credentials independent of Accounts                  | Worker, session Durable Objects, D1 and usage meters                                              |
+| iguess            | Room/player reconnect credentials independent of Accounts             | Game Durable Objects with expiring checkpoints and a separate vision Worker                       |
+| meanwhile.        | Public, no account                                                    | Browser-rendered globe and direct public feeds; static assets and a small aggregate-events Worker |
+| Portfolio         | Public, no account                                                    | Static Vite site on Vercel, with browser-rendered 3D                                              |
 
 Each repository's README and architecture document own its current feature details. Real provider
 calls, AI recognition, geocoding and mail have their own configuration and provider limits;
