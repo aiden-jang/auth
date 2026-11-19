@@ -91,12 +91,13 @@ export function PrivacyPage(): ReactNode {
         </ul>
       </Section>
 
-      <Section heading="Location in Everything is fine">
+      <Section heading="Location in meanwhile." id="legal-location-in-everything-is-fine">
         <p>
-          Everything is fine can start the globe and map near your approximate area. Cloudflare
-          supplies an estimate from your network connection; your browser receives only latitude and
-          longitude rounded to 0.1 degree, not your IP address or city name. This estimate can be
-          wrong. An existing shared view, saved view, or your own camera movement takes priority.
+          The meanwhile. observatory can start the globe and map near your approximate area.
+          Cloudflare supplies an estimate from your network connection; your browser receives only
+          latitude and longitude rounded to 0.1 degree, not your IP address or city name. This
+          estimate can be wrong. An existing shared view, saved view, or your own camera movement
+          takes priority.
         </p>
         <p>
           Device location is optional. We request it only when you choose the location button and

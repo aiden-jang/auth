@@ -6,7 +6,7 @@ const icons: Record<string, string> = {
   owewell: 'owewell',
   wherever: 'wherever',
   iguess: 'iguess',
-  'everything is fine': 'everythingisfine',
+  'meanwhile.': 'everythingisfine',
 };
 
 export function AppMark({ name }: { name: string }): ReactNode {

@@ -33,7 +33,7 @@ Cloudflare plan can still inject the script, but the browser must refuse to run 
 bucket. No URL, query, fragment, note, name or account identifier is sent in these events.
 
 The public portfolio keeps Vercel Analytics/Speed Insights, with URLs normalized to
-its home page. The public everythingisfine globe keeps Cloudflare Web Analytics and
+its home page. The public meanwhile. globe keeps Cloudflare Web Analytics and
 adds fixed usage events to Analytics Engine; its permalink fragments are not collected
 by the Cloudflare beacon. Do not inject a second traffic beacon.
 
@@ -48,21 +48,21 @@ service such as [UptimeRobot](https://uptimerobot.com/pricing/) supports keyword
 checks every five minutes. Use both a successful HTTP response and the expected
 content below: a wrong health path can return the SPA with status 200.
 
-| App              | Monitor URL                                 | Keyword                 |
-| ---------------- | ------------------------------------------- | ----------------------- |
-| auth             | `https://accounts.aidenjang.com/health`     | `"service":"auth"`      |
-| worth            | `https://worth.aidenjang.com/api/health`    | `"status":"ok"`         |
-| bloomnote        | `https://bloomnote.aidenjang.com/health`    | `"service":"bloomnote"` |
-| iguess           | `https://iguess.aidenjang.com/health`       | `"service":"iguess"`    |
-| owewell          | `https://owewell.aidenjang.com/health`      | `"service":"owewell"`   |
-| wherever         | `https://wherever.aidenjang.com/api/health` | `"source":"google"`     |
-| mrrp             | `https://mrrp.aidenjang.com/api/health`     | `"ok":true`             |
-| everythingisfine | `https://everythingisfine.aidenjang.com/`   | `Everything Is Fine`    |
-| portfolio        | `https://www.aidenjang.com/`                | `Aiden Jang`            |
+| App        | Monitor URL                                 | Keyword                 |
+| ---------- | ------------------------------------------- | ----------------------- |
+| auth       | `https://accounts.aidenjang.com/health`     | `"service":"auth"`      |
+| worth      | `https://worth.aidenjang.com/api/health`    | `"status":"ok"`         |
+| bloomnote  | `https://bloomnote.aidenjang.com/health`    | `"service":"bloomnote"` |
+| iguess     | `https://iguess.aidenjang.com/health`       | `"service":"iguess"`    |
+| owewell    | `https://owewell.aidenjang.com/health`      | `"service":"owewell"`   |
+| wherever   | `https://wherever.aidenjang.com/api/health` | `"source":"google"`     |
+| mrrp       | `https://mrrp.aidenjang.com/api/health`     | `"ok":true`             |
+| meanwhile. | `https://meanwhile.aidenjang.com/`          | `meanwhile.`            |
+| portfolio  | `https://www.aidenjang.com/`                | `Aiden Jang`            |
 
 The path is not uniform, and that is not an oversight: wherever and mrrp serve everything under
 `/api/*` and their health sits there, while `/health` at the root would be answered by the SPA
-fallback. everythingisfine has no data API (its Worker only accepts aggregate analytics), so its page is the only thing to check.
+fallback. The meanwhile. homepage check verifies that the public observatory is reachable.
 
 wherever's keyword is deliberately `"source":"google"` rather than `"ok":true`. It reports `mock`
 when the Places key is missing. This verifies the configured source, not that a

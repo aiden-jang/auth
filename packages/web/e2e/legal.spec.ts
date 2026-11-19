@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures';
 
 for (const [path, anchor, heading] of [
-  ['/privacy', 'legal-location-in-everything-is-fine', 'Location in Everything is fine'],
+  ['/privacy', 'legal-location-in-everything-is-fine', 'Location in meanwhile.'],
   ['/terms', 'legal-questions', 'Questions'],
 ]) {
   test(`${heading} direct link reaches its section on load and reload`, async ({ page }) => {

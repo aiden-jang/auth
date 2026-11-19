@@ -18,12 +18,12 @@ export function LegalLayout({
   children: ReactNode;
 }): ReactNode {
   const headings = Children.toArray(children).flatMap((child) =>
-    isValidElement<{ heading: string }>(child) && child.type === Section
-      ? [child.props.heading]
+    isValidElement<{ heading: string; id?: string }>(child) && child.type === Section
+      ? [child.props]
       : [],
   );
-  const links = headings.map((heading) => (
-    <a href={`#${sectionId(heading)}`} key={heading}>
+  const links = headings.map(({ heading, id = sectionId(heading) }) => (
+    <a href={`#${id}`} key={id}>
       {heading}
     </a>
   ));
@@ -52,13 +52,15 @@ export function LegalLayout({
 
 export function Section({
   heading,
+  id = sectionId(heading),
   children,
 }: {
   heading: string;
+  id?: string;
   children: ReactNode;
 }): ReactNode {
   return (
-    <section id={sectionId(heading)}>
+    <section id={id}>
       <h2>{heading}</h2>
       {children}
     </section>

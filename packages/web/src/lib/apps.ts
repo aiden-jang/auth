@@ -60,9 +60,9 @@ export const APPS: AppLink[] = [
     accent: '#a855f7',
   },
   {
-    name: 'everything is fine',
+    name: 'meanwhile.',
     tagline: 'quakes, storms and aurora, live',
-    url: 'https://everythingisfine.aidenjang.com',
+    url: 'https://meanwhile.aidenjang.com',
     devUrl: 'http://localhost:31600',
     // Nearly grey on purpose. The app's whole palette is desaturated; there is no brighter hue.
     accent: '#5b8fb0',
